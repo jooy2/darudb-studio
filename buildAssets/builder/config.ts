@@ -49,6 +49,9 @@ const config: Configuration = {
   ],
   mac: {
     files: otherBinaries('darwin'),
+    // Each darudb binary is for one architecture, and both are in both builds
+    // a universal app is merged from, so the merge keeps them as they are
+    x64ArchFiles: 'Contents/Resources/app.asar.unpacked/node_modules/@darudb/darudb-darwin-*/*.node',
     bundleVersion: '1.0',
     hardenedRuntime: true,
     gatekeeperAssess: false,
@@ -104,6 +107,10 @@ const config: Configuration = {
         arch: 'x64'
       }
     ]
+  },
+  appx: {
+    // A Store app's id takes letters and digits only
+    applicationId: 'DaruDBStudio',
   },
   portable: {
     artifactName: '${productName} ${version}_${arch} Portable.${ext}'
