@@ -1,4 +1,4 @@
-import { keyOf, keyText, type Row, type SchemaCollection } from '@/common/data';
+import { keyOf, keyText, type Key, type Row, type SchemaCollection } from '@/common/data';
 import type { GridRow } from '@/renderer/components/grid/DataGrid';
 import type { PendingView } from '@/renderer/project/pending';
 
@@ -33,3 +33,7 @@ export const newRow = ({ id, object }: { id: string; object: Row }): GridRow => 
   state: 'new',
   changed: new Set(Object.keys(object)),
 });
+
+/* The keys of the rows that are in the file, leaving out the ones still to be inserted */
+export const keysOf = (rows: readonly GridRow[]): Key[] =>
+  rows.flatMap((row) => ('key' in row.target ? [row.target.key] : []));

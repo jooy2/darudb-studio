@@ -11,6 +11,7 @@ import { openExternalLink } from './security';
 import { noticesFile } from './constants';
 import { reportWindowState, takeRestore } from './workspace';
 import { changePassword, rescueOpenProject, rescueProject } from './tools';
+import { exportObjects, importObjects } from './transfer';
 import WindowManager from './WindowManager';
 import AppMenu from './AppMenu';
 import { getSettings, updateSettings, validSettingChanges } from './settings';
@@ -303,6 +304,33 @@ export default class IPCs {
       }
 
       return result;
+    });
+
+    handle(mainChannels.exportObjects, (event, request, title) => {
+      const database = databaseOf(event);
+
+      return database
+        ? exportObjects(
+            database,
+            BrowserWindow.fromWebContents(event.sender),
+            request,
+            String(title),
+          )
+        : noProject;
+    });
+
+    handle(mainChannels.importObjects, (event, collection, mode, title) => {
+      const database = databaseOf(event);
+
+      return database
+        ? importObjects(
+            database,
+            BrowserWindow.fromWebContents(event.sender),
+            collection,
+            mode,
+            String(title),
+          )
+        : noProject;
     });
 
     handle(mainChannels.changePassword, (event, password) => {

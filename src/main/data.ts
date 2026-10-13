@@ -42,7 +42,7 @@ import { errorOf } from './files';
 const MAX_PAGE_SIZE = 1000;
 
 /* A request that cannot be run as it is, which a window gets back as an `INVALID_ARGUMENT` */
-class InvalidRequest extends Error {
+export class InvalidRequest extends Error {
   code = 'INVALID_ARGUMENT';
 }
 
@@ -100,7 +100,7 @@ export const schemaOf = (database: Database): DatabaseSchema | null => {
   };
 };
 
-const collectionOf = (database: Database, name: unknown): SchemaCollection => {
+export const collectionOf = (database: Database, name: unknown): SchemaCollection => {
   const collection = schemaOf(database)?.collections.find((each) => each.name === name);
 
   if (!collection) {
@@ -124,18 +124,10 @@ const isSortable = (collection: SchemaCollection, field: string): boolean => {
 const isCount = (value: unknown, max = Number.MAX_SAFE_INTEGER): value is number =>
   Number.isSafeInteger(value) && (value as number) >= 0 && (value as number) <= max;
 
-/* The text of the query a page of the grid runs: its filter, its sort and its window */
-const pageQuery = (collection: SchemaCollection, request: PageRequest): string => {
-  const { filter, sort, offset, limit } = request;
-
+/* The text of a query for the objects a filter finds, in the order a sort puts them */
+export const viewQuery = (collection: SchemaCollection, filter: unknown, sort: unknown): string => {
   if (typeof filter !== 'string' || !Array.isArray(sort)) {
-    throw new InvalidRequest('a page has a filter and a sort');
-  }
-
-  if (!isCount(offset) || !isCount(limit, MAX_PAGE_SIZE)) {
-    throw new InvalidRequest(
-      `a page starts at 0 or later and holds up to ${MAX_PAGE_SIZE} objects`,
-    );
+    throw new InvalidRequest('a view has a filter and a sort');
   }
 
   const order = sort.map(({ field, descending }) => {
@@ -148,14 +140,22 @@ const pageQuery = (collection: SchemaCollection, request: PageRequest): string =
     return descending ? `${quoted} DESC` : quoted;
   });
 
-  return [
-    filter.trim(),
-    order.length > 0 ? `SORT BY ${order.join(', ')}` : '',
-    `LIMIT ${limit}`,
-    `OFFSET ${offset}`,
-  ]
+  return [filter.trim(), order.length > 0 ? `SORT BY ${order.join(', ')}` : '']
     .filter(Boolean)
     .join(' ');
+};
+
+/* The text of the query a page of the grid runs: its view, and its window of it */
+const pageQuery = (collection: SchemaCollection, request: PageRequest): string => {
+  const { filter, sort, offset, limit } = request;
+
+  if (!isCount(offset) || !isCount(limit, MAX_PAGE_SIZE)) {
+    throw new InvalidRequest(
+      `a page starts at 0 or later and holds up to ${MAX_PAGE_SIZE} objects`,
+    );
+  }
+
+  return `${viewQuery(collection, filter, sort)} LIMIT ${limit} OFFSET ${offset}`.trim();
 };
 
 /* How many objects each collection of the file holds */
@@ -259,6 +259,7 @@ const checkChange = (database: Database, change: Change): Change => {
 
       return change;
     case 'insert':
+    case 'put':
       if (!isRow(change.object)) {
         throw new InvalidRequest('an insert gives an object');
       }
@@ -313,6 +314,8 @@ export const writeChanges = async (database: Database, changes: Change[]): Promi
         try {
           if (change.kind === 'insert') {
             written.push((await objects.insert(change.object)) as Key);
+          } else if (change.kind === 'put') {
+            written.push((await objects.put(change.object)) as Key);
           } else if (change.kind === 'update') {
             if (!(await objects.update(change.key, change.values))) {
               throw Object.assign(new Error('the object is no longer in the file'), {

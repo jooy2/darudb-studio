@@ -12,7 +12,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ArrowDown, ArrowUp, KeyRound, Zap } from 'lucide-react';
-import { PlContextMenu, PlMenuItem, PlMenuSeparator } from 'plass-ui';
+import { PlContextMenu, PlMenuItem, PlMenuSeparator, PlMenuSubmenu } from 'plass-ui';
 import { NestedValue, ScalarValue } from '@/renderer/components/grid/CellValue';
 import {
   columnsOf,
@@ -42,6 +42,7 @@ import {
 } from '@/common/values';
 import { useMenuModel } from '@/renderer/components/menu/MenuModelContext';
 import { acceleratorLabel } from '@/common/menu';
+import { transferFormats, type TransferFormat } from '@/common/transfer';
 import { keyText, type Row, type SchemaCollection, type SortKey, type Value } from '@/common/data';
 import type { ObjectTarget } from '@/renderer/store/slices/projectSlice';
 
@@ -73,6 +74,11 @@ interface DataGridProps {
   onDeleteRows: (rows: GridRow[]) => void;
   onViewValue: (row: GridRow, column: GridColumn) => void;
   onSelectionChange?: (count: number) => void;
+  /*
+   * Exports the selected rows, as many as the grid has read; `everything`
+   * when every row is selected, which the view itself exports better
+   * */
+  onExportRows?: (rows: GridRow[], format: TransferFormat, everything: boolean) => void;
   /* What the grid says when it has no rows */
   empty?: ReactNode;
   testId?: string;
@@ -136,6 +142,7 @@ export default function DataGrid({
   onDeleteRows,
   onViewValue,
   onSelectionChange = undefined,
+  onExportRows = undefined,
   empty = null,
   testId = 'data-grid',
 }: DataGridProps) {
@@ -697,6 +704,21 @@ export default function DataGrid({
       >
         {t('grid.copy-json', { count: selected })}
       </PlMenuItem>
+      {onExportRows && (
+        <PlMenuSubmenu
+          label={t('grid.export-selected', { count: selected })}
+          disabled={selected === 0}
+        >
+          {transferFormats.map((format) => (
+            <PlMenuItem
+              key={format}
+              onClick={() => onExportRows(selectedRows(COPY_LIMIT), format, selected === rowCount)}
+            >
+              {t(`toolbar.export-${format}`)}
+            </PlMenuItem>
+          ))}
+        </PlMenuSubmenu>
+      )}
       {!readOnly && (
         <>
           <PlMenuSeparator />

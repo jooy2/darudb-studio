@@ -984,3 +984,21 @@
   max-width: 28rem;
   gap: 0.5rem;
 }
+
+.import-problems {
+  display: grid;
+  max-height: 50vh;
+  gap: 0.25rem;
+  margin: 0;
+  overflow: auto;
+  padding: 0;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  list-style: none;
+  user-select: text;
+}
+
+.import-problems__record {
+  margin-right: 0.5rem;
+  color: var(--plass-muted-fg);
+}

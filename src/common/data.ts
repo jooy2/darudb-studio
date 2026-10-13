@@ -10,6 +10,7 @@
  * */
 
 import type { Project } from './projects';
+import type { ImportProblem, TransferFormat } from './transfer';
 
 /* A field's type, as the file's schema records it */
 export type FieldType =
@@ -96,6 +97,8 @@ export type CountsResult = Outcome<{ counts: Record<string, number> }>;
 export type Change =
   | { kind: 'update'; collection: string; key: Key; values: Row }
   | { kind: 'insert'; collection: string; object: Row }
+  /* Inserts the object, or replaces the one with its key */
+  | { kind: 'put'; collection: string; object: Row }
   | { kind: 'delete'; collection: string; key: Key };
 
 /*
@@ -161,6 +164,39 @@ export interface RescueReport {
 }
 
 export type ToolResult<Report> = Outcome<{ report: Report }> | { status: 'cancelled' };
+
+/* Which objects an export writes: what a grid shows, what a query finds, or the ones named */
+export type ExportSource =
+  | { kind: 'view'; filter: string; sort: SortKey[] }
+  | { kind: 'query'; text: string }
+  | { kind: 'keys'; keys: Key[] };
+
+export interface ExportRequest {
+  collection: string;
+  format: TransferFormat;
+  source: ExportSource;
+}
+
+/*
+ * How an import writes: `insert` adds every object and fails on a key the
+ * collection has; `put` replaces the object with the key instead
+ * */
+export const importModes = ['insert', 'put'] as const;
+
+export type ImportMode = (typeof importModes)[number];
+
+/* What an export wrote or an import read: the file, and how many objects */
+export interface TransferReport {
+  path: string;
+  count: number;
+}
+
+/*
+ * What an import ended in. `invalid` writes nothing, and lists the records
+ * that do not fit the collection.
+ * */
+export type ImportResult =
+  ToolResult<TransferReport> | { status: 'invalid'; path: string; problems: ImportProblem[] };
 
 /* The primary key of `row` in `collection` */
 export const keyOf = (collection: SchemaCollection, row: Row): Key => row[collection.key] as Key;

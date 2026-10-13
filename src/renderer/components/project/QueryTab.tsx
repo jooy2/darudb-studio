@@ -8,7 +8,8 @@ import ValueDialog from '@/renderer/components/grid/ValueDialog';
 import type { GridColumn } from '@/renderer/components/grid/columns';
 import { useMenuModel } from '@/renderer/components/menu/MenuModelContext';
 import useEditTexts from '@/renderer/components/project/useEditTexts';
-import { savedRow } from '@/renderer/project/gridRows';
+import useTransfer from '@/renderer/components/project/useTransfer';
+import { keysOf, savedRow } from '@/renderer/project/gridRows';
 import { viewOf } from '@/renderer/project/pending';
 import {
   deleteObjects,
@@ -35,6 +36,7 @@ export default function QueryTab({ tab, active }: { tab: WorkspaceTab; active: b
   const dispatch = useAppDispatch();
   const confirm = usePlConfirm();
   const texts = useEditTexts();
+  const transfer = useTransfer();
   const { platform } = useMenuModel();
   const collections = useAppSelector((state) => state.project.session?.schema?.collections ?? []);
   const revision = useAppSelector((state) => state.project.revision);
@@ -223,6 +225,16 @@ export default function QueryTab({ tab, active }: { tab: WorkspaceTab; active: b
           onDeleteRows={(targets) => void handleDelete(targets)}
           onViewValue={(row, column) => setDialog({ kind: 'view', row, column })}
           onSelectionChange={handleSelection}
+          onExportRows={(selectedRows, format, everything) =>
+            ran &&
+            void transfer.exportObjects(
+              collection.name,
+              format,
+              everything
+                ? { kind: 'query', text: ran.request.text }
+                : { kind: 'keys', keys: keysOf(selectedRows) },
+            )
+          }
           empty={t('query.none')}
           testId="query-grid"
         />

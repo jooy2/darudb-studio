@@ -54,13 +54,13 @@ export default function ProjectScreen() {
   const discard = useDiscard();
   const session = useAppSelector((state) => state.project.session);
   const pending = useAppSelector((state) => state.project.pending);
-  const activeCollection = useAppSelector((state) => {
+  const activeTab = useAppSelector((state): WorkspaceTab | null => {
     const { groups, focusedGroupId, tabs } = state.project;
     const group = groups.find((each) => each.id === focusedGroupId);
-    const tab: WorkspaceTab | undefined = group?.activeTabId ? tabs[group.activeTabId] : undefined;
 
-    return tab?.collection ?? null;
+    return (group?.activeTabId ? tabs[group.activeTabId] : undefined) ?? null;
   });
+  const activeCollection = activeTab?.collection ?? null;
   const layout = useAppSelector(selectLayout);
   const location = useLocation();
   // The tabs a restored window had, handed over by the list as it opened the project
@@ -189,7 +189,7 @@ export default function ProjectScreen() {
           </PlButton>
         }
       />
-      <ProjectToolbar collection={activeCollection} onAddObject={setAdding} />
+      <ProjectToolbar tab={activeTab} onAddObject={setAdding} />
       <main className="project-screen" data-testid="project-screen">
         <PlPanes
           className="project-panes"

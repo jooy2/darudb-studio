@@ -15,6 +15,9 @@ import type {
   BackupReport,
   Change,
   CheckReport,
+  ExportRequest,
+  ImportMode,
+  ImportResult,
   CompactReport,
   CountsResult,
   PageRequest,
@@ -23,6 +26,7 @@ import type {
   QueryResult,
   RescueReport,
   ToolResult,
+  TransferReport,
   WriteResult,
 } from './data';
 
@@ -79,6 +83,8 @@ export const mainChannels = {
   rescueProject: 'msgRescueProject',
   changePassword: 'msgChangePassword',
   openProjectWindow: 'msgOpenProjectWindow',
+  exportObjects: 'msgExportObjects',
+  importObjects: 'msgImportObjects',
 } as const;
 
 /*
@@ -177,6 +183,17 @@ export interface MainChannelSignatures {
   [mainChannels.changePassword]: (password: string) => ToolResult<{ remembered: boolean }>;
   /* Opens the project in a new window, beside the one the call came from */
   [mainChannels.openProjectWindow]: (projectId: number) => boolean;
+  /* Writes objects to a JSON or a CSV file the save dialog, titled `title`, asks for */
+  [mainChannels.exportObjects]: (
+    request: ExportRequest,
+    title: string,
+  ) => ToolResult<TransferReport>;
+  /* Reads the objects of a file the open dialog asks for into a collection, all or none */
+  [mainChannels.importObjects]: (
+    collection: string,
+    mode: ImportMode,
+    title: string,
+  ) => ImportResult;
 }
 
 export interface RendererChannelSignatures {

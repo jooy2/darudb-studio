@@ -7,7 +7,8 @@ import ObjectDialog from '@/renderer/components/grid/ObjectDialog';
 import ValueDialog from '@/renderer/components/grid/ValueDialog';
 import type { GridColumn } from '@/renderer/components/grid/columns';
 import useEditTexts from '@/renderer/components/project/useEditTexts';
-import { newRow, savedRow } from '@/renderer/project/gridRows';
+import useTransfer from '@/renderer/components/project/useTransfer';
+import { keysOf, newRow, savedRow } from '@/renderer/project/gridRows';
 import { viewOf } from '@/renderer/project/pending';
 import usePagedRows from '@/renderer/project/usePagedRows';
 import { keyLabel } from '@/common/values';
@@ -38,6 +39,7 @@ export default function CollectionTab({ tab, active }: { tab: WorkspaceTab; acti
   const dispatch = useAppDispatch();
   const confirm = usePlConfirm();
   const texts = useEditTexts();
+  const transfer = useTransfer();
   const collections = useAppSelector((state) => state.project.session?.schema?.collections ?? []);
   const revision = useAppSelector((state) => state.project.revision);
   const pending = useAppSelector((state) => state.project.pending);
@@ -183,6 +185,15 @@ export default function CollectionTab({ tab, active }: { tab: WorkspaceTab; acti
         onDeleteRows={(rows) => void handleDelete(rows)}
         onViewValue={(row, column) => setDialog({ kind: 'view', row, column })}
         onSelectionChange={handleSelection}
+        onExportRows={(rows, format, everything) =>
+          void transfer.exportObjects(
+            collection.name,
+            format,
+            everything
+              ? { kind: 'view', filter: tab.filter, sort: tab.sort }
+              : { kind: 'keys', keys: keysOf(rows) },
+          )
+        }
         empty={
           paged.total === null
             ? null

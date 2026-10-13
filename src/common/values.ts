@@ -3,7 +3,8 @@ import type { FieldType, Key, SchemaCollection, SchemaField, Value } from './dat
 /*
  * Values as the project screen shows them and reads them back from what the
  * user types: in a cell, in the object dialog, and as JSON for lists and
- * embedded objects.
+ * embedded objects. The main process writes and reads the files of an export
+ * and an import with the same functions, see `transfer.ts`.
  *
  * JSON alone cannot carry every DaruDB value, so the conversion is led by the
  * field's type: bytes are written as hex, an int too large for a number keeps

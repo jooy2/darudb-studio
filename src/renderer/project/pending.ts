@@ -19,8 +19,11 @@ export interface PendingEdit {
 
 const objectId = (collection: string, key: Key): string => `${collection}\u0000${keyText(key)}`;
 
-const idOf = (edit: PendingEdit): string | null =>
-  edit.change.kind === 'insert' ? null : objectId(edit.change.collection, edit.change.key);
+// An object to add goes by the id of its edit, having no key until it is written
+const idOf = ({ change }: PendingEdit): string | null =>
+  change.kind === 'insert' || change.kind === 'put'
+    ? null
+    : objectId(change.collection, change.key);
 
 let lastEdit = 0;
 
@@ -113,7 +116,7 @@ export const viewOf = (pending: readonly PendingEdit[], collection: string): Pen
       continue;
     }
 
-    if (change.kind === 'insert') {
+    if (change.kind === 'insert' || change.kind === 'put') {
       view.inserted.push({ id, object: change.object });
     } else if (change.kind === 'update') {
       view.updated.set(keyText(change.key), change.values);
