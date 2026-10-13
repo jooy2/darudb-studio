@@ -24,6 +24,25 @@ const config: Configuration = {
     ensureNativeBinary(packager.projectDir, electronPlatformName, Arch[arch]);
   },
   extends: null,
+  // Switches compiled into the Electron binary, flipped as the app is packed and
+  // before it is signed, so a released app runs only its own code. It no longer
+  // runs as plain Node.js (`ELECTRON_RUN_AS_NODE`), takes no `NODE_OPTIONS` or
+  // `--inspect`, loads only `app.asar`, and checks that archive against the hash
+  // packed with it on macOS and Windows. `--self-check` is how a packed build is
+  // checked instead, see `src/main/selfCheck.ts`.
+  //
+  // The pages are still loaded from `file://`, whose module scripts need the
+  // privileges that fuse keeps, so it stays on.
+  electronFuses: {
+    runAsNode: false,
+    enableNodeOptionsEnvironmentVariable: false,
+    enableNodeCliInspectArguments: false,
+    enableEmbeddedAsarIntegrityValidation: true,
+    onlyLoadAppFromAsar: true,
+    // An unsigned macOS build is signed ad hoc again once the binary changed,
+    // which Apple silicon needs to run it at all
+    resetAdHocDarwinSignature: !signsMac,
+  },
   compression: 'maximum',
   artifactName: '${productName} ${version}_${arch}.${ext}',
   copyright: `ⓒ ${new Date().getFullYear()} ${packageJson.author}`,

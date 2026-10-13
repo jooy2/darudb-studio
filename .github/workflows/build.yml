@@ -63,6 +63,29 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
+      # A packed app no longer runs as plain Node.js, so the app itself is asked
+      # whether it loads the engine. It opens no window and exits with 1 when not.
+      - name: Check the packed apps (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          for folder in release/*/mac-arm64 release/*/mac-universal; do
+            "$folder/DaruDB Studio.app/Contents/MacOS/DaruDB Studio" --self-check
+          done
+
+      - name: Check the packed app (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $app = Get-ChildItem 'release/*/win-unpacked/DaruDB Studio.exe' | Select-Object -First 1
+          $run = Start-Process -FilePath $app.FullName -ArgumentList '--self-check' -Wait -PassThru
+          if ($run.ExitCode -ne 0) { throw "The self-check failed with exit code $($run.ExitCode)" }
+
+      - name: Check the packed app (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get install -y -q --no-install-recommends xvfb
+          xvfb-run --auto-servernum release/*/linux-unpacked/darudb-studio --self-check --no-sandbox
+
       - name: Upload the installers
         uses: actions/upload-artifact@v7
         with:

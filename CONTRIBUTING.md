@@ -38,6 +38,8 @@ The end-to-end tests start the built app with Playwright and keep every window o
 
 `darudb` loads a native binary from a package npm installs for the machine it runs on alone. Before electron-builder packs the app for a platform or an architecture, `buildAssets/builder/nativeBinaries.ts` fetches the binary for it from the registry, at the version of `darudb` installed, and every package leaves out the binaries of the other platforms. A macOS app keeps both of its architectures, which a universal app is merged from.
 
+A packed app runs only its own code. Its Electron fuses are flipped as it is packed: it ignores `ELECTRON_RUN_AS_NODE`, `NODE_OPTIONS` and `--inspect`, loads only `app.asar`, and on macOS and Windows refuses an archive that does not match the hash packed with it. To check that a packed app loads `darudb`, run it with `--self-check`. It opens no window, writes and reads a database in a temporary folder, prints what it found, and exits with 1 when that failed. On macOS that is the binary in `release/<version>/mac-arm64/DaruDB Studio.app/Contents/MacOS`. The `build` workflow runs it on every app it packs.
+
 The macOS app is signed and notarized when the environment holds the credentials, and built unsigned otherwise. The workflow reads them from these repository secrets:
 
 | Secret | What it is |

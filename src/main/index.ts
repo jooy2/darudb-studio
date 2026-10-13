@@ -8,6 +8,7 @@ import { getSettings, loadSettings } from './settings';
 import { closeStore, openStore } from './store';
 import { closeAllProjects } from './sessions';
 import { freezeWorkspace, loadWorkspace } from './workspace';
+import { runSelfCheck, selfCheckRequested } from './selfCheck';
 
 // How long a quit waits for the app's data file to close. A DaruDB commit is
 // atomic, so quitting before a write finishes loses that one change and leaves
@@ -31,8 +32,15 @@ const installDevTron = async () => {
 };
 
 app.on('ready', async () => {
-  if (isHiddenRun) {
+  if (isHiddenRun || selfCheckRequested) {
     app.dock?.hide();
+  }
+
+  // A check of the build, which opens no window and touches nothing of the user's
+  if (selfCheckRequested) {
+    app.exit(await runSelfCheck());
+
+    return;
   }
 
   if (isDevEnv) {

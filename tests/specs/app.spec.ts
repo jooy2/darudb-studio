@@ -1,4 +1,6 @@
+import { spawnSync } from 'child_process';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
+import { createRequire } from 'module';
 import { join } from 'path';
 import type { Page } from 'playwright';
 import pkg from '../../package.json' with { type: 'json' };
@@ -155,6 +157,23 @@ test('A settings file that cannot be read is left alone', async ({ util }) => {
       readFileSync(settingsFilePath, 'utf8'),
       'Confirm the damaged file was not overwritten',
     ).toBe(damagedContent);
+  } catch (error) {
+    throw await util.onTestError(error);
+  }
+});
+
+test('The self-check loads the engine without a window', async ({ util }) => {
+  try {
+    // The `electron` package resolves to the path of its binary
+    const electronBinary = createRequire(join(process.cwd(), 'package.json'))('electron') as string;
+    const run = spawnSync(electronBinary, [pkg.main, '--self-check'], {
+      encoding: 'utf8',
+      timeout: 60_000,
+      env: { ...process.env, NODE_ENV: 'production', DARUDB_STUDIO_HIDDEN: '1' },
+    });
+
+    expect(run.status, run.stderr).toBe(0);
+    expect(run.stdout).toContain('Self-check passed');
   } catch (error) {
     throw await util.onTestError(error);
   }
