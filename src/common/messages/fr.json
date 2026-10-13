@@ -231,14 +231,22 @@
   },
   "object-dialog": {
     "add": "Ajouter",
+    "add-item": "Ajouter un élément",
     "add-title": "Nouvel objet dans {{collection}}",
+    "as-form": "Formulaire",
     "bytes-hint": "Des paires de chiffres hexadécimaux, comme 0a 1b 2c.",
+    "edit-as": "Modifier {{name}} en",
     "edit-title": "Modifier un objet de {{collection}}",
     "failed": "L’objet n’a pas été enregistré : {{message}}",
     "json-hint": "JSON. Les octets s’écrivent comme une chaîne de chiffres hexadécimaux.",
     "key-assigned": "La clé est attribuée à l’insertion de l’objet.",
     "key-fixed": "La clé désigne l’objet, elle ne change donc pas.",
-    "save": "Enregistrer"
+    "move-down": "Descendre {{path}}",
+    "move-up": "Monter {{path}}",
+    "null": "{{path}} vaut null",
+    "remove": "Retirer {{path}}",
+    "save": "Enregistrer",
+    "too-long": "Cette valeur a trop d’éléments pour le formulaire. Modifiez-la en JSON."
   },
   "query": {
     "collection": "Collection",

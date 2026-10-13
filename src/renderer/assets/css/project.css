@@ -1002,3 +1002,111 @@
   margin-right: 0.5rem;
   color: var(--plass-muted-fg);
 }
+
+/* The form of a list or an embedded object in the object dialog */
+
+.object-form__nested {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.object-form__nested-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.value-editor {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.value-editor--scalar {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.value-editor__input {
+  min-width: 0;
+  flex: 1;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--plass-glass-line);
+  border-radius: var(--plass-radius-sm);
+  background: var(--plass-well);
+  color: inherit;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+}
+
+.value-editor__input:focus-visible {
+  outline: 2px solid var(--plass-primary-ring);
+  outline-offset: 0;
+}
+
+.value-editor__items,
+.value-editor__fields {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0 0 0 0.625rem;
+  border-left: 1px solid var(--plass-divider);
+  list-style: none;
+}
+
+.value-editor__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.375rem;
+}
+
+.value-editor__item > .value-editor {
+  flex: 1;
+}
+
+.value-editor__index,
+.value-editor__type {
+  color: var(--plass-muted-fg);
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  font-weight: 400;
+}
+
+.value-editor__index {
+  padding-top: 0.375rem;
+}
+
+.value-editor__item-actions {
+  display: inline-flex;
+  flex: none;
+}
+
+.value-editor__field {
+  display: grid;
+  grid-template-columns: minmax(6rem, max-content) minmax(0, 1fr);
+  align-items: start;
+  gap: 0.5rem;
+}
+
+.value-editor__name {
+  display: flex;
+  flex-direction: column;
+  padding-top: 0.3125rem;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+}
+
+.value-editor__value {
+  min-width: 0;
+  margin: 0;
+}
+
+.value-editor__add {
+  align-self: flex-start;
+}

@@ -231,14 +231,22 @@
   },
   "object-dialog": {
     "add": "追加",
+    "add-item": "項目を追加",
     "add-title": "{{collection}} に新しいオブジェクト",
+    "as-form": "フォーム",
     "bytes-hint": "0a 1b 2c のように 16 進数 2 桁ずつ入力します。",
+    "edit-as": "{{name}} の編集方法",
     "edit-title": "{{collection}} のオブジェクトを編集",
     "failed": "オブジェクトを保存できませんでした: {{message}}",
     "json-hint": "JSON で入力します。バイトは 16 進数の文字列で書きます。",
     "key-assigned": "キーはオブジェクトを挿入するときに割り当てられます。",
     "key-fixed": "キーはオブジェクトを指す値なので変更できません。",
-    "save": "保存"
+    "move-down": "{{path}} を下へ移動",
+    "move-up": "{{path}} を上へ移動",
+    "null": "{{path}} を null にする",
+    "remove": "{{path}} を削除",
+    "save": "保存",
+    "too-long": "項目が多すぎてフォームでは編集できません。JSON で編集してください。"
   },
   "query": {
     "collection": "コレクション",

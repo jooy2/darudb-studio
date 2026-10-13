@@ -231,14 +231,22 @@
   },
   "object-dialog": {
     "add": "Add",
+    "add-item": "Add an Item",
     "add-title": "New Object in {{collection}}",
+    "as-form": "Form",
     "bytes-hint": "Pairs of hex digits, such as 0a 1b 2c.",
+    "edit-as": "Edit {{name}} as",
     "edit-title": "Edit Object in {{collection}}",
     "failed": "The object was not saved: {{message}}",
     "json-hint": "JSON. Bytes are written as a string of hex digits.",
     "key-assigned": "The key is assigned when the object is inserted.",
     "key-fixed": "The key names the object, so it does not change.",
-    "save": "Save"
+    "move-down": "Move {{path}} down",
+    "move-up": "Move {{path}} up",
+    "null": "{{path}} is null",
+    "remove": "Remove {{path}}",
+    "save": "Save",
+    "too-long": "This value has too many items for the form. Edit it as JSON."
   },
   "query": {
     "collection": "Collection",

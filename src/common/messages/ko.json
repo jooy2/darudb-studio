@@ -231,14 +231,22 @@
   },
   "object-dialog": {
     "add": "추가",
+    "add-item": "항목 추가",
     "add-title": "{{collection}}에 새 객체",
+    "as-form": "양식",
     "bytes-hint": "0a 1b 2c처럼 16진수 두 자리씩 입력합니다.",
+    "edit-as": "{{name}} 편집 방식",
     "edit-title": "{{collection}}의 객체 편집",
     "failed": "객체를 저장하지 못했습니다: {{message}}",
     "json-hint": "JSON으로 입력합니다. 바이트는 16진수 문자열로 씁니다.",
     "key-assigned": "키는 객체를 넣을 때 정해집니다.",
     "key-fixed": "키는 객체를 가리키는 값이라 바꿀 수 없습니다.",
-    "save": "저장"
+    "move-down": "{{path}}을(를) 아래로 이동",
+    "move-up": "{{path}}을(를) 위로 이동",
+    "null": "{{path}}을(를) null로",
+    "remove": "{{path}} 삭제",
+    "save": "저장",
+    "too-long": "항목이 너무 많아 양식으로 편집할 수 없습니다. JSON으로 편집하세요."
   },
   "query": {
     "collection": "컬렉션",

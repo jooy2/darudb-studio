@@ -262,12 +262,22 @@ test('The object dialog edits a whole object, and adds one', async ({ page, util
     const dialog = page.getByTestId('object-dialog');
 
     await dialog.getByTestId('object-field-age').fill('33');
-    await dialog.getByTestId('object-field-tags').fill('[1]');
+
+    // A list is edited as a form of its items
+    const tags = dialog.getByTestId('object-field-tags');
+
+    await tags.getByRole('textbox', { name: 'tags[0]' }).fill('a');
+    await tags.getByRole('button', { name: 'Add an Item' }).click();
+    await tags.getByRole('textbox', { name: 'tags[1]' }).fill('b');
+    await util.captureScreenshot(page, 'project-object-dialog');
+
+    // or as JSON, which holds the same value, and is checked against the type
+    await tags.getByText('JSON', { exact: true }).click();
+    await expect(tags.getByRole('textbox', { name: 'tags' })).toHaveValue(/"a",\s*"b"/);
+    await tags.getByRole('textbox', { name: 'tags' }).fill('[1]');
     await dialog.getByTestId('btn-save-object').click();
     await expect(dialog).toContainText('expected a string');
-
-    await dialog.getByTestId('object-field-tags').fill('["a", "b"]');
-    await util.captureScreenshot(page, 'project-object-dialog');
+    await tags.getByRole('textbox', { name: 'tags' }).fill('["a", "b"]');
     await dialog.getByTestId('btn-save-object').click();
     await expect(dialog).toBeHidden();
     expect((await readUsers(page, 'id == 3'))[0]).toMatchObject({ age: 33, tags: ['a', 'b'] });
