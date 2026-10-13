@@ -53,13 +53,21 @@ const launchApp = async (): Promise<void> => {
   page.on('console', console.log);
   page.on('pageerror', console.log);
 
-  const evaluateResult = await appElectron.evaluate(async ({ app, BrowserWindow }) => {
+  const evaluateResult = await appElectron.evaluate(async ({ app, BrowserWindow, screen }) => {
     const [currentWindow] = BrowserWindow.getAllWindows();
 
-    // Fix window position for testing
+    // Fix window position for testing, inside the screen: a window the app
+    // opens again larger than the screen is fitted into it by Windows, as on a
+    // runner whose screen is 1024 pixels wide
     if (currentWindow) {
-      currentWindow.setPosition(50, 50);
-      currentWindow.setSize(1080, 560);
+      const { workArea } = screen.getDisplayMatching(currentWindow.getBounds());
+
+      currentWindow.setBounds({
+        x: workArea.x,
+        y: workArea.y,
+        width: Math.min(1080, workArea.width),
+        height: Math.min(560, workArea.height),
+      });
     }
 
     return {
