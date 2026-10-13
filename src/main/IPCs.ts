@@ -20,6 +20,7 @@ import { getSettings, updateSettings, validSettingChanges } from './settings';
 import { deleteProject, getProject, listProjects, saveProject } from './projects';
 import { checkDatabaseFile, chooseDatabaseFile } from './files';
 import { canRememberSecrets } from './secrets';
+import { canOpenAtLogin, setOpenAtLogin } from './startup';
 import { closeProject, isProjectOpen, openProject, openProjectOf, sessionOf } from './sessions';
 import {
   backupDatabase,
@@ -117,8 +118,13 @@ export default class IPCs {
     // A change of the preferences a window makes. Only the valid ones are
     // kept, and every other window hears of them, each running its own copy of
     // the renderer with its own store.
-    handle(mainChannels.updateSettings, (event, changes) => {
+    handle(mainChannels.updateSettings, async (event, changes) => {
       const valid = validSettingChanges(changes);
+
+      // Kept as the system took it, which may refuse
+      if (valid.openAtLogin !== undefined) {
+        valid.openAtLogin = await setOpenAtLogin(valid.openAtLogin);
+      }
 
       updateSettings(valid);
 
@@ -188,6 +194,8 @@ export default class IPCs {
     );
 
     handle(mainChannels.canRememberPasswords, () => canRememberSecrets());
+
+    handle(mainChannels.canOpenAtLogin, () => canOpenAtLogin());
 
     // A window opens one project at a time, and the menu's project entries
     // follow what the window has open. Opening one reorders the list.

@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Monitor, Moon, Sun } from 'lucide-react';
 import {
@@ -14,6 +14,7 @@ import {
 import { setSettingsOpen } from '@/renderer/store/slices/appScreenSlice';
 import { changeSettings } from '@/renderer/store/slices/settingsSlice';
 import { useAppDispatch, useAppSelector } from '@/renderer/store/hooks';
+import { mainChannels } from '@/common/ipc';
 import { languageNames, languageOf, supportedLanguages } from '@/common/locales';
 import {
   isEditMode,
@@ -45,6 +46,14 @@ export default function SettingsDialog() {
   const [t] = useTranslation();
   const themeLabel = useId();
   const menuBarLabel = useId();
+  // Whether this installation can be opened at login, which a store build cannot
+  const [canOpenAtLogin, setCanOpenAtLogin] = useState(true);
+
+  useEffect(() => {
+    if (open) {
+      void window.mainApi.invoke(mainChannels.canOpenAtLogin).then(setCanOpenAtLogin);
+    }
+  }, [open]);
 
   const change = (changes: Partial<AppSettings>): void => {
     void dispatch(changeSettings(changes));
@@ -136,6 +145,15 @@ export default function SettingsDialog() {
         <section className="settings__section">
           <h3 className="settings__heading">{t('settings.startup')}</h3>
           <PlSwitch
+            data-testid="settings-open-at-login"
+            size="sm"
+            label={t('settings.open-at-login')}
+            description={canOpenAtLogin ? undefined : t('settings.open-at-login-unavailable')}
+            disabled={!canOpenAtLogin}
+            checked={settings.openAtLogin}
+            onCheckedChange={(checked) => change({ openAtLogin: checked })}
+          />
+          <PlSwitch
             data-testid="settings-restore"
             size="sm"
             label={t('settings.restore')}
@@ -168,6 +186,17 @@ export default function SettingsDialog() {
               description={t('settings.edit-submit-text')}
             />
           </PlRadioGroup>
+        </section>
+        <section className="settings__section">
+          <h3 className="settings__heading">{t('settings.system')}</h3>
+          <PlSwitch
+            data-testid="settings-hardware-acceleration"
+            size="sm"
+            label={t('settings.hardware-acceleration')}
+            description={t('settings.hardware-acceleration-text')}
+            checked={settings.hardwareAcceleration}
+            onCheckedChange={(checked) => change({ hardwareAcceleration: checked })}
+          />
         </section>
       </div>
     </PlModal>

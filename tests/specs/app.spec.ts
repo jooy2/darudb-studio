@@ -1,10 +1,11 @@
 import { spawnSync } from 'child_process';
-import { existsSync, readFileSync, writeFileSync } from 'fs';
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { createRequire } from 'module';
 import { join } from 'path';
 import type { Page } from 'playwright';
 import pkg from '../../package.json' with { type: 'json' };
 import { mainChannels } from '../../src/common/ipc';
+import type { AppSettings } from '../../src/common/settings';
 import { invokeMain } from '../ipc';
 import {
   test,
@@ -196,6 +197,78 @@ test('A settings file that cannot be read is left alone', async ({ util }) => {
       readFileSync(settingsFilePath, 'utf8'),
       'Confirm the damaged file was not overwritten',
     ).toBe(damagedContent);
+  } catch (error) {
+    throw await util.onTestError(error);
+  }
+});
+
+test('The app draws with the GPU, or without it from its next start', async ({ util }) => {
+  try {
+    // A settings file of its own, since the test before left one that cannot be read
+    const page = await relaunchApp(() => {
+      rmSync(join(getUserDataPath(), SETTINGS_FILE_NAME), { force: true });
+    });
+    const accelerated = () => getApp().evaluate(({ app }) => app.isHardwareAccelerationEnabled());
+    const stored = async (target: Page) =>
+      (await invokeMain<AppSettings>(target, mainChannels.requestSettings)).hardwareAcceleration;
+    const toggle = (target: Page) =>
+      target
+        .getByTestId('settings-dialog')
+        .getByRole('switch', { name: 'Use hardware acceleration (recommended)' });
+
+    expect(await accelerated()).toBe(true);
+
+    await page.getByTestId('btn-settings').click();
+    await expect(toggle(page)).toHaveAttribute('aria-checked', 'true');
+    await util.captureScreenshot(page, 'settings-system');
+    await toggle(page).click();
+    await expect(toggle(page)).toHaveAttribute('aria-checked', 'false');
+    await page.keyboard.press('Escape');
+    await expect.poll(() => stored(page)).toBe(false);
+    // Only from the next start
+    expect(await accelerated()).toBe(true);
+
+    let relaunched = await relaunchApp();
+
+    expect(await accelerated()).toBe(false);
+
+    await relaunched.getByTestId('btn-settings').click();
+    await toggle(relaunched).click();
+    await expect(toggle(relaunched)).toHaveAttribute('aria-checked', 'true');
+    await relaunched.keyboard.press('Escape');
+    await expect.poll(() => stored(relaunched)).toBe(true);
+
+    relaunched = await relaunchApp();
+    expect(await accelerated()).toBe(true);
+    await expect(relaunched.getByTestId('main-logo')).toBeVisible();
+  } catch (error) {
+    throw await util.onTestError(error);
+  }
+});
+
+test('Opening at login is kept, and a test run leaves the system alone', async ({ page, util }) => {
+  try {
+    const before = await getApp().evaluate(({ app }) => app.getLoginItemSettings().openAtLogin);
+    const toggle = page
+      .getByTestId('settings-dialog')
+      .getByRole('switch', { name: 'Open the app when the system starts' });
+
+    await page.getByTestId('btn-settings').click();
+    await expect(toggle).toBeEnabled();
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-checked', 'true');
+    await expect
+      .poll(
+        async () => (await invokeMain<AppSettings>(page, mainChannels.requestSettings)).openAtLogin,
+      )
+      .toBe(true);
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-checked', 'false');
+    await page.keyboard.press('Escape');
+
+    expect(await getApp().evaluate(({ app }) => app.getLoginItemSettings().openAtLogin)).toBe(
+      before,
+    );
   } catch (error) {
     throw await util.onTestError(error);
   }

@@ -18,7 +18,9 @@ test.afterAll(() => rmSync(files, { recursive: true, force: true }));
 const setRestore = async (page: Page, on: boolean): Promise<void> => {
   await page.getByTestId('btn-settings').click();
 
-  const toggle = page.getByTestId('settings-dialog').getByRole('switch');
+  const toggle = page
+    .getByTestId('settings-dialog')
+    .getByRole('switch', { name: 'Restore the last workspace when the app starts' });
 
   if ((await toggle.getAttribute('aria-checked')) !== String(on)) {
     await toggle.click();

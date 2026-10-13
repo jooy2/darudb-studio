@@ -6,7 +6,7 @@ import {
   isSupportedLanguage,
   type AppSettings,
 } from '@/common/settings';
-import { getStore, queueWrite } from './store';
+import { getStore, queueWrite, readStoredSetting } from './store';
 
 /*
  * The settings, kept in the `settings` collection of the app's data file (see
@@ -28,6 +28,8 @@ const settingValidators: { [Name in SettingName]: (value: unknown) => boolean } 
   editMode: isEditMode,
   projectView: isProjectView,
   restoreWorkspace: (value) => typeof value === 'boolean',
+  openAtLogin: (value) => typeof value === 'boolean',
+  hardwareAcceleration: (value) => typeof value === 'boolean',
 };
 
 let settings: AppSettings = { ...defaultSettings };
@@ -80,6 +82,8 @@ export const loadSettings = async (): Promise<AppSettings> => {
       editMode: readSetting(storedValues, 'editMode'),
       projectView: readSetting(storedValues, 'projectView'),
       restoreWorkspace: readSetting(storedValues, 'restoreWorkspace'),
+      openAtLogin: readSetting(storedValues, 'openAtLogin'),
+      hardwareAcceleration: readSetting(storedValues, 'hardwareAcceleration'),
     };
   } catch (error) {
     console.error('Failed to read the settings. Running on the defaults:', error);
@@ -89,6 +93,21 @@ export const loadSettings = async (): Promise<AppSettings> => {
 };
 
 export const getSettings = (): AppSettings => settings;
+
+/*
+ * Whether the stored settings ask for hardware acceleration, which Chromium
+ * decides on as it starts, before the app is ready and the settings are read.
+ * On, as by default, unless the file says otherwise.
+ * */
+export const wantsHardwareAcceleration = (): boolean => {
+  const stored = readStoredSetting('hardwareAcceleration');
+
+  try {
+    return stored === undefined || JSON.parse(stored) !== false;
+  } catch {
+    return true;
+  }
+};
 
 /*
  * Keeps only the changes that are valid settings, so that what a renderer

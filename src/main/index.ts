@@ -4,13 +4,14 @@ import IPCs from './IPCs';
 import AppMenu from './AppMenu';
 import WindowManager from './WindowManager';
 import { isDevEnv, isHiddenRun, userDataOverride } from './constants';
-import { getSettings, loadSettings } from './settings';
+import { getSettings, loadSettings, updateSettings, wantsHardwareAcceleration } from './settings';
 import { closeStore, openStore } from './store';
 import { closeAllProjects } from './sessions';
 import { freezeWorkspace, loadWorkspace } from './workspace';
 import { runSelfCheck, selfCheckRequested } from './selfCheck';
 import { refreshTitleBars } from './appearance';
 import { removeSamples } from './sample';
+import { systemOpensAtLogin } from './startup';
 
 // How long a quit waits for the app's data file to close. A DaruDB commit is
 // atomic, so quitting before a write finishes loses that one change and leaves
@@ -22,6 +23,11 @@ let closingStore = false;
 // Set before `ready`, so Chromium keeps its own storage in the same folder
 if (userDataOverride) {
   app.setPath('userData', userDataOverride);
+}
+
+// Chromium picks how it draws as it starts, so the setting is read before `ready`
+if (!selfCheckRequested && !wantsHardwareAcceleration()) {
+  app.disableHardwareAcceleration();
 }
 
 const installDevTron = async () => {
@@ -59,6 +65,13 @@ app.on('ready', async () => {
   await loadSettings();
   // The samples of a run that ended without deleting them
   await removeSamples('stale');
+
+  // The user may have taken the app off the login items in the system's settings
+  const opensAtLogin = await systemOpensAtLogin();
+
+  if (opensAtLogin !== null && opensAtLogin !== getSettings().openAtLogin) {
+    updateSettings({ openAtLogin: opensAtLogin });
+  }
 
   // Initialize IPC Communication. Handlers must be registered only once,
   // otherwise opening another window would attach duplicated listeners.

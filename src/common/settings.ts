@@ -39,6 +39,10 @@ export interface AppSettings {
   projectView: ProjectView;
   /* Whether the app opens the windows, projects and tabs it had open when it last quit */
   restoreWorkspace: boolean;
+  /* Whether the system opens the app as the user logs in */
+  openAtLogin: boolean;
+  /* Whether the app draws with the GPU, which takes effect the next time it starts */
+  hardwareAcceleration: boolean;
 }
 
 export const defaultSettings: AppSettings = {
@@ -48,6 +52,8 @@ export const defaultSettings: AppSettings = {
   editMode: 'immediate',
   projectView: 'grid',
   restoreWorkspace: false,
+  openAtLogin: false,
+  hardwareAcceleration: true,
 };
 
 export const isSupportedLanguage = (value: unknown): value is SupportedLanguage =>

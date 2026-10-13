@@ -21,6 +21,8 @@ export const settingsSlice = createSlice({
     editMode: 'immediate',
     projectView: 'grid',
     restoreWorkspace: false,
+    openAtLogin: false,
+    hardwareAcceleration: true,
   } as SettingsState,
   reducers: {
     /* What the main process holds, after a change made here or in another window */

@@ -64,6 +64,7 @@ export const mainChannels = {
   chooseDatabaseFile: 'msgChooseDatabaseFile',
   checkDatabaseFile: 'msgCheckDatabaseFile',
   canRememberPasswords: 'msgCanRememberPasswords',
+  canOpenAtLogin: 'msgCanOpenAtLogin',
   requestMenu: 'msgRequestMenu',
   invokeMenuEntry: 'msgInvokeMenuEntry',
   listenMenuCommands: 'msgListenMenuCommands',
@@ -141,6 +142,8 @@ export interface MainChannelSignatures {
   [mainChannels.checkDatabaseFile]: (path: string, password?: string) => FileCheck;
   /* Whether this system has a keystore to keep remembered passwords in */
   [mainChannels.canRememberPasswords]: () => boolean;
+  /* Whether this installation of the app can have the system open it at login */
+  [mainChannels.canOpenAtLogin]: () => boolean;
   [mainChannels.requestMenu]: () => MenuModel;
   /* Does what the menu entry `id` does, for the window the call came from */
   [mainChannels.invokeMenuEntry]: (id: string) => void;

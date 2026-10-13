@@ -72,6 +72,30 @@ export const openStore = async (): Promise<StoreDatabase | null> => {
   return database;
 };
 
+/*
+ * The stored value of the setting `name`, read before the app is ready, for
+ * what Chromium decides as it starts. The file is opened for this one read and
+ * closed again, without its schema, so nothing in it changes. `undefined` when
+ * the file or the setting is not there, or the file cannot be read.
+ * */
+export const readStoredSetting = (name: string): string | undefined => {
+  try {
+    const file = Database.open(storeFilePath(), { create: false });
+
+    try {
+      const found = file.read((txn) => txn.collection('settings').get(name)) as {
+        value?: unknown;
+      } | null;
+
+      return typeof found?.value === 'string' ? found.value : undefined;
+    } finally {
+      file.close();
+    }
+  } catch {
+    return undefined;
+  }
+};
+
 /* The open file, or `null` when it could not be opened or has closed */
 export const getStore = (): StoreDatabase | null => database;
 
