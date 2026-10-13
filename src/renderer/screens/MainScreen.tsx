@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Database, LayoutGrid, List, Plus } from 'lucide-react';
 import { PlButton, PlEmpty, PlSegment, PlSegmentedButton, PlTypography } from 'plass-ui';
@@ -36,14 +36,44 @@ export default function MainScreen() {
   const [editing, setEditing] = useState<{ project?: Project } | null>(null);
   const [shownLongEnough, setShownLongEnough] = useState(false);
 
+  // The opener of the latest render, for the restore below, which runs once
+  const openerRef = useRef(opener);
+
+  useEffect(() => {
+    openerRef.current = opener;
+  });
+
   useEffect(() => {
     document.title = APP_NAME;
     // The list never has a project open behind it, whichever way the window got here
     void window.mainApi.invoke(mainChannels.closeProject);
+    window.mainApi.send(mainChannels.reportWindowState, { projectId: null, layout: null });
 
     const timer = setTimeout(() => setShownLongEnough(true), MIN_LOADING_MS);
+    let current = true;
 
-    return () => clearTimeout(timer);
+    // A window the app restores opens the project it had, as a click would
+    const restore = async (): Promise<void> => {
+      const state = await window.mainApi.invoke(mainChannels.takeWindowRestore);
+
+      if (!current || !state || state.projectId === null) {
+        return;
+      }
+
+      const listed = await window.mainApi.invoke(mainChannels.listProjects);
+      const project = listed.find((each) => each.id === state.projectId);
+
+      if (current && project) {
+        await openerRef.current.open(project, state.layout);
+      }
+    };
+
+    void restore();
+
+    return () => {
+      current = false;
+      clearTimeout(timer);
+    };
   }, []);
 
   useMenuCommands({

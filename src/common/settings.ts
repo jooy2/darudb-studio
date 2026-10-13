@@ -37,6 +37,8 @@ export interface AppSettings {
   menuBarStyle: MenuBarStyle;
   editMode: EditMode;
   projectView: ProjectView;
+  /* Whether the app opens the windows, projects and tabs it had open when it last quit */
+  restoreWorkspace: boolean;
 }
 
 export const defaultSettings: AppSettings = {
@@ -45,6 +47,7 @@ export const defaultSettings: AppSettings = {
   menuBarStyle: 'inline',
   editMode: 'immediate',
   projectView: 'grid',
+  restoreWorkspace: false,
 };
 
 export const isSupportedLanguage = (value: unknown): value is SupportedLanguage =>

@@ -9,6 +9,7 @@ import {
   PlSegment,
   PlSegmentedButton,
   PlSelect,
+  PlSwitch,
 } from 'plass-ui';
 import { setSettingsOpen } from '@/renderer/store/slices/appScreenSlice';
 import { changeSettings } from '@/renderer/store/slices/settingsSlice';
@@ -131,6 +132,17 @@ export default function SettingsDialog() {
               <PlSegment value="collapsed">{t('settings.menu-bar-collapsed')}</PlSegment>
             </PlSegmentedButton>
           </div>
+        </section>
+        <section className="settings__section">
+          <h3 className="settings__heading">{t('settings.startup')}</h3>
+          <PlSwitch
+            data-testid="settings-restore"
+            size="sm"
+            label={t('settings.restore')}
+            description={t('settings.restore-text')}
+            checked={settings.restoreWorkspace}
+            onCheckedChange={(checked) => change({ restoreWorkspace: checked })}
+          />
         </section>
         <section className="settings__section">
           <h3 className="settings__heading">{t('settings.editing')}</h3>

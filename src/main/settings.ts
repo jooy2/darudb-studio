@@ -27,6 +27,7 @@ const settingValidators: { [Name in SettingName]: (value: unknown) => boolean } 
   menuBarStyle: isMenuBarStyle,
   editMode: isEditMode,
   projectView: isProjectView,
+  restoreWorkspace: (value) => typeof value === 'boolean',
 };
 
 let settings: AppSettings = { ...defaultSettings };
@@ -78,6 +79,7 @@ export const loadSettings = async (): Promise<AppSettings> => {
       menuBarStyle: readSetting(storedValues, 'menuBarStyle'),
       editMode: readSetting(storedValues, 'editMode'),
       projectView: readSetting(storedValues, 'projectView'),
+      restoreWorkspace: readSetting(storedValues, 'restoreWorkspace'),
     };
   } catch (error) {
     console.error('Failed to read the settings. Running on the defaults:', error);

@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { usePlToast } from 'plass-ui';
 import { mainChannels } from '@/common/ipc';
 import type { OpenRequest, OpenResult, Project, UpgradeChoice } from '@/common/projects';
+import type { WorkspaceLayout } from '@/common/workspace';
 
 /* What opening a project waits on the user for, as a dialog asks it */
 export type OpenQuestion =
@@ -40,6 +41,8 @@ export default function useOpenProject() {
   // Whether a dialog's request is on its way, which its buttons show
   const [busy, setBusy] = useState(false);
   const [question, setQuestion] = useState<OpenQuestion | null>(null);
+  // The tabs a restored window had, kept through the questions until the project opens
+  const restoring = useRef<{ projectId: number; layout: WorkspaceLayout } | null>(null);
 
   const request = async (project: Project, options: OpenOptions): Promise<OpenResult> => {
     try {
@@ -58,11 +61,16 @@ export default function useOpenProject() {
 
   const answer = (project: Project, options: OpenOptions, result: OpenResult): void => {
     switch (result.status) {
-      case 'opened':
+      case 'opened': {
+        const layout =
+          restoring.current?.projectId === project.id ? restoring.current.layout : null;
+
+        restoring.current = null;
         setQuestion(null);
-        navigate(`/project/${project.id}`);
+        navigate(`/project/${project.id}`, { state: layout ? { layout } : null });
 
         return;
+      }
       case 'open-elsewhere':
         setQuestion(null);
         toast.add({ title: t('home.open-elsewhere', { name: project.name }), color: 'info' });
@@ -108,8 +116,12 @@ export default function useOpenProject() {
     }
   };
 
-  /* Opens `project` from a click on the list */
-  const open = async (project: Project): Promise<void> => {
+  /*
+   * Opens `project` from a click on the list, or as the app restores its last
+   * windows, with the tabs `layout` lists
+   * */
+  const open = async (project: Project, layout: WorkspaceLayout | null = null): Promise<void> => {
+    restoring.current = layout ? { projectId: project.id, layout } : null;
     setOpening(project);
 
     const result = await request(project, {});
@@ -138,7 +150,10 @@ export default function useOpenProject() {
     busy,
     question,
     open,
-    dismiss: () => setQuestion(null),
+    dismiss: () => {
+      restoring.current = null;
+      setQuestion(null);
+    },
     withPassword: (project: Project, password: string, rememberPassword: boolean) =>
       retry(project, { password, rememberPassword }),
     withUpgrade: (question: Extract<OpenQuestion, { kind: 'upgrade' }>, upgrade: UpgradeChoice) =>

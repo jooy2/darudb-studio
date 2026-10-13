@@ -20,6 +20,7 @@ export const settingsSlice = createSlice({
     menuBarStyle: 'inline',
     editMode: 'immediate',
     projectView: 'grid',
+    restoreWorkspace: false,
   } as SettingsState,
   reducers: {
     /* What the main process holds, after a change made here or in another window */

@@ -4,9 +4,10 @@ import IPCs from './IPCs';
 import AppMenu from './AppMenu';
 import WindowManager from './WindowManager';
 import { isDevEnv, isHiddenRun, userDataOverride } from './constants';
-import { loadSettings } from './settings';
+import { getSettings, loadSettings } from './settings';
 import { closeStore, openStore } from './store';
 import { closeAllProjects } from './sessions';
+import { freezeWorkspace, loadWorkspace } from './workspace';
 
 // How long a quit waits for the app's data file to close. A DaruDB commit is
 // atomic, so quitting before a write finishes loses that one change and leaves
@@ -52,7 +53,22 @@ app.on('ready', async () => {
   IPCs.initialize();
   AppMenu.initialize();
 
-  await WindowManager.create();
+  // The windows the app had open when it last quit, when the settings ask for them
+  const restored = getSettings().restoreWorkspace ? await loadWorkspace() : [];
+
+  if (restored.length === 0) {
+    await WindowManager.create();
+  }
+
+  for (const window of restored) {
+    await WindowManager.create('/', null, window);
+  }
+});
+
+// The windows open now are the ones the next launch opens, so the list of them
+// is kept before they close one after another
+app.on('before-quit', () => {
+  void freezeWorkspace();
 });
 
 /*

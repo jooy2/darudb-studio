@@ -1,4 +1,4 @@
-import { BrowserWindow, dialog, screen } from 'electron';
+import { BrowserWindow, dialog, screen, type Rectangle } from 'electron';
 import { translate } from '@/common/translations';
 import {
   appIndexFile,
@@ -10,6 +10,7 @@ import {
 } from './constants';
 import { isAllowedWindowPath, registerWindowSecurity } from './security';
 import { getBackgroundColor, getLanguage } from './appearance';
+import { resumeWorkspace, setRestore, trackWindow, type SavedWindow } from './workspace';
 
 /*
  * The app's windows.
@@ -24,11 +25,16 @@ export default class WindowManager {
 
   /*
    * Opens a window on the renderer route `path`, placed down and to the right
-   * of `opener` when there is one. Resolves with the window, or with `null`
+   * of `opener` when there is one, or where `restore` was when the app last
+   * quit, showing what it showed. Resolves with the window, or with `null`
    * when the request was refused: a route that is not one of the app's, or
    * too many windows already.
    * */
-  static async create(path = '/', opener?: BrowserWindow | null): Promise<BrowserWindow | null> {
+  static async create(
+    path = '/',
+    opener?: BrowserWindow | null,
+    restore?: SavedWindow,
+  ): Promise<BrowserWindow | null> {
     if (!isAllowedWindowPath(path)) {
       console.warn(`Blocked a window open with an unsupported route: ${path}`);
 
@@ -51,10 +57,17 @@ export default class WindowManager {
       show: false,
       backgroundColor: getBackgroundColor(),
       webPreferences: sharedWebPreferences,
-      ...WindowManager.#cascadeBounds(opener),
+      ...(restore
+        ? WindowManager.#restoredBounds(restore.bounds)
+        : WindowManager.#cascadeBounds(opener)),
     });
 
     WindowManager.#opened += 1;
+    trackWindow(window);
+
+    if (restore) {
+      setRestore(window.webContents, { projectId: restore.projectId, layout: restore.layout });
+    }
 
     // The window draws its own menu bar from the same menu, so the native one
     // is hidden on Windows and Linux; its accelerators still work. The macOS
@@ -83,9 +96,13 @@ export default class WindowManager {
         detail: translate(language, 'unload.text'),
       });
 
-      // Letting the unload go ahead is what closing without the edits takes
+      // Letting the unload go ahead is what closing without the edits takes.
+      // Kept open, the window calls off a quit, and the list of open windows
+      // follows the windows again.
       if (choice === 0) {
         event.preventDefault();
+      } else {
+        resumeWorkspace();
       }
     });
 
@@ -107,6 +124,15 @@ export default class WindowManager {
       window.show();
       window.focus();
       window.setAlwaysOnTop(false);
+
+      // Both show the window, so a test run, which returned above, never gets here
+      if (restore?.maximized) {
+        window.maximize();
+      }
+
+      if (restore?.fullScreen) {
+        window.setFullScreen(true);
+      }
     });
 
     try {
@@ -128,6 +154,29 @@ export default class WindowManager {
     }
 
     return window;
+  }
+
+  /*
+   * Where a window the app had open goes again: where it was, when that is
+   * still on a display, or at its size where the system puts it, as when the
+   * display it was on is gone.
+   * */
+  static #restoredBounds(bounds: Rectangle): Partial<Rectangle> {
+    const width = Math.max(windowOptions.minWidth, Math.round(bounds.width));
+    const height = Math.max(windowOptions.minHeight, Math.round(bounds.height));
+    // Enough of the window on a display to take hold of it
+    const visible = screen.getAllDisplays().some(({ workArea }) => {
+      const across =
+        Math.min(bounds.x + width, workArea.x + workArea.width) - Math.max(bounds.x, workArea.x);
+      const down =
+        Math.min(bounds.y + height, workArea.y + workArea.height) - Math.max(bounds.y, workArea.y);
+
+      return across >= 120 && down >= 60;
+    });
+
+    return visible
+      ? { x: Math.round(bounds.x), y: Math.round(bounds.y), width, height }
+      : { width, height };
   }
 
   /*

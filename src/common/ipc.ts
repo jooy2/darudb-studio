@@ -10,6 +10,7 @@ import type {
   Session,
 } from './projects';
 import type { AppCommand, MenuEntry, MenuPlatform } from './menu';
+import type { WindowState } from './workspace';
 import type {
   BackupReport,
   Change,
@@ -64,6 +65,8 @@ export const mainChannels = {
   closeProject: 'msgCloseProject',
   requestSession: 'msgRequestSession',
   requestNotices: 'msgRequestNotices',
+  reportWindowState: 'msgReportWindowState',
+  takeWindowRestore: 'msgTakeWindowRestore',
   countObjects: 'msgCountObjects',
   readPage: 'msgReadPage',
   writeChanges: 'msgWriteChanges',
@@ -137,6 +140,10 @@ export interface MainChannelSignatures {
   [mainChannels.requestSession]: () => Session | null;
   /* The third-party notices the build wrote, or `null` for a build that has none */
   [mainChannels.requestNotices]: () => string | null;
+  /* What the window shows now, which the next launch opens again when the settings ask */
+  [mainChannels.reportWindowState]: (state: WindowState) => void;
+  /* What the window is to open as the app restores its last windows, once; `null` otherwise */
+  [mainChannels.takeWindowRestore]: () => WindowState | null;
   /*
    * The objects of the project the window has open, see `common/data`. Each
    * resolves with an outcome rather than rejecting, so the window can show

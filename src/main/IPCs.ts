@@ -9,6 +9,7 @@ import {
 } from '@/common/ipc';
 import { openExternalLink } from './security';
 import { noticesFile } from './constants';
+import { reportWindowState, takeRestore } from './workspace';
 import WindowManager from './WindowManager';
 import AppMenu from './AppMenu';
 import { getSettings, updateSettings, validSettingChanges } from './settings';
@@ -200,6 +201,12 @@ export default class IPCs {
     });
 
     handle(mainChannels.requestNotices, () => readFile(noticesFile, 'utf8').catch(() => null));
+
+    on(mainChannels.reportWindowState, (event, state) => {
+      reportWindowState(BrowserWindow.fromWebContents(event.sender), state);
+    });
+
+    handle(mainChannels.takeWindowRestore, (event) => takeRestore(event.sender));
 
     handle(mainChannels.requestSession, (event) =>
       sessionOf(BrowserWindow.fromWebContents(event.sender)),

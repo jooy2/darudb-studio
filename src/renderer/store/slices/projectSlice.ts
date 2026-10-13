@@ -1,6 +1,6 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSelector, createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
-import type { AppThunk } from '@/renderer/store';
+import type { AppThunk, RootState } from '@/renderer/store';
 import {
   changesOf,
   stageDelete,
@@ -22,6 +22,7 @@ import type {
   ToolResult,
 } from '@/common/data';
 import type { Session } from '@/common/projects';
+import type { TabKind, WorkspaceLayout } from '@/common/workspace';
 
 /*
  * The project a window has open, as its screen works on it: the file's schema
@@ -29,7 +30,7 @@ import type { Session } from '@/common/projects';
  * back for a submit.
  * */
 
-export type TabKind = 'collection' | 'query' | 'tools';
+export type { TabKind };
 
 export interface WorkspaceTab {
   id: string;
@@ -220,6 +221,66 @@ export const projectSlice = createSlice({
       return state;
     },
     sessionClosed: () => emptyState(),
+    /*
+     * Opens the tabs a saved layout lists, in place of the ones the project
+     * opened with. A tab of a collection the file no longer has is left out,
+     * and a layout with nothing left keeps the tabs as they are.
+     * */
+    layoutRestored: (state, action: PayloadAction<WorkspaceLayout>) => {
+      const known = new Set(state.session?.schema?.collections.map(({ name }) => name) ?? []);
+      const tabs: Record<string, WorkspaceTab> = {};
+      const groups: TabGroup[] = [];
+      let queries = 0;
+
+      for (const saved of action.payload.groups.slice(0, MAX_GROUPS)) {
+        const group: TabGroup = { id: newId(state, 'group'), tabIds: [], activeTabId: null };
+
+        saved.tabs.forEach((tab, at) => {
+          // A query tab may have had no collection chosen yet
+          const fits =
+            tab.kind === 'tools' ||
+            (tab.collection === null ? tab.kind === 'query' : known.has(tab.collection));
+
+          if (!fits) {
+            return;
+          }
+
+          const id = newId(state, 'tab');
+
+          if (tab.kind === 'query') {
+            queries += 1;
+          }
+
+          tabs[id] = {
+            id,
+            kind: tab.kind,
+            collection: tab.kind === 'tools' ? null : tab.collection,
+            number: tab.kind === 'query' ? queries : 0,
+            filter: tab.filter,
+            sort: tab.sort,
+            text: tab.text,
+          };
+          group.tabIds.push(id);
+
+          if (at === saved.active || group.activeTabId === null) {
+            group.activeTabId = id;
+          }
+        });
+
+        if (group.tabIds.length > 0) {
+          groups.push(group);
+        }
+      }
+
+      if (groups.length === 0) {
+        return;
+      }
+
+      state.tabs = tabs;
+      state.groups = groups;
+      state.focusedGroupId = groups[Math.min(action.payload.focusedGroup, groups.length - 1)].id;
+      state.lastQuery = queries;
+    },
     sessionUpdated: (state, action: PayloadAction<Session>) => {
       state.session = action.payload;
     },
@@ -411,6 +472,7 @@ export const projectSlice = createSlice({
 export const {
   sessionLoaded,
   sessionClosed,
+  layoutRestored,
   sessionUpdated,
   countsLoaded,
   openCollection,
@@ -431,6 +493,39 @@ export const {
   statusChanged,
   selectionChanged,
 } = projectSlice.actions;
+
+/* The tab groups as the next launch opens them again, the same object while they stay the same */
+export const selectLayout = createSelector(
+  [
+    (state: RootState) => state.project.groups,
+    (state: RootState) => state.project.tabs,
+    (state: RootState) => state.project.focusedGroupId,
+  ],
+  (groups, tabs, focusedGroupId): WorkspaceLayout => ({
+    groups: groups.map((group) => ({
+      tabs: group.tabIds.flatMap((id) => {
+        const tab = tabs[id];
+
+        return tab
+          ? [
+              {
+                kind: tab.kind,
+                collection: tab.collection,
+                filter: tab.filter,
+                sort: tab.sort,
+                text: tab.text,
+              },
+            ]
+          : [];
+      }),
+      active: Math.max(0, group.activeTabId ? group.tabIds.indexOf(group.activeTabId) : 0),
+    })),
+    focusedGroup: Math.max(
+      0,
+      groups.findIndex((group) => group.id === focusedGroupId),
+    ),
+  }),
+);
 
 /* Reads the counts of every collection again */
 export const loadCounts = (): AppThunk<Promise<void>> => async (dispatch) => {

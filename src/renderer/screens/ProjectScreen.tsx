@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PlButton, PlPane, PlPanes } from 'plass-ui';
 import AppHeader from '@/renderer/components/AppHeader';
@@ -13,10 +13,12 @@ import useMenuCommands from '@/renderer/hooks/useMenuCommands';
 import LoadingScreen from '@/renderer/screens/LoadingScreen';
 import {
   insertObject,
+  layoutRestored,
   loadCounts,
   openQuery,
   refreshProject,
   runTool,
+  selectLayout,
   sessionClosed,
   sessionLoaded,
   submitPending,
@@ -26,6 +28,7 @@ import {
 import { useAppDispatch, useAppSelector } from '@/renderer/store/hooks';
 import { APP_NAME } from '@/renderer/constants';
 import { mainChannels } from '@/common/ipc';
+import { isWorkspaceLayout } from '@/common/workspace';
 
 /* The steps of opening the project screen, as its loading screen counts them */
 type Step = 'session' | 'counts' | 'ready';
@@ -56,6 +59,10 @@ export default function ProjectScreen() {
 
     return tab?.collection ?? null;
   });
+  const layout = useAppSelector(selectLayout);
+  const location = useLocation();
+  // The tabs a restored window had, handed over by the list as it opened the project
+  const restoredLayout = useRef((location.state as { layout?: unknown } | null)?.layout);
   const [step, setStep] = useState<Step>('session');
   const [adding, setAdding] = useState<string | null>(null);
 
@@ -77,6 +84,11 @@ export default function ProjectScreen() {
 
       document.title = `${found.project.name} - ${APP_NAME}`;
       dispatch(sessionLoaded(found));
+
+      if (isWorkspaceLayout(restoredLayout.current)) {
+        dispatch(layoutRestored(restoredLayout.current));
+      }
+
       setStep('counts');
       await dispatch(loadCounts());
 
@@ -108,6 +120,15 @@ export default function ProjectScreen() {
 
     return () => window.removeEventListener('beforeunload', hold);
   }, [pending.length]);
+
+  // What the window shows, for the next launch to open again
+  const projectId = session?.project.id ?? null;
+
+  useEffect(() => {
+    if (projectId !== null) {
+      window.mainApi.send(mainChannels.reportWindowState, { projectId, layout });
+    }
+  }, [projectId, layout]);
 
   const close = useCallback(async (): Promise<void> => {
     // Held edits are lost with the project, so the user says so first

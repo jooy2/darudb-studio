@@ -19,10 +19,11 @@ import { collection, Database, schema, t } from 'darudb';
 const STORE_FILE_NAME = 'studio.darudb';
 
 /*
- * Version 2 added the projects. Adding a collection is a change the engine
- * makes by itself when the version rises, so it needs no migration.
+ * Version 2 added the projects, and version 3 the state the app leaves
+ * behind. Adding a collection is a change the engine makes by itself when the
+ * version rises, so it needs no migration.
  * */
-const storeSchema = schema(2, {
+const storeSchema = schema(3, {
   // One object per setting, keyed by its name, with its value as JSON. A
   // setting added later needs a name and a validator, not a new version.
   settings: collection({
@@ -38,6 +39,12 @@ const storeSchema = schema(2, {
     createdAt: t.int(),
     updatedAt: t.int(),
     lastOpenedAt: t.int().optional(),
+  }),
+  // What the app was doing rather than what the user chose, such as the
+  // windows it had open, one object per kind, with its value as JSON
+  state: collection({
+    name: t.string().primaryKey(),
+    value: t.string(),
   }),
 });
 
