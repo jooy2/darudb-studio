@@ -8,7 +8,18 @@
 
 DaruDB keeps an application's data in one local file. DaruDB Studio is the app for looking inside that file: open it, read its collections and objects, and change them, without writing a program to do it. It runs on Windows, macOS and Linux, and reads the same file whichever language wrote it.
 
-> DaruDB Studio is in early development. The app starts and keeps its own settings, but it does not open a database file yet.
+> DaruDB Studio is in early development, and not released yet.
+
+## What it does
+
+- **Projects.** A project gives a database file a name, and remembers its path and, if you ask, its password, which the operating system's keystore keeps encrypted. A file of any extension can be picked; the app checks that it is a DaruDB database before keeping it.
+- **Opening a file.** An encrypted file asks for its password when none is remembered or the remembered one no longer opens it. A file in an older format version is opened on a copy the app makes and raises, or raised in place, as you choose.
+- **The schema.** The sidebar lists the collections the file holds, with how many objects each has, their fields and types, the key and the indexes. The app reads the schema from the file itself, so it opens a file whatever program wrote it.
+- **The objects.** Each collection opens in a grid that reads its objects a page at a time, so a large collection scrolls as fast as a small one. Columns sort and resize, a filter takes the query language, and rows are selected with the mouse and the keyboard as in a desktop table. Values are coloured by type, and lists and embedded objects open in place or in a dialog.
+- **Editing.** A field of one value is edited in its cell, as in a spreadsheet, and a whole object in a dialog. Edits are written at once, or held until you submit them from the toolbar, as the settings say.
+- **Queries and tools.** A query tab runs a query written whole, sort and limit included. The tools tab checks the file's integrity, compacts it and writes a backup.
+- **Tabs and windows.** Tabs split into groups side by side, move between them and merge again. Each window opens one project, and a project opens in one window at a time.
+- **Menus.** The macOS menu bar and a menu bar in every window list the same menus. The window's menu bar shows every menu in a row, or folds behind one button.
 
 ## How it is built
 
@@ -16,11 +27,11 @@ The app is an [Electron](https://www.electronjs.org) app with a [React](https://
 
 | Path           | What it is                                                                 |
 | -------------- | -------------------------------------------------------------------------- |
-| `src/main`     | The main process: windows, IPC handlers and the app's settings file        |
+| `src/main`     | The main process: windows, menus, IPC, and the files the app opens         |
 | `src/preload`  | The bridge the renderer reaches the main process through, `window.mainApi` |
 | `src/renderer` | The interface, in React                                                    |
 | `src/common`   | What every process shares: the IPC contract, types and the translations    |
-| `tests`        | End-to-end tests that drive the built app with Playwright                  |
+| `tests`        | Tests that drive the built app with Playwright, and tests of plain modules |
 | `buildAssets`  | The electron-builder configuration and the app icons                       |
 
 ## Development
