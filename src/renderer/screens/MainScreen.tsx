@@ -1,96 +1,158 @@
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  PlAppLogo,
-  PlHeader,
-  PlIconButton,
-  PlSelect,
-  PlTypography,
-  type PlSelectValue,
-} from 'plass-ui';
-import { setDarkTheme } from '@/renderer/store/slices/appScreenSlice';
+import { Database, LayoutGrid, List, Plus } from 'lucide-react';
+import { PlButton, PlEmpty, PlSegment, PlSegmentedButton, PlTypography } from 'plass-ui';
+import AppHeader from '@/renderer/components/AppHeader';
+import OpenDialogs from '@/renderer/components/projects/OpenDialogs';
+import ProjectDialog from '@/renderer/components/projects/ProjectDialog';
+import ProjectList from '@/renderer/components/projects/ProjectList';
+import WelcomeCard from '@/renderer/components/projects/WelcomeCard';
+import useMenuCommands from '@/renderer/hooks/useMenuCommands';
+import useOpenProject from '@/renderer/hooks/useOpenProject';
+import useProjects from '@/renderer/hooks/useProjects';
+import LoadingScreen from '@/renderer/screens/LoadingScreen';
+import { changeSettings } from '@/renderer/store/slices/settingsSlice';
 import { useAppDispatch, useAppSelector } from '@/renderer/store/hooks';
-import ThemeIcon from '@/renderer/components/ThemeIcon';
-import AppMenuBar from '@/renderer/components/menu/AppMenuBar';
 import { APP_NAME } from '@/renderer/constants';
-import { fallbackLanguage, languageNames, supportedLanguages } from '@/common/locales';
+import { mainChannels } from '@/common/ipc';
+import type { Project } from '@/common/projects';
+import { isProjectView } from '@/common/settings';
 
-// The list never changes while the app runs, so it is built once instead of on
-// every render of the select below.
-const languageItems = supportedLanguages.map((language) => ({
-  value: language,
-  label: languageNames[language],
-}));
+// How long the loading screen stays at the least, so a window that is ready at
+// once still shows it rather than flashing it
+const MIN_LOADING_MS = 600;
 
 /*
- * The window the app opens with. For now it carries the bar every screen will
- * share and the app's name, and the database screens are built into it later.
+ * The screen a window opens on: a welcome, and the projects, which a click
+ * opens. Projects are created and edited in a dialog over it.
  * */
 export default function MainScreen() {
-  const darkTheme = useAppSelector((state) => state.appScreen.darkTheme);
-  const [t, i18n] = useTranslation(['common']);
+  const [t] = useTranslation();
   const dispatch = useAppDispatch();
+  const view = useAppSelector((state) => state.settings.projectView);
+  const { projects, refresh } = useProjects();
+  const opener = useOpenProject();
+  // The project dialog: open on a project to edit, or on none to create one
+  const [editing, setEditing] = useState<{ project?: Project } | null>(null);
+  const [shownLongEnough, setShownLongEnough] = useState(false);
 
-  const handleChangeTheme = (): void => {
-    dispatch(setDarkTheme(!darkTheme));
+  useEffect(() => {
+    document.title = APP_NAME;
+    // The list never has a project open behind it, whichever way the window got here
+    void window.mainApi.invoke(mainChannels.closeProject);
+
+    const timer = setTimeout(() => setShownLongEnough(true), MIN_LOADING_MS);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  useMenuCommands({
+    'new-project': () => setEditing({}),
+  });
+
+  // Main tells every other window of a change, and this one reads the list again itself
+  const handleDialogClosed = (): void => {
+    setEditing(null);
+    void refresh();
   };
 
-  const handleChangeLanguage = async (language: PlSelectValue | null): Promise<void> => {
-    // The select speaks in `string | number | null`, so what it reports is
-    // checked before it reaches i18next rather than after
-    if (typeof language !== 'string') {
-      return;
-    }
-
-    // `useLanguageSync` reports the change to the main process, which stores it
-    await i18n.changeLanguage(language);
+  const handleDeleteMissing = async (project: Project): Promise<void> => {
+    await window.mainApi.invoke(mainChannels.deleteProject, project.id);
+    opener.dismiss();
+    await refresh();
   };
+
+  if (projects === null || !shownLongEnough) {
+    return (
+      <LoadingScreen
+        status={projects === null ? t('loading.projects') : t('loading.ready')}
+        progress={projects === null ? null : 1}
+      />
+    );
+  }
+
+  if (opener.opening) {
+    return <LoadingScreen status={t('loading.opening', { name: opener.opening.name })} />;
+  }
+
+  const newProjectButton = (
+    <PlButton
+      data-testid="btn-new-project"
+      size="sm"
+      startIcon={<Plus />}
+      onClick={() => setEditing({})}
+    >
+      {t('home.new-project')}
+    </PlButton>
+  );
 
   return (
     <div className="app">
-      <PlHeader
-        size="sm"
-        brand={
-          <PlAppLogo data-testid="main-logo" size="sm" src="images/logo.png" name={APP_NAME} />
-        }
-        actions={
-          <>
-            <PlIconButton
-              data-testid="btn-change-theme"
-              size="sm"
-              variant="ghost"
-              label={t('common.switch-theme')}
-              icon={<ThemeIcon darkTheme={darkTheme} />}
-              onClick={handleChangeTheme}
-            />
-            {/*
-              The test hook goes on the element around the select, which draws
-              its own trigger.
-            */}
-            <div className="app__language" data-testid="select-language">
-              <PlSelect
-                fullWidth
-                size="sm"
-                label={t('common.language')}
-                labelPlacement="float"
-                items={languageItems}
-                value={i18n.resolvedLanguage ?? fallbackLanguage}
-                onValueChange={(language) => void handleChangeLanguage(language)}
-              />
+      <AppHeader />
+      <main className="home">
+        <div className="home__inner">
+          <WelcomeCard />
+          <section className="projects" aria-labelledby="projects-title">
+            <div className="projects__bar">
+              <PlTypography id="projects-title" level="h2" className="projects__title">
+                {t('home.projects')}
+              </PlTypography>
+              <span className="projects__count" data-testid="project-count">
+                {projects.length}
+              </span>
+              <span className="projects__spacer" />
+              {projects.length > 0 && (
+                <PlSegmentedButton
+                  data-testid="project-view"
+                  size="sm"
+                  aria-label={t('home.view')}
+                  value={view}
+                  onValueChange={(value) => {
+                    if (isProjectView(value)) {
+                      void dispatch(changeSettings({ projectView: value }));
+                    }
+                  }}
+                >
+                  <PlSegment value="grid" startIcon={<LayoutGrid />}>
+                    {t('home.view-grid')}
+                  </PlSegment>
+                  <PlSegment value="list" startIcon={<List />}>
+                    {t('home.view-list')}
+                  </PlSegment>
+                </PlSegmentedButton>
+              )}
+              {newProjectButton}
             </div>
-          </>
-        }
-      >
-        <AppMenuBar />
-      </PlHeader>
-
-      <main className="app__main">
-        <img className="app__main-logo" alt="" src="images/logo.png" draggable="false" />
-        <PlTypography level="h1">{APP_NAME}</PlTypography>
-        <PlTypography className="app__muted" data-testid="app-version">
-          {/* Replaced with the `package.json` version at build time */}
-          {t('common.version', { version: __APP_VERSION__ })}
-        </PlTypography>
+            {projects.length === 0 ? (
+              <PlEmpty
+                className="projects__empty"
+                data-testid="projects-empty"
+                icon={<Database />}
+                title={t('home.empty-title')}
+                description={t('home.empty-text')}
+              />
+            ) : (
+              <ProjectList
+                projects={projects}
+                view={view}
+                onOpen={(project) => void opener.open(project)}
+                onEdit={(project) => setEditing({ project })}
+              />
+            )}
+          </section>
+        </div>
       </main>
+      {editing && <ProjectDialog project={editing.project} onClose={handleDialogClosed} />}
+      <OpenDialogs
+        question={opener.question}
+        busy={opener.busy}
+        onDismiss={opener.dismiss}
+        onPassword={(project, password, remember) =>
+          void opener.withPassword(project, password, remember)
+        }
+        onUpgrade={(question, upgrade) => void opener.withUpgrade(question, upgrade)}
+        onDelete={(project) => void handleDeleteMissing(project)}
+      />
     </div>
   );
 }

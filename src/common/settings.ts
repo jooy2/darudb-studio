@@ -24,6 +24,11 @@ export const editModes = ['immediate', 'submit'] as const;
 
 export type EditMode = (typeof editModes)[number];
 
+/* How the project list lays out its projects: as cards in a grid, or as rows */
+export const projectViews = ['grid', 'list'] as const;
+
+export type ProjectView = (typeof projectViews)[number];
+
 export interface AppSettings {
   /* `null` while the user has not picked a theme, which means the operating system decides */
   darkTheme: boolean | null;
@@ -31,6 +36,7 @@ export interface AppSettings {
   language: SupportedLanguage | null;
   menuBarStyle: MenuBarStyle;
   editMode: EditMode;
+  projectView: ProjectView;
 }
 
 export const defaultSettings: AppSettings = {
@@ -38,6 +44,7 @@ export const defaultSettings: AppSettings = {
   language: null,
   menuBarStyle: 'inline',
   editMode: 'immediate',
+  projectView: 'grid',
 };
 
 export const isSupportedLanguage = (value: unknown): value is SupportedLanguage =>
@@ -48,3 +55,6 @@ export const isMenuBarStyle = (value: unknown): value is MenuBarStyle =>
 
 export const isEditMode = (value: unknown): value is EditMode =>
   editModes.includes(value as EditMode);
+
+export const isProjectView = (value: unknown): value is ProjectView =>
+  projectViews.includes(value as ProjectView);

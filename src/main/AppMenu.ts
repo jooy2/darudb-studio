@@ -17,10 +17,9 @@ import {
   type MenuRole,
 } from '@/common/menu';
 import { rendererChannels } from '@/common/ipc';
-import { fallbackLanguage } from '@/common/locales';
 import { translate } from '@/common/translations';
 import { isDevEnv } from './constants';
-import { getSettings } from './settings';
+import { getLanguage } from './appearance';
 import { openExternalLink } from './security';
 import WindowManager from './WindowManager';
 
@@ -158,6 +157,18 @@ const runCommand = async (command: AppCommand, window: BrowserWindow | null): Pr
     case 'new-window':
       await WindowManager.create('/', window);
       return;
+    case 'new-project': {
+      // A window showing a project keeps it: the new one is made in a window of
+      // its own, as it is when no window is open
+      const keepsWindow = window !== null && !projectWindows.has(window.id);
+      const target = keepsWindow ? window : await WindowManager.create('/', window);
+
+      if (target && !target.isDestroyed()) {
+        sendCommand(target.webContents, command);
+      }
+
+      return;
+    }
     case 'open-website':
       await openExternalLink(WEBSITE_URL);
       return;
@@ -185,9 +196,7 @@ const run = (entry: MenuEntry, window: BrowserWindow | null): void => {
 };
 
 const label = (entry: MenuEntry): string =>
-  entry.label
-    ? translate(getSettings().language ?? fallbackLanguage, entry.label, { name: APP_NAME })
-    : APP_NAME;
+  entry.label ? translate(getLanguage(), entry.label, { name: APP_NAME }) : APP_NAME;
 
 /* `entries` as Electron's menu template, in the language the user picked */
 const templateOf = (

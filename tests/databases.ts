@@ -23,15 +23,20 @@ export const sampleSchema = schema(1, {
 // A cheap hashing cost: the tests open encrypted files many times
 const passwordHashing = { memoryKib: 1024, iterations: 1, parallelism: 1 };
 
-/* A plain file with a few teams and users, at `dir/name` */
+/*
+ * A file with a few teams and users, at `dir/name`: encrypted with `password`,
+ * and in the format version before the newest with `olderFormat`.
+ * */
 export const makeSampleDatabase = (
   dir: string,
   name = 'sample.darudb',
-  options: { password?: string; users?: number } = {},
+  options: { password?: string; users?: number; olderFormat?: boolean } = {},
 ): string => {
   const path = join(dir, name);
   const db = Database.open(path, {
     schema: sampleSchema,
+    // A file created with upgrading off is written in the older version
+    ...(options.olderFormat ? { upgradeFormat: false } : {}),
     ...(options.password ? { password: options.password, passwordHashing } : {}),
   });
 

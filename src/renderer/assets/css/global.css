@@ -14,6 +14,7 @@
  * */
 
 @import 'plass-ui/styles.css';
+@import './screens.css';
 
 :root {
   /* Native widgets and scrollbars follow the theme the app settled on */
@@ -44,39 +45,11 @@ img {
 
 /* The layout the screens share */
 
+/* A screen fills the window, and its own regions scroll, never the page */
 .app {
   display: flex;
+  height: 100vh;
   flex-direction: column;
-  min-height: 100vh;
-}
-
-/* Wide enough that the trigger does not resize as the language changes */
-.app__language {
-  width: 10rem;
-}
-
-.app__main {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  align-items: center;
-  /*
-   * `safe` keeps the top of the content reachable once the window is shorter
-   * than the content itself.
-   * */
-  justify-content: safe center;
-  gap: 1rem;
-  padding: 2rem 1.5rem;
-  text-align: center;
-}
-
-.app__main-logo {
-  width: 6rem;
-  height: 6rem;
-}
-
-.app__muted {
-  opacity: 0.7;
 }
 
 /* A screen that carries nothing but one message, centered in its window */

@@ -71,3 +71,60 @@ export interface ChosenFile {
   path: string;
   check: FileCheck;
 }
+
+/* How a file in an older format version opens, once the user chose */
+export const upgradeChoices = ['copy', 'original'] as const;
+
+export type UpgradeChoice = (typeof upgradeChoices)[number];
+
+/* What a window asks for when it opens a project */
+export interface OpenRequest {
+  projectId: number;
+  /* A password typed for this open, tried instead of the remembered one */
+  password?: string;
+  /* Whether to remember `password` for the next open */
+  rememberPassword?: boolean;
+  /*
+   * How to open a file in an older format version: on a working copy the app
+   * makes and raises, or on the file itself, raised in place
+   * */
+  upgrade?: UpgradeChoice;
+}
+
+/* What the project screen shows of the file a window has open */
+export interface DatabaseInfo {
+  path: string;
+  encrypted: boolean;
+  formatVersion: number;
+  pageSize: number;
+  /* The schema version the file holds, or `null` without a schema */
+  schemaVersion: number | null;
+  /* The size of the file, in bytes, when it was opened */
+  fileSize: number;
+}
+
+/* A project open in a window, and its file */
+export interface Session {
+  project: Project;
+  database: DatabaseInfo;
+}
+
+/*
+ * What asking to open a project ended in.
+ *
+ * - `opened`: the window has the project open now.
+ * - `open-elsewhere`: another window has it open, and was brought forward.
+ * - `needs-password`: the file is encrypted, and no password was given or
+ *   remembered, or, with `retry`, the one tried does not open it.
+ * - `needs-upgrade`: the file is in an older format version, and the user is
+ *   to choose how to open it, see `OpenRequest.upgrade`.
+ * - `missing`, `not-database` and `error`: as a `FileCheck` says them.
+ * */
+export type OpenResult =
+  | ({ status: 'opened' } & Session)
+  | { status: 'open-elsewhere' }
+  | { status: 'needs-password'; retry: boolean }
+  | { status: 'needs-upgrade'; formatVersion: number; newestVersion: number }
+  | { status: 'missing' }
+  | { status: 'not-database' }
+  | { status: 'error'; code: string; message: string };

@@ -9,11 +9,11 @@ import {
 import { openExternalLink } from './security';
 import WindowManager from './WindowManager';
 import AppMenu from './AppMenu';
-import { setDarkTheme, setLanguage } from './appearance';
 import { getSettings, updateSettings, validSettingChanges } from './settings';
-import { deleteProject, listProjects, saveProject } from './projects';
+import { deleteProject, getProject, listProjects, saveProject } from './projects';
 import { checkDatabaseFile, chooseDatabaseFile } from './files';
 import { canRememberSecrets } from './secrets';
+import { closeProject, isProjectOpen, openProject, sessionOf } from './sessions';
 
 /*
  * Sends `channel` to every window but `sender`, which already knows.
@@ -63,18 +63,6 @@ export default class IPCs {
       await openExternalLink(url);
     });
 
-    // A window keeps its own store, so an explicit theme or language choice is
-    // reported here and handed to the windows that are already open
-    on(mainChannels.setDarkTheme, (event, darkTheme) => {
-      setDarkTheme(darkTheme, BrowserWindow.fromWebContents(event.sender));
-    });
-
-    // The native menu is labelled in the language too
-    on(mainChannels.setLanguage, (event, language) => {
-      setLanguage(language, BrowserWindow.fromWebContents(event.sender));
-      AppMenu.refresh();
-    });
-
     // Open a renderer route in a window of its own. Returns the id of the new
     // window, or `null` when the request was refused (window limit reached,
     // route not allowed)
@@ -107,17 +95,21 @@ export default class IPCs {
       AppMenu.listen(event.sender);
     });
 
-    on(mainChannels.setShowsProject, (event, showsProject) => {
-      AppMenu.setShowsProject(BrowserWindow.fromWebContents(event.sender), showsProject === true);
-    });
-
     // The stored preferences, which a window reads before its first render
     handle(mainChannels.requestSettings, () => getSettings());
 
-    // A change of the preferences a window's settings dialog makes. Only the
-    // valid ones are kept, and every other window hears of them.
+    // A change of the preferences a window makes. Only the valid ones are
+    // kept, and every other window hears of them, each running its own copy of
+    // the renderer with its own store.
     handle(mainChannels.updateSettings, (event, changes) => {
-      updateSettings(validSettingChanges(changes));
+      const valid = validSettingChanges(changes);
+
+      updateSettings(valid);
+
+      // The native menu is labelled in the language too
+      if (valid.language !== undefined) {
+        AppMenu.refresh();
+      }
 
       const settings = getSettings();
 
@@ -134,6 +126,14 @@ export default class IPCs {
 
     // Every window shows the list, so a change in one reaches the others
     handle(mainChannels.saveProject, async (event, draft) => {
+      if (typeof draft?.id === 'number' && isProjectOpen(draft.id)) {
+        const current = await getProject(draft.id);
+
+        if (current && current.filePath !== draft.filePath) {
+          throw new Error('the file of a project cannot change while a window has it open');
+        }
+      }
+
       const project = await saveProject(draft);
 
       broadcast(rendererChannels.projectsChanged, BrowserWindow.fromWebContents(event.sender));
@@ -142,6 +142,10 @@ export default class IPCs {
     });
 
     handle(mainChannels.deleteProject, async (event, id) => {
+      if (isProjectOpen(id)) {
+        throw new Error('a project cannot be deleted while a window has it open');
+      }
+
       await deleteProject(id);
       broadcast(rendererChannels.projectsChanged, BrowserWindow.fromWebContents(event.sender));
     });
@@ -155,5 +159,37 @@ export default class IPCs {
     );
 
     handle(mainChannels.canRememberPasswords, () => canRememberSecrets());
+
+    // A window opens one project at a time, and the menu's project entries
+    // follow what the window has open. Opening one reorders the list.
+    handle(mainChannels.openProject, async (event, request) => {
+      const window = BrowserWindow.fromWebContents(event.sender);
+
+      if (!window) {
+        return { status: 'error', code: 'INTERNAL', message: 'the window is gone' };
+      }
+
+      const result = await openProject(window, request);
+
+      if (result.status === 'opened') {
+        AppMenu.setShowsProject(window, true);
+        broadcast(rendererChannels.projectsChanged, window);
+      }
+
+      return result;
+    });
+
+    handle(mainChannels.closeProject, async (event) => {
+      const window = BrowserWindow.fromWebContents(event.sender);
+      const closed = await closeProject(window);
+
+      AppMenu.setShowsProject(window, false);
+
+      return closed;
+    });
+
+    handle(mainChannels.requestSession, (event) =>
+      sessionOf(BrowserWindow.fromWebContents(event.sender)),
+    );
   }
 }

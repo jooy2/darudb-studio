@@ -6,6 +6,7 @@ import WindowManager from './WindowManager';
 import { isDevEnv, isHiddenRun, userDataOverride } from './constants';
 import { loadSettings } from './settings';
 import { closeStore, openStore } from './store';
+import { closeAllProjects } from './sessions';
 
 // How long a quit waits for the app's data file to close. A DaruDB commit is
 // atomic, so quitting before a write finishes loses that one change and leaves
@@ -55,8 +56,9 @@ app.on('ready', async () => {
 });
 
 /*
- * Closes the app's data file, or gives up on it after
- * `STORE_CLOSE_TIMEOUT_MS`. Never rejects, since a quit goes ahead either way.
+ * Closes the app's data file and the databases the windows have open, or gives
+ * up on them after `STORE_CLOSE_TIMEOUT_MS`. Never rejects, since a quit goes
+ * ahead either way.
  * */
 const closeStoreBeforeQuit = async (): Promise<void> => {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -66,22 +68,23 @@ const closeStoreBeforeQuit = async (): Promise<void> => {
   });
 
   try {
-    const result = await Promise.race([closeStore().then(() => 'closed' as const), timeout]);
+    const closing = Promise.all([closeAllProjects(), closeStore()]).then(() => 'closed' as const);
+    const result = await Promise.race([closing, timeout]);
 
     if (result === 'timeout') {
       console.warn(
-        `The app data file did not close within ${STORE_CLOSE_TIMEOUT_MS} ms. Quitting anyway.`,
+        `The open files did not close within ${STORE_CLOSE_TIMEOUT_MS} ms. Quitting anyway.`,
       );
     }
   } catch (error) {
-    console.error('Failed to close the app data file:', error);
+    console.error('Failed to close the open files:', error);
   } finally {
     clearTimeout(timer);
   }
 };
 
-// The data file closes before the app quits, so a quit does not cut a write
-// short. The first quit waits for the close, then quits again for real.
+// The files close before the app quits, so a quit does not cut a write short.
+// The first quit waits for the close, then quits again for real.
 app.on('before-quit', (event) => {
   if (closingStore) {
     return;

@@ -1,17 +1,16 @@
 import { ReactNode, useEffect, useLayoutEffect } from 'react';
-import { setDarkTheme, setSystemDarkTheme } from '@/renderer/store/slices/appScreenSlice';
+import { selectDarkTheme, setSystemDarkTheme } from '@/renderer/store/slices/appScreenSlice';
 import { useAppDispatch, useAppSelector } from '@/renderer/store/hooks';
 import { SYSTEM_DARK_THEME_QUERY } from '@/renderer/constants';
-import { mainChannels, rendererChannels } from '@/common/ipc';
 
 /*
  * Plass UI has no theme provider of its own: its tokens answer to `data-theme`
- * on any ancestor. So this component holds the theme state and writes that one
- * attribute, and the tree below it needs nothing wrapped around it.
+ * on any ancestor. So this component writes that one attribute from the theme
+ * the settings hold, or the one the system asks for while they hold none, and
+ * the tree below it needs nothing wrapped around it.
  * */
 export default function ThemeProvider({ children }: { children: ReactNode }) {
-  const darkTheme = useAppSelector((state) => state.appScreen.darkTheme);
-  const followSystemTheme = useAppSelector((state) => state.appScreen.followSystemTheme);
+  const darkTheme = useAppSelector(selectDarkTheme);
   const dispatch = useAppDispatch();
 
   useEffect(() => {
@@ -29,28 +28,6 @@ export default function ThemeProvider({ children }: { children: ReactNode }) {
       systemDarkTheme.removeEventListener('change', handleSystemThemeChange);
     };
   }, [dispatch]);
-
-  useEffect(() => {
-    // An explicit choice made in another window. Only explicit ones are handed
-    // around: a change the operating system makes reaches every window on its
-    // own through the media query above.
-    const unsubscribe = window.mainApi.on(rendererChannels.darkThemeUpdated, (_event, value) => {
-      dispatch(setDarkTheme(value));
-    });
-
-    return unsubscribe;
-  }, [dispatch]);
-
-  useEffect(() => {
-    // Only an explicit choice is reported. The main process stores it in the
-    // settings file, hands it to the windows that are already open, and paints
-    // the next window with it before its page loads.
-    if (followSystemTheme) {
-      return;
-    }
-
-    window.mainApi.send(mainChannels.setDarkTheme, darkTheme);
-  }, [darkTheme, followSystemTheme]);
 
   useLayoutEffect(() => {
     // Written in a layout effect rather than in `useEffect`, so the first paint

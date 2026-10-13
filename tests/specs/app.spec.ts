@@ -25,9 +25,13 @@ const getTheme = (target: Page) => target.evaluate(() => document.documentElemen
 const getBackgroundColor = (target: Page) =>
   target.evaluate(() => getComputedStyle(document.body).backgroundImage);
 
+/* Picks a language in the settings dialog, and closes it again */
 const selectLanguage = async (target: Page, languageName: string): Promise<void> => {
-  await target.getByTestId('select-language').getByRole('combobox').click();
+  await target.getByTestId('btn-settings').click();
+  await target.getByTestId('settings-language').getByRole('combobox').click();
   await target.getByRole('option', { name: languageName }).click();
+  await target.keyboard.press('Escape');
+  await expect(target.getByTestId('settings-dialog')).toBeHidden();
 };
 
 test('Document element check', async ({ page, util }) => {

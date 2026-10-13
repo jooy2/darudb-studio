@@ -2,6 +2,7 @@ import {
   defaultSettings,
   isEditMode,
   isMenuBarStyle,
+  isProjectView,
   isSupportedLanguage,
   type AppSettings,
 } from '@/common/settings';
@@ -25,6 +26,7 @@ const settingValidators: { [Name in SettingName]: (value: unknown) => boolean } 
   language: isSupportedLanguage,
   menuBarStyle: isMenuBarStyle,
   editMode: isEditMode,
+  projectView: isProjectView,
 };
 
 let settings: AppSettings = { ...defaultSettings };
@@ -75,6 +77,7 @@ export const loadSettings = async (): Promise<AppSettings> => {
       language: readSetting(storedValues, 'language'),
       menuBarStyle: readSetting(storedValues, 'menuBarStyle'),
       editMode: readSetting(storedValues, 'editMode'),
+      projectView: readSetting(storedValues, 'projectView'),
     };
   } catch (error) {
     console.error('Failed to read the settings. Running on the defaults:', error);

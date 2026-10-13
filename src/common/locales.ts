@@ -15,6 +15,23 @@ export type SupportedLanguage = (typeof supportedLanguages)[number];
 
 export const fallbackLanguage: SupportedLanguage = 'en';
 
+/*
+ * The first of `candidates`, language tags in the order the system prefers
+ * them, that the app has strings for, matched on the language alone: `de-AT`
+ * is `de`. The fallback when none of them is.
+ * */
+export const languageOf = (candidates: readonly string[]): SupportedLanguage => {
+  for (const candidate of candidates) {
+    const language = candidate.toLowerCase().split(/[-_]/)[0];
+
+    if (supportedLanguages.includes(language as SupportedLanguage)) {
+      return language as SupportedLanguage;
+    }
+  }
+
+  return fallbackLanguage;
+};
+
 // Language names are intentionally not translated, so that every entry stays
 // readable no matter which language is currently active.
 export const languageNames: Record<SupportedLanguage, string> = {

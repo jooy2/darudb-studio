@@ -1,6 +1,6 @@
 import { configureStore, type ThunkAction, type UnknownAction } from '@reduxjs/toolkit';
 import appScreenSlice, { createAppScreenState } from '@/renderer/store/slices/appScreenSlice';
-import settingsSlice, { createSettingsState } from '@/renderer/store/slices/settingsSlice';
+import settingsSlice from '@/renderer/store/slices/settingsSlice';
 import type { AppSettings } from '@/common/settings';
 
 /*
@@ -14,8 +14,8 @@ export const createAppStore = (settings: AppSettings) =>
       settings: settingsSlice,
     },
     preloadedState: {
-      appScreen: createAppScreenState(settings),
-      settings: createSettingsState(settings),
+      appScreen: createAppScreenState(),
+      settings,
     },
   });
 

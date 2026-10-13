@@ -261,7 +261,7 @@ export const markOpened = async (id: number): Promise<void> => {
  * Points the project at `copyPath`, a working copy of `sourcePath` the app
  * made, so that it opens the copy from now on.
  * */
-export const useWorkingCopy = async (
+export const pointAtWorkingCopy = async (
   id: number,
   copyPath: string,
   sourcePath: string,

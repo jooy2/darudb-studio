@@ -2,36 +2,29 @@ import { createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import type { AppThunk } from '@/renderer/store';
 import { mainChannels } from '@/common/ipc';
-import type { AppSettings, EditMode, MenuBarStyle } from '@/common/settings';
+import type { AppSettings } from '@/common/settings';
 
 /*
- * The preferences that decide how a window works rather than how it looks. The
- * theme and the language have slices and channels of their own, since they
- * reach the page before React does.
+ * The settings, as the main process keeps them. A window reads them before its
+ * first render, changes them through `changeSettings`, and hears of a change
+ * another window made through `SettingsProvider`.
  * */
-export interface SettingsState {
-  menuBarStyle: MenuBarStyle;
-  editMode: EditMode;
-}
-
-export type SettingChanges = Partial<SettingsState>;
-
-export const createSettingsState = ({ menuBarStyle, editMode }: AppSettings): SettingsState => ({
-  menuBarStyle,
-  editMode,
-});
+export type SettingsState = AppSettings;
 
 export const settingsSlice = createSlice({
   name: 'settings',
   // Replaced by the preloaded state in `createAppStore`
-  initialState: { menuBarStyle: 'inline', editMode: 'immediate' } as SettingsState,
+  initialState: {
+    darkTheme: null,
+    language: null,
+    menuBarStyle: 'inline',
+    editMode: 'immediate',
+    projectView: 'grid',
+  } as SettingsState,
   reducers: {
     /* What the main process holds, after a change made here or in another window */
-    settingsReceived: (state, action: PayloadAction<AppSettings>) => {
-      state.menuBarStyle = action.payload.menuBarStyle;
-      state.editMode = action.payload.editMode;
-    },
-    settingsChanged: (state, action: PayloadAction<SettingChanges>) => {
+    settingsReceived: (_state, action: PayloadAction<AppSettings>) => ({ ...action.payload }),
+    settingsChanged: (state, action: PayloadAction<Partial<AppSettings>>) => {
       Object.assign(state, action.payload);
     },
   },
@@ -42,9 +35,10 @@ export const { settingsReceived, settingsChanged } = settingsSlice.actions;
 /*
  * Shows `changes` at once, then stores them. The main process answers with
  * every setting as it kept them, which is what the window ends up showing.
+ * `null` for the theme or the language hands it back to the system.
  * */
 export const changeSettings =
-  (changes: SettingChanges): AppThunk<Promise<void>> =>
+  (changes: Partial<AppSettings>): AppThunk<Promise<void>> =>
   async (dispatch) => {
     dispatch(settingsChanged(changes));
     dispatch(settingsReceived(await window.mainApi.invoke(mainChannels.updateSettings, changes)));

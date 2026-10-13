@@ -1,5 +1,7 @@
 import type { Page } from 'playwright';
 import { mainChannels } from '../../src/common/ipc';
+import { languageOf } from '../../src/common/locales';
+import { translate } from '../../src/common/translations';
 import type { AppSettings } from '../../src/common/settings';
 import { invokeMain, sendMain } from '../ipc';
 import { test, expect, beforeAll, afterAll, getApp } from '../fixtures';
@@ -118,11 +120,17 @@ test('The native menu speaks the language the user picked', async ({ page, util 
         ({ Menu }) => Menu.getApplicationMenu()?.getMenuItemById('file.new-window')?.label,
       );
 
-    expect(await nativeLabel()).toBe('New Window');
-    await sendMain(page, mainChannels.setLanguage, 'de');
-    await expect.poll(nativeLabel).toBe('Neues Fenster');
-    await sendMain(page, mainChannels.setLanguage, 'en');
+    await invokeMain(page, mainChannels.updateSettings, { language: 'en' });
     await expect.poll(nativeLabel).toBe('New Window');
+    await invokeMain(page, mainChannels.updateSettings, { language: 'de' });
+    await expect.poll(nativeLabel).toBe('Neues Fenster');
+
+    // Without a choice, the language of the system. The test overrides the
+    // locale of the pages only, so the main process still has the machine's.
+    const systemLanguage = languageOf([await getApp().evaluate(({ app }) => app.getLocale())]);
+
+    await invokeMain(page, mainChannels.updateSettings, { language: null });
+    await expect.poll(nativeLabel).toBe(translate(systemLanguage, 'menu.new-window'));
   } catch (error) {
     throw await util.onTestError(error);
   }

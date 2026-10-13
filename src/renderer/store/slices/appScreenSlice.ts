@@ -1,45 +1,45 @@
 import { createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
+import type { RootState } from '@/renderer/store';
 import { SYSTEM_DARK_THEME_QUERY } from '@/renderer/constants';
-import type { AppSettings } from '@/common/settings';
 
+/*
+ * What a window shows that is not a setting: the color scheme the operating
+ * system asks for, which the theme follows while the user has made no choice,
+ * and whether the settings dialog is open.
+ * */
 export interface AppScreenState {
-  darkTheme: boolean;
-  followSystemTheme: boolean;
+  systemDarkTheme: boolean;
+  settingsOpen: boolean;
 }
 
 /*
- * The theme a window starts on. The stored choice comes from the main process,
- * and as long as the user has not made one, the operating system decides. The
- * browser engine already knows what it asks for, so that needs no trip to the
- * main process.
+ * The browser engine already knows what the system asks for, so that needs no
+ * trip to the main process.
  * */
-export const createAppScreenState = ({ darkTheme }: AppSettings): AppScreenState => ({
-  darkTheme: darkTheme ?? window.matchMedia(SYSTEM_DARK_THEME_QUERY).matches,
-  followSystemTheme: darkTheme === null,
+export const createAppScreenState = (): AppScreenState => ({
+  systemDarkTheme: window.matchMedia(SYSTEM_DARK_THEME_QUERY).matches,
+  settingsOpen: false,
 });
 
 export const appScreenSlice = createSlice({
   name: 'appScreen',
-  // Replaced by the preloaded state in `createAppStore`, which holds the
-  // settings the window was opened with
-  initialState: { darkTheme: false, followSystemTheme: true } as AppScreenState,
+  // Replaced by the preloaded state in `createAppStore`
+  initialState: { systemDarkTheme: false, settingsOpen: false } as AppScreenState,
   reducers: {
-    setDarkTheme: (state, action: PayloadAction<boolean>) => {
-      state.darkTheme = action.payload;
-      // An explicit choice wins over the operating system from now on
-      state.followSystemTheme = false;
-    },
     setSystemDarkTheme: (state, action: PayloadAction<boolean>) => {
-      if (!state.followSystemTheme) {
-        return;
-      }
-
-      state.darkTheme = action.payload;
+      state.systemDarkTheme = action.payload;
+    },
+    setSettingsOpen: (state, action: PayloadAction<boolean>) => {
+      state.settingsOpen = action.payload;
     },
   },
 });
 
-export const { setDarkTheme, setSystemDarkTheme } = appScreenSlice.actions;
+export const { setSystemDarkTheme, setSettingsOpen } = appScreenSlice.actions;
+
+/* Whether the window is dark: the user's choice, or the system's without one */
+export const selectDarkTheme = (state: RootState): boolean =>
+  state.settings.darkTheme ?? state.appScreen.systemDarkTheme;
 
 export default appScreenSlice.reducer;

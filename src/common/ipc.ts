@@ -1,7 +1,14 @@
 import type { IpcRendererEvent } from 'electron';
-import type { SupportedLanguage } from './locales';
 import type { AppSettings } from './settings';
-import type { ChosenFile, FileCheck, Project, ProjectDraft } from './projects';
+import type {
+  ChosenFile,
+  FileCheck,
+  OpenRequest,
+  OpenResult,
+  Project,
+  ProjectDraft,
+  Session,
+} from './projects';
 import type { AppCommand, MenuEntry, MenuPlatform } from './menu';
 
 /*
@@ -31,8 +38,6 @@ export const mainChannels = {
   closeWindow: 'msgCloseWindow',
   requestSettings: 'msgRequestSettings',
   updateSettings: 'msgUpdateSettings',
-  setDarkTheme: 'msgSetDarkTheme',
-  setLanguage: 'msgSetLanguage',
   listProjects: 'msgListProjects',
   saveProject: 'msgSaveProject',
   deleteProject: 'msgDeleteProject',
@@ -42,15 +47,15 @@ export const mainChannels = {
   requestMenu: 'msgRequestMenu',
   invokeMenuEntry: 'msgInvokeMenuEntry',
   listenMenuCommands: 'msgListenMenuCommands',
-  setShowsProject: 'msgSetShowsProject',
+  openProject: 'msgOpenProject',
+  closeProject: 'msgCloseProject',
+  requestSession: 'msgRequestSession',
 } as const;
 
 /*
  * Channels the main process may push to the renderer.
  * */
 export const rendererChannels = {
-  darkThemeUpdated: 'msgDarkThemeUpdated',
-  languageUpdated: 'msgLanguageUpdated',
   settingsUpdated: 'msgSettingsUpdated',
   projectsChanged: 'msgProjectsChanged',
   menuCommand: 'msgMenuCommand',
@@ -81,10 +86,12 @@ export interface MainChannelSignatures {
   /* Closes the window the call came from */
   [mainChannels.closeWindow]: () => boolean;
   [mainChannels.requestSettings]: () => AppSettings;
-  /* Stores the valid ones of `changes` and resolves with every setting */
+  /*
+   * Stores the valid ones of `changes` and resolves with every setting. The
+   * theme and the language are settings too: `null` hands either back to the
+   * operating system.
+   * */
   [mainChannels.updateSettings]: (changes: Partial<AppSettings>) => AppSettings;
-  [mainChannels.setDarkTheme]: (darkTheme: boolean) => void;
-  [mainChannels.setLanguage]: (language: SupportedLanguage) => void;
   [mainChannels.listProjects]: () => Project[];
   [mainChannels.saveProject]: (draft: ProjectDraft) => Project;
   [mainChannels.deleteProject]: (id: number) => void;
@@ -101,13 +108,15 @@ export interface MainChannelSignatures {
    * before that waits for it, as a command for a window that is still loading.
    * */
   [mainChannels.listenMenuCommands]: () => void;
-  /* Reports whether the window shows a project, which the entries for one need */
-  [mainChannels.setShowsProject]: (showsProject: boolean) => void;
+  /* Opens a project in the window the call came from, see `OpenResult` */
+  [mainChannels.openProject]: (request: OpenRequest) => OpenResult;
+  /* Closes the project of the window the call came from; `false` when it had none */
+  [mainChannels.closeProject]: () => boolean;
+  /* The project the window the call came from has open, or `null` */
+  [mainChannels.requestSession]: () => Session | null;
 }
 
 export interface RendererChannelSignatures {
-  [rendererChannels.darkThemeUpdated]: (darkTheme: boolean) => void;
-  [rendererChannels.languageUpdated]: (language: SupportedLanguage) => void;
   [rendererChannels.settingsUpdated]: (settings: AppSettings) => void;
   /* A window created, changed or deleted a project: the list is to be read again */
   [rendererChannels.projectsChanged]: () => void;
