@@ -79,6 +79,10 @@ interface DataGridProps {
    * when every row is selected, which the view itself exports better
    * */
   onExportRows?: (rows: GridRow[], format: TransferFormat, everything: boolean) => void;
+  /* The widths of the columns the user set, by field, which the grid starts from */
+  widths?: Record<string, number>;
+  /* Hands on the widths once a column is resized, to be kept with the tab */
+  onWidthsChange?: (widths: Record<string, number>) => void;
   /* What the grid says when it has no rows */
   empty?: ReactNode;
   testId?: string;
@@ -143,6 +147,8 @@ export default function DataGrid({
   onViewValue,
   onSelectionChange = undefined,
   onExportRows = undefined,
+  widths: savedWidths = undefined,
+  onWidthsChange = undefined,
   empty = null,
   testId = 'data-grid',
 }: DataGridProps) {
@@ -150,7 +156,13 @@ export default function DataGrid({
   const { platform } = useMenuModel();
   const scrollRef = useRef<HTMLDivElement>(null);
   const columns = useMemo(() => columnsOf(collection), [collection]);
-  const [widths, setWidths] = useState<Record<string, number>>({});
+  const [widths, setWidths] = useState<Record<string, number>>(() => savedWidths ?? {});
+  // The widths as of now, which the end of a drag hands on
+  const widthsRef = useRef(widths);
+
+  useEffect(() => {
+    widthsRef.current = widths;
+  }, [widths]);
   const [selection, setSelection] = useState<Ranges>(EMPTY);
   const [anchor, setAnchorState] = useState<number | null>(null);
   // The anchor as of now, for the listener on the window that a drag past the edge reaches
@@ -646,6 +658,7 @@ export default function DataGrid({
       handle.removeEventListener('pointermove', move);
       handle.removeEventListener('pointerup', end);
       handle.removeEventListener('pointercancel', end);
+      onWidthsChange?.(widthsRef.current);
     };
 
     handle.addEventListener('pointermove', move);
@@ -819,7 +832,10 @@ export default function DataGrid({
                     onClick={(event) => event.stopPropagation()}
                     onDoubleClick={(event) => {
                       event.stopPropagation();
-                      setWidths(({ [column.name]: _reset, ...rest }) => rest);
+                      const { [column.name]: _reset, ...rest } = widths;
+
+                      setWidths(rest);
+                      onWidthsChange?.(rest);
                     }}
                   />
                 </div>

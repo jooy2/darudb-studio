@@ -45,6 +45,10 @@ export interface WorkspaceTab {
   sort: SortKey[];
   /* A query tab's text */
   text: string;
+  /* The widths of the columns the user set, in pixels, by field */
+  widths: Record<string, number>;
+  /* Whether a query tab's query ran, which a restored tab runs again */
+  ran: boolean;
 }
 
 /* Tabs shown side by side: a strip of them, and the one in front */
@@ -95,6 +99,13 @@ export interface ProjectState {
   toolReports: ToolReports;
   /* The tool that is running, which its button shows */
   runningTool: Tool | null;
+  /* The sidebar's share of the window, in percent, once the user set it */
+  sidebarSize: number | null;
+  /*
+   * Each group's share of the groups' width, in percent, once the user set
+   * them; it holds only while the number of groups stays the same
+   * */
+  groupSizes: number[] | null;
 }
 
 /* A state with nothing open, made anew each time, since a reducer fills in its parts */
@@ -112,6 +123,8 @@ const emptyState = (): ProjectState => ({
   selection: null,
   toolReports: { check: null, compact: null, backup: null, rescue: null, password: null },
   runningTool: null,
+  sidebarSize: null,
+  groupSizes: null,
 });
 
 const newId = (state: ProjectState, prefix: string): string => {
@@ -206,6 +219,8 @@ const collectionTab = (state: ProjectState, collection: string): WorkspaceTab =>
   filter: '',
   sort: [],
   text: '',
+  widths: {},
+  ran: false,
 });
 
 export const projectSlice = createSlice({
@@ -262,6 +277,8 @@ export const projectSlice = createSlice({
             filter: tab.filter,
             sort: tab.sort,
             text: tab.text,
+            widths: tab.widths ?? {},
+            ran: tab.ran ?? false,
           };
           group.tabIds.push(id);
 
@@ -283,6 +300,16 @@ export const projectSlice = createSlice({
       state.groups = groups;
       state.focusedGroupId = groups[Math.min(action.payload.focusedGroup, groups.length - 1)].id;
       state.lastQuery = queries;
+      state.sidebarSize = action.payload.sidebar ?? null;
+      state.groupSizes = action.payload.groupSizes ?? null;
+    },
+    /* The sidebar's share of the window, as the user dragged it */
+    sidebarResized: (state, action: PayloadAction<number>) => {
+      state.sidebarSize = action.payload;
+    },
+    /* Each group's share of the groups' width, as the user dragged the borders */
+    groupsResized: (state, action: PayloadAction<number[]>) => {
+      state.groupSizes = action.payload;
     },
     sessionUpdated: (state, action: PayloadAction<Session>) => {
       state.session = action.payload;
@@ -318,6 +345,8 @@ export const projectSlice = createSlice({
         filter: '',
         sort: [],
         text: '',
+        widths: {},
+        ran: false,
       });
     },
     openTools: (state) => {
@@ -334,6 +363,8 @@ export const projectSlice = createSlice({
           filter: '',
           sort: [],
           text: '',
+          widths: {},
+          ran: false,
         });
       }
     },
@@ -450,7 +481,9 @@ export const projectSlice = createSlice({
       state,
       action: PayloadAction<{
         tabId: string;
-        changes: Partial<Pick<WorkspaceTab, 'filter' | 'sort' | 'text' | 'collection'>>;
+        changes: Partial<
+          Pick<WorkspaceTab, 'filter' | 'sort' | 'text' | 'collection' | 'widths' | 'ran'>
+        >;
       }>,
     ) => {
       const tab = state.tabs[action.payload.tabId];
@@ -478,6 +511,8 @@ export const {
   sessionLoaded,
   sessionClosed,
   layoutRestored,
+  sidebarResized,
+  groupsResized,
   sessionUpdated,
   countsLoaded,
   openCollection,
@@ -505,8 +540,10 @@ export const selectLayout = createSelector(
     (state: RootState) => state.project.groups,
     (state: RootState) => state.project.tabs,
     (state: RootState) => state.project.focusedGroupId,
+    (state: RootState) => state.project.sidebarSize,
+    (state: RootState) => state.project.groupSizes,
   ],
-  (groups, tabs, focusedGroupId): WorkspaceLayout => ({
+  (groups, tabs, focusedGroupId, sidebarSize, groupSizes): WorkspaceLayout => ({
     groups: groups.map((group) => ({
       tabs: group.tabIds.flatMap((id) => {
         const tab = tabs[id];
@@ -519,6 +556,8 @@ export const selectLayout = createSelector(
                 filter: tab.filter,
                 sort: tab.sort,
                 text: tab.text,
+                widths: tab.widths,
+                ran: tab.ran,
               },
             ]
           : [];
@@ -529,6 +568,8 @@ export const selectLayout = createSelector(
       0,
       groups.findIndex((group) => group.id === focusedGroupId),
     ),
+    ...(sidebarSize === null ? {} : { sidebar: sidebarSize }),
+    ...(groupSizes !== null && groupSizes.length === groups.length ? { groupSizes } : {}),
   }),
 );
 

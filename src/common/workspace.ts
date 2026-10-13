@@ -23,12 +23,20 @@ export interface SavedTab {
   filter: string;
   sort: SortKey[];
   text: string;
+  /* The widths of the columns the user set, in pixels, by field */
+  widths?: Record<string, number>;
+  /* Whether a query tab's query ran, so it runs again as the tab opens */
+  ran?: boolean;
 }
 
 /* The tab groups of a project screen, left to right, and which one has the focus */
 export interface WorkspaceLayout {
   groups: { tabs: SavedTab[]; active: number }[];
   focusedGroup: number;
+  /* The sidebar's share of the window, in percent */
+  sidebar?: number;
+  /* Each group's share of the width the groups have, in percent */
+  groupSizes?: number[];
 }
 
 /* What a window shows: the project list, or a project and its tabs */
@@ -51,6 +59,19 @@ const isText = (value: unknown): value is string =>
 const isIndex = (value: unknown, length: number): value is number =>
   Number.isSafeInteger(value) && (value as number) >= 0 && (value as number) < Math.max(length, 1);
 
+const MAX_WIDTH = 4000;
+
+const isShare = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value) && value > 0 && value <= 100;
+
+const isWidths = (value: unknown): value is Record<string, number> =>
+  isObject(value) &&
+  Object.keys(value).length <= MAX_TABS * 8 &&
+  Object.values(value).every(
+    (width) =>
+      typeof width === 'number' && Number.isFinite(width) && width > 0 && width <= MAX_WIDTH,
+  );
+
 const isSortKey = (value: unknown): value is SortKey =>
   isObject(value) && isText(value.field) && typeof value.descending === 'boolean';
 
@@ -62,7 +83,9 @@ export const isSavedTab = (value: unknown): value is SavedTab =>
   isText(value.text) &&
   Array.isArray(value.sort) &&
   value.sort.length <= MAX_TABS &&
-  value.sort.every(isSortKey);
+  value.sort.every(isSortKey) &&
+  (value.widths === undefined || isWidths(value.widths)) &&
+  (value.ran === undefined || typeof value.ran === 'boolean');
 
 export const isWorkspaceLayout = (value: unknown): value is WorkspaceLayout =>
   isObject(value) &&
@@ -76,7 +99,12 @@ export const isWorkspaceLayout = (value: unknown): value is WorkspaceLayout =>
       group.tabs.every(isSavedTab) &&
       isIndex(group.active, group.tabs.length),
   ) &&
-  isIndex(value.focusedGroup, value.groups.length);
+  isIndex(value.focusedGroup, value.groups.length) &&
+  (value.sidebar === undefined || isShare(value.sidebar)) &&
+  (value.groupSizes === undefined ||
+    (Array.isArray(value.groupSizes) &&
+      value.groupSizes.length === value.groups.length &&
+      value.groupSizes.every(isShare)));
 
 export const isWindowState = (value: unknown): value is WindowState =>
   isObject(value) &&

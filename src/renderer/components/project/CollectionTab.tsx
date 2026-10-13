@@ -185,6 +185,8 @@ export default function CollectionTab({ tab, active }: { tab: WorkspaceTab; acti
         onDeleteRows={(rows) => void handleDelete(rows)}
         onViewValue={(row, column) => setDialog({ kind: 'view', row, column })}
         onSelectionChange={handleSelection}
+        widths={tab.widths}
+        onWidthsChange={(widths) => dispatch(updateTab({ tabId: tab.id, changes: { widths } }))}
         onExportRows={(rows, format, everything) =>
           void transfer.exportObjects(
             collection.name,

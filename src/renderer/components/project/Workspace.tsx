@@ -10,6 +10,7 @@ import {
   closeOtherTabs,
   closeTab,
   focusGroup,
+  groupsResized,
   MAX_GROUPS,
   mergeGroup,
   moveTab,
@@ -303,6 +304,8 @@ export default function Workspace() {
   const [t] = useTranslation();
   const groups = useAppSelector((state) => state.project.groups);
   const focusedGroupId = useAppSelector((state) => state.project.focusedGroupId);
+  const groupSizes = useAppSelector((state) => state.project.groupSizes);
+  const dispatch = useAppDispatch();
   const [dragging, setDragging] = useState<string | null>(null);
 
   // A tab moved to another strip leaves its own before its drag ends, so the
@@ -339,9 +342,17 @@ export default function Workspace() {
       orientation="horizontal"
       resizable
       label={t('workspace.groups')}
+      onResizeEnd={(sizes) => dispatch(groupsResized(sizes))}
     >
       {groups.map((group, index) => (
-        <PlPane key={group.id} defaultSize={`${100 / groups.length}%`} minSize="240px">
+        <PlPane
+          key={group.id}
+          // The shares the user set hold while the groups stay as many
+          defaultSize={
+            groupSizes?.length === groups.length ? groupSizes[index] : `${100 / groups.length}%`
+          }
+          minSize="240px"
+        >
           <GroupView
             group={group}
             index={index}

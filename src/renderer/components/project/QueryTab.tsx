@@ -44,7 +44,12 @@ export default function QueryTab({ tab, active }: { tab: WorkspaceTab; active: b
   const editMode = useAppSelector((state) => state.settings.editMode);
   const [text, setText] = useState(tab.text);
   // The query the user ran, and a number raised by every run of it, so the same text runs again
-  const [ran, setRan] = useState<{ request: QueryRequest; serial: number } | null>(null);
+  // A restored tab whose query had run starts by running it again
+  const [ran, setRan] = useState<{ request: QueryRequest; serial: number } | null>(() =>
+    tab.ran && tab.collection
+      ? { request: { collection: tab.collection, text: tab.text }, serial: 1 }
+      : null,
+  );
   const [answer, setAnswer] = useState<{ key: string; result: QueryResult } | null>(null);
   const [dialog, setDialog] = useState<TabDialog>(null);
   // A write raises the revision, which runs the query again, so its results stay true
@@ -79,7 +84,7 @@ export default function QueryTab({ tab, active }: { tab: WorkspaceTab; active: b
       return;
     }
 
-    dispatch(updateTab({ tabId: tab.id, changes: { text } }));
+    dispatch(updateTab({ tabId: tab.id, changes: { text, ran: true } }));
     setRan((last) => ({
       request: { collection: tab.collection!, text },
       serial: (last?.serial ?? 0) + 1,
@@ -225,6 +230,8 @@ export default function QueryTab({ tab, active }: { tab: WorkspaceTab; active: b
           onDeleteRows={(targets) => void handleDelete(targets)}
           onViewValue={(row, column) => setDialog({ kind: 'view', row, column })}
           onSelectionChange={handleSelection}
+          widths={tab.widths}
+          onWidthsChange={(widths) => dispatch(updateTab({ tabId: tab.id, changes: { widths } }))}
           onExportRows={(selectedRows, format, everything) =>
             ran &&
             void transfer.exportObjects(

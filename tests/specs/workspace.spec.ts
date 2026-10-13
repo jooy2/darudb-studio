@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import type { Page } from 'playwright';
+import type { Locator, Page } from 'playwright';
 import { mainChannels } from '../../src/common/ipc';
 import type { AppSettings } from '../../src/common/settings';
 import { makeSampleDatabase } from '../databases';
@@ -101,6 +101,49 @@ test('The last windows, projects and tabs open again', async ({ page, util }) =>
     await page.getByRole('menuitem', { name: 'Split to the Right' }).click();
     await expect(page.getByTestId('tab-group')).toHaveCount(2);
 
+    // A column and the sidebar made wider, by their handles
+    const drag = async (handle: Locator, by: number): Promise<void> => {
+      const box = (await handle.boundingBox())!;
+      const y = box.y + box.height / 2;
+
+      await page.mouse.move(box.x + box.width / 2, y);
+      await page.mouse.down();
+      await page.mouse.move(box.x + box.width / 2 + by, y, { steps: 6 });
+      await page.mouse.up();
+    };
+    // A column the narrow group has in view
+    const column = page
+      .getByTestId('tab-group')
+      .nth(1)
+      .getByRole('columnheader', { name: /^name/ });
+    const columnWidth = (await column.boundingBox())!.width;
+
+    await drag(column.locator('.grid__resize'), 80);
+    await expect
+      .poll(async () => (await column.boundingBox())!.width)
+      .toBeGreaterThan(columnWidth + 60);
+
+    const sidebarWidth = (await page.getByTestId('sidebar').boundingBox())!.width;
+
+    await drag(page.locator('.project-panes').getByRole('separator').first(), 60);
+    await expect
+      .poll(async () => (await page.getByTestId('sidebar').boundingBox())!.width)
+      .toBeGreaterThan(sidebarWidth + 40);
+
+    const widened = {
+      column: (await column.boundingBox())!.width,
+      sidebar: (await page.getByTestId('sidebar').boundingBox())!.width,
+    };
+
+    // A query that ran, in the group that has the focus
+    await page.getByTestId('btn-new-query').click();
+
+    const query = page.getByTestId('query-tab').filter({ visible: true });
+
+    await query.getByTestId('query-text').fill('age >= 65');
+    await query.getByTestId('btn-run-query').click();
+    await expect(query.getByTestId('query-summary')).toContainText('5 objects');
+
     // A second window, on the list
     await openWindow(page);
 
@@ -112,9 +155,21 @@ test('The last windows, projects and tabs open again', async ({ page, util }) =>
 
     await expect(groups).toHaveCount(2);
     await expect(groups.nth(0).getByTestId('tab')).toHaveText(['teams']);
-    await expect(groups.nth(1).getByTestId('tab')).toHaveText(['users']);
+    await expect(groups.nth(1).getByTestId('tab')).toHaveText(['users', 'Query 1']);
+
+    // The query ran again as its tab opened, and is in front
+    await expect(groups.nth(1).getByTestId('query-summary')).toContainText('5 objects');
+    await groups.nth(1).getByTestId('tab').filter({ hasText: 'users' }).click();
     await expect(groups.nth(1).getByTestId('filter-input')).toHaveValue('age >= 60');
     await expect(groups.nth(1).getByTestId('object-count')).toHaveText('10 objects');
+
+    // The widths the user set came back, the column's exactly
+    const restoredColumn = groups.nth(1).getByRole('columnheader', { name: /^name/ });
+
+    expect((await restoredColumn.boundingBox())!.width).toBeCloseTo(widened.column, 0);
+    expect(
+      Math.abs((await restored.getByTestId('sidebar').boundingBox())!.width - widened.sidebar),
+    ).toBeLessThan(4);
     await util.captureScreenshot(restored, 'workspace-restored');
   } catch (error) {
     throw await util.onTestError(error);

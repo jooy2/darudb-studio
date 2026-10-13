@@ -15,6 +15,7 @@ import LoadingScreen from '@/renderer/screens/LoadingScreen';
 import {
   insertObject,
   layoutRestored,
+  sidebarResized,
   loadCounts,
   openQuery,
   refreshProject,
@@ -62,6 +63,7 @@ export default function ProjectScreen() {
   });
   const activeCollection = activeTab?.collection ?? null;
   const layout = useAppSelector(selectLayout);
+  const sidebarSize = useAppSelector((state) => state.project.sidebarSize);
   const location = useLocation();
   // The tabs a restored window had, handed over by the list as it opened the project
   const restoredLayout = useRef((location.state as { layout?: unknown } | null)?.layout);
@@ -196,8 +198,9 @@ export default function ProjectScreen() {
           orientation="horizontal"
           resizable
           label={t('project.layout')}
+          onResizeEnd={([sidebar]) => dispatch(sidebarResized(sidebar))}
         >
-          <PlPane defaultSize="240px" minSize="160px" maxSize="480px">
+          <PlPane defaultSize={sidebarSize ?? '240px'} minSize="160px" maxSize="480px">
             <SchemaTree onAddObject={setAdding} />
           </PlPane>
           <PlPane>
