@@ -425,6 +425,51 @@ test('The tools check, compact and back up the file', async ({ page, util }) => 
   }
 });
 
+test('The Edit menu of the window acts on the field that had the focus', async ({ page, util }) => {
+  try {
+    await page.getByTestId('tree-collection').filter({ hasText: 'users' }).click();
+
+    const filter = page.getByTestId('filter-input').filter({ visible: true });
+    const edit = async (name: string): Promise<void> => {
+      await page.getByTestId('app-menu-bar').getByRole('menuitem', { name: 'Edit' }).click();
+      await page.getByRole('menuitem', { name: new RegExp(`^${name}`) }).click();
+    };
+
+    await filter.fill('age >= 30');
+    await edit('Select All');
+    await edit('Delete');
+    await expect(filter).toHaveValue('');
+    await expect(filter).toBeFocused();
+  } catch (error) {
+    throw await util.onTestError(error);
+  }
+});
+
+test('Copying from the grid copies its selected rows as JSON', async ({ page, util }) => {
+  try {
+    await cell(page, 0, 'name').click();
+    await cell(page, 1, 'name').click({ modifiers: ['Shift'] });
+
+    // The copy event a shortcut or a menu sends, with a clipboard of its own,
+    // so the test leaves the system's clipboard alone
+    const copied = await page.evaluate(() => {
+      const data = new DataTransfer();
+
+      document.dispatchEvent(
+        new ClipboardEvent('copy', { clipboardData: data, bubbles: true, cancelable: true }),
+      );
+
+      return data.getData('text/plain');
+    });
+    const rows = JSON.parse(copied) as { id: number }[];
+
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toHaveProperty('email');
+  } catch (error) {
+    throw await util.onTestError(error);
+  }
+});
+
 test('The menu works on the project in the window', async ({ page, util }) => {
   try {
     const tabs = page.getByTestId('tab');

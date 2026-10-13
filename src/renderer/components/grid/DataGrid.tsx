@@ -332,6 +332,49 @@ export default function DataGrid({
     }
   };
 
+  // Copying, by its shortcut or from either menu, is the `copy` event, which
+  // goes to the document when the focused element is not a field; while the
+  // grid has the focus, the selected rows are what it copies
+  const copyRowsRef = useRef<(event: ClipboardEvent) => void>(() => undefined);
+
+  useEffect(() => {
+    copyRowsRef.current = (event: ClipboardEvent): void => {
+      const scroller = scrollRef.current;
+
+      if (
+        !scroller ||
+        editingRef.current ||
+        !scroller.contains(document.activeElement) ||
+        !event.clipboardData
+      ) {
+        return;
+      }
+
+      const rows = selectedRows(COPY_LIMIT);
+
+      if (rows.length === 0) {
+        return;
+      }
+
+      event.clipboardData.setData(
+        'text/plain',
+        toJson(
+          rows.map((row) => row.values),
+          2,
+        ),
+      );
+      event.preventDefault();
+    };
+  });
+
+  useEffect(() => {
+    const copy = (event: ClipboardEvent): void => copyRowsRef.current(event);
+
+    document.addEventListener('copy', copy);
+
+    return () => document.removeEventListener('copy', copy);
+  }, []);
+
   const copyValue = async (cell: Cell): Promise<void> => {
     const value = rowAt(cell.row)?.values[columns[cell.col].name] ?? null;
 
@@ -406,8 +449,6 @@ export default function DataGrid({
       default:
         if (mod && event.key.toLowerCase() === 'a') {
           setSelection(rowCount > 0 ? between(0, rowCount - 1) : EMPTY);
-        } else if (mod && event.key.toLowerCase() === 'c') {
-          void copyRows();
         } else if (mod && event.key.toLowerCase() === 'e') {
           const row = active ? rowAt(active.row) : undefined;
 

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Menu as MenuIcon } from 'lucide-react';
 import {
@@ -14,7 +14,22 @@ import { useMenuModel } from '@/renderer/components/menu/MenuModelContext';
 import { useAppSelector } from '@/renderer/store/hooks';
 import { APP_NAME } from '@/renderer/constants';
 import { mainChannels } from '@/common/ipc';
-import { acceleratorLabel, type MenuEntry } from '@/common/menu';
+import { acceleratorLabel, type MenuEntry, type MenuRole } from '@/common/menu';
+
+// The entries that act on the field with the focus, as the Edit menu's do
+const EDITING_ROLES = new Set<MenuRole>([
+  'undo',
+  'redo',
+  'cut',
+  'copy',
+  'paste',
+  'pasteAndMatchStyle',
+  'delete',
+  'selectAll',
+]);
+
+// Where the menus are, so focus moving into them is not taken for the user's field
+const MENU_AREAS = '[role="menu"], [role="menubar"], [data-app-menu-button]';
 
 interface AppMenuBarProps {
   /* Whether the window shows a project, which the entries for one need */
@@ -33,6 +48,43 @@ export default function AppMenuBar({ showsProject = false }: AppMenuBarProps) {
   const { entries, platform } = useMenuModel();
   const menuBarStyle = useAppSelector((state) => state.settings.menuBarStyle);
   const [t] = useTranslation();
+  // The element the user worked in before a menu took the focus
+  const lastFocused = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const remember = (event: FocusEvent): void => {
+      if (event.target instanceof HTMLElement && !event.target.closest(MENU_AREAS)) {
+        lastFocused.current = event.target;
+      }
+    };
+
+    document.addEventListener('focusin', remember);
+
+    return () => document.removeEventListener('focusin', remember);
+  }, []);
+
+  /*
+   * Does what the entry does. An editing entry acts on the field with the
+   * focus, which the menu took, so the focus goes back to that field first,
+   * once the menu has closed and handed it to its trigger.
+   * */
+  const invoke = (entry: MenuEntry): void => {
+    if (!entry.role || !EDITING_ROLES.has(entry.role)) {
+      window.mainApi.send(mainChannels.invokeMenuEntry, entry.id);
+
+      return;
+    }
+
+    const field = lastFocused.current;
+
+    window.setTimeout(() => {
+      if (field?.isConnected) {
+        field.focus({ preventScroll: true });
+      }
+
+      window.mainApi.send(mainChannels.invokeMenuEntry, entry.id);
+    }, 0);
+  };
 
   // The app menu of macOS has no label of its own: it is titled with the app
   const labelOf = (entry: MenuEntry): string =>
@@ -57,9 +109,7 @@ export default function AppMenuBar({ showsProject = false }: AppMenuBarProps) {
           key={entry.id}
           disabled={entry.needsProject === true && !showsProject}
           shortcut={entry.accelerator ? acceleratorLabel(entry.accelerator, platform) : undefined}
-          onClick={() => {
-            window.mainApi.send(mainChannels.invokeMenuEntry, entry.id);
-          }}
+          onClick={() => invoke(entry)}
         >
           {labelOf(entry)}
         </PlMenuItem>
@@ -73,6 +123,7 @@ export default function AppMenuBar({ showsProject = false }: AppMenuBarProps) {
         trigger={
           <PlIconButton
             data-testid="app-menu-button"
+            data-app-menu-button
             size="sm"
             variant="ghost"
             label={t('menu.more')}
