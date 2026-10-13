@@ -4,8 +4,8 @@ import { PlTextLink, PlTypography } from 'plass-ui';
 import { REPOSITORY_URL, WEBSITE_URL } from '@/common/menu';
 
 /*
- * The top of the project list: what the app is for, how to start, and where
- * DaruDB itself is documented. The links open in the default browser, as
+ * The top of the project list: what the app is for, and where DaruDB itself
+ * is documented. The links open in the default browser, as
  * every link out of the app does.
  * */
 export default function WelcomeCard() {
@@ -19,11 +19,6 @@ export default function WelcomeCard() {
           {t('home.welcome-title')}
         </PlTypography>
         <PlTypography className="welcome__text">{t('home.welcome-text')}</PlTypography>
-        <ol className="welcome__steps">
-          <li>{t('home.step-create')}</li>
-          <li>{t('home.step-file')}</li>
-          <li>{t('home.step-open')}</li>
-        </ol>
         <div className="welcome__links">
           <PlTextLink
             href={WEBSITE_URL}

@@ -127,14 +127,6 @@
   color: var(--plass-muted-fg);
 }
 
-.welcome__steps {
-  display: grid;
-  gap: 0.125rem;
-  margin: 0.25rem 0 0;
-  padding-left: 1.25rem;
-  font-size: 0.9375rem;
-}
-
 .welcome__links {
   display: flex;
   flex-wrap: wrap;
