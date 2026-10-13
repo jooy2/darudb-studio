@@ -18,7 +18,7 @@ DaruDB keeps an application's data in one local file. DaruDB Studio is the app f
 - **The objects.** Each collection opens in a grid that reads its objects a page at a time, so a large collection scrolls as fast as a small one. Columns sort and resize, a filter takes the query language, and rows are selected with the mouse and the keyboard as in a desktop table. Values are coloured by type, and lists and embedded objects open in place or in a dialog.
 - **Editing.** A field of one value is edited in its cell, as in a spreadsheet, and a whole object in a dialog. Edits are written at once, or held until you submit them from the toolbar, as the settings say.
 - **Queries and tools.** A query tab runs a query written whole, sort and limit included. The tools tab checks the file's integrity, compacts it and writes a backup.
-- **Tabs and windows.** Tabs split into groups side by side, move between them and merge again. Each window opens one project, and a project opens in one window at a time.
+- **Tabs and windows.** Tabs split into groups side by side, move between them and merge again. Each window opens one project, and a project opens in one window at a time. When the settings ask, the app opens the windows, projects and tabs it had open when it last quit.
 - **Menus.** The macOS menu bar and a menu bar in every window list the same menus. The window's menu bar shows every menu in a row, or folds behind one button.
 
 ## How it is built
@@ -61,3 +61,5 @@ Bug reports, feature requests and pull requests are welcome. [CONTRIBUTING.md](C
 ## License
 
 [MIT](LICENSE) © [CDGet](https://cdget.com)
+
+The licenses of the open source packages the app ships are written to `THIRD_PARTY_NOTICES.txt` when it is built, which the app shows from its `Help` menu.
