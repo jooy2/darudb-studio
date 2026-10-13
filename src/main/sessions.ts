@@ -37,6 +37,11 @@ import { canRememberSecrets } from './secrets';
 interface OpenProject {
   projectId: number;
   database: Database;
+  /*
+   * What opened the file, kept in this process for as long as the project is
+   * open, since closing the file for a tool and opening it again takes it
+   */
+  password: string | undefined;
 }
 
 /* By the id of the window that has the project open */
@@ -241,6 +246,8 @@ export const openProject = async (
         return { status: 'needs-password', retry: true };
       case 'NOT_A_DATABASE':
         return { status: 'not-database' };
+      case 'CORRUPTED':
+        return { status: 'damaged', message };
       default:
         return { status: 'error', code, message };
     }
@@ -264,7 +271,7 @@ export const openProject = async (
     }
 
     await closeProject(window);
-    sessions.set(window.id, { projectId: project.id, database });
+    sessions.set(window.id, { projectId: project.id, database, password });
 
     if (!watchedWindows.has(window)) {
       watchedWindows.add(window);
@@ -306,4 +313,58 @@ export const sessionOf = async (window: BrowserWindow | null): Promise<Session |
   return project
     ? { project, database: await infoOf(open.database), schema: schemaOf(open.database) }
     : null;
+};
+
+/*
+ * Runs `work` on the file `window` has open with the file closed, as a tool that
+ * needs the file alone does, then opens the file again for the window.
+ * Resolves with what `work` resolved with, and whether the file opened again:
+ * when it does not, the window's project is closed. Rejects with the error of
+ * `work`, once the file is open again.
+ * */
+export const withFileAlone = async <Result>(
+  window: BrowserWindow,
+  work: (path: string, password: string | undefined) => Promise<Result>,
+): Promise<{ value: Result; reopened: boolean }> => {
+  const session = openProjectOf(window);
+
+  if (!session) {
+    throw Object.assign(new Error('the window has no project open'), { code: 'NO_PROJECT' });
+  }
+
+  const { path } = session.database;
+  let outcome: { ok: true; value: Result } | { ok: false; error: unknown };
+
+  await session.database.closeAsync();
+
+  try {
+    outcome = { ok: true, value: await work(path, session.password) };
+  } catch (error) {
+    outcome = { ok: false, error };
+  }
+
+  let reopened = true;
+
+  try {
+    session.database = await openFile(path, session.password, false);
+  } catch (error) {
+    console.error('Failed to open a file again after a tool closed it:', error);
+    sessions.delete(window.id);
+    reopened = false;
+  }
+
+  if (!outcome.ok) {
+    throw outcome.error;
+  }
+
+  return { value: outcome.value, reopened };
+};
+
+/* Changes what `window`'s open project is opened with, after its password changed */
+export const setSessionPassword = (window: BrowserWindow, password: string): void => {
+  const session = openProjectOf(window);
+
+  if (session) {
+    session.password = password;
+  }
 };

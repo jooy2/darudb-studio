@@ -9,6 +9,8 @@
  * See `src/common/ipc.ts` for what may live in this folder.
  * */
 
+import type { Project } from './projects';
+
 /* A field's type, as the file's schema records it */
 export type FieldType =
   | { kind: 'bool' | 'int' | 'float' | 'string' | 'bytes' }
@@ -139,6 +141,23 @@ export interface CompactReport {
 export interface BackupReport {
   path: string;
   bytes: number;
+}
+
+/*
+ * What rescuing a damaged file into a new one recovered, and the project the
+ * new file was added as
+ * */
+export interface RescueReport {
+  path: string;
+  /* Whether nothing was damaged, so the new file holds everything */
+  whole: boolean;
+  pagesDamaged: number;
+  objectsDropped: number;
+  valuesLost: number;
+  entriesRecovered: number;
+  project: Project;
+  /* Whether the file of the open project opened again after the rescue */
+  reopened: boolean;
 }
 
 export type ToolResult<Report> = Outcome<{ report: Report }> | { status: 'cancelled' };

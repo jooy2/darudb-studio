@@ -375,13 +375,14 @@ export const compactDatabase = async (database: Database): Promise<ToolResult<Co
 
 /*
  * Writes a copy of the file where the user picks in the save dialog, under the
- * same password. A backup never replaces a file, so it is written beside the
+ * same password, or under `password` when one is given. A backup never replaces a file, so it is written beside the
  * one the user chose to replace, and moved over it once it is whole.
  * */
 export const backupDatabase = async (
   database: Database,
   window: BrowserWindow | null,
   title: string,
+  password?: unknown,
 ): Promise<ToolResult<BackupReport>> => {
   const extension = extname(database.path) || '.darudb';
   const options = {
@@ -403,7 +404,11 @@ export const backupDatabase = async (
   const partial = join(dirname(target), `.${basename(target)}.${Date.now()}.partial`);
 
   try {
-    const { bytes } = await database.backupAsync(partial);
+    // A password of its own encrypts the copy under a new key, a plain file's included
+    const { bytes } = await database.backupAsync(
+      partial,
+      typeof password === 'string' && password !== '' ? { password } : undefined,
+    );
 
     await rename(partial, target);
 

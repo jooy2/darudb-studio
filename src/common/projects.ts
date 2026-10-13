@@ -122,6 +122,8 @@ export interface Session {
  *   remembered, or, with `retry`, the one tried does not open it.
  * - `needs-upgrade`: the file is in an older format version, and the user is
  *   to choose how to open it, see `OpenRequest.upgrade`.
+ * - `damaged`: the engine found the file damaged as it opened it, which a
+ *   rescue into a new file may still recover from.
  * - `missing`, `not-database` and `error`: as a `FileCheck` says them.
  * */
 export type OpenResult =
@@ -131,4 +133,5 @@ export type OpenResult =
   | { status: 'needs-upgrade'; formatVersion: number; newestVersion: number }
   | { status: 'missing' }
   | { status: 'not-database' }
+  | { status: 'damaged'; message: string }
   | { status: 'error'; code: string; message: string };

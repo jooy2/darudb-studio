@@ -1,4 +1,4 @@
-import { writeFileSync } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { collection, Database, schema, t } from 'darudb';
 
@@ -70,4 +70,45 @@ export const makeNotADatabase = (dir: string, name = 'notes.txt'): string => {
   writeFileSync(path, 'these are not the pages of a database\n'.repeat(200));
 
   return path;
+};
+
+/*
+ * A sample file with one byte flipped: in the header, which the engine reads as
+ * it opens the file and refuses with `CORRUPTED`, or in the first page of
+ * objects whose damage the integrity check finds. That file opens, and fails as
+ * those objects are read.
+ */
+export const makeDamagedDatabase = (
+  dir: string,
+  name: string,
+  where: 'header' | 'objects',
+): string => {
+  const path = makeSampleDatabase(dir, name, { users: 300 });
+  const image = readFileSync(path);
+  const pageSize = 4096;
+
+  if (where === 'header') {
+    image[16] ^= 0xff;
+    writeFileSync(path, image);
+
+    return path;
+  }
+
+  for (let page = 1; page < image.length / pageSize; page += 1) {
+    const bytes = Buffer.from(image);
+
+    bytes[page * pageSize + 64] ^= 0xff;
+    writeFileSync(path, bytes);
+
+    const db = Database.open(path, { create: false });
+    const { ok } = db.check();
+
+    db.close();
+
+    if (!ok) {
+      return path;
+    }
+  }
+
+  throw new Error('no page of the sample file is one the check reads');
 };

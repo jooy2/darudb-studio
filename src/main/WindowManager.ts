@@ -11,6 +11,7 @@ import {
 import { isAllowedWindowPath, registerWindowSecurity } from './security';
 import { getBackgroundColor, getLanguage } from './appearance';
 import { resumeWorkspace, setRestore, trackWindow, type SavedWindow } from './workspace';
+import type { WindowState } from '@/common/workspace';
 
 /*
  * The app's windows.
@@ -26,7 +27,8 @@ export default class WindowManager {
   /*
    * Opens a window on the renderer route `path`, placed down and to the right
    * of `opener` when there is one, or where `restore` was when the app last
-   * quit, showing what it showed. Resolves with the window, or with `null`
+   * quit, showing what it showed. `shows` opens a project in the window, as a
+   * restored one would. Resolves with the window, or with `null`
    * when the request was refused: a route that is not one of the app's, or
    * too many windows already.
    * */
@@ -34,6 +36,7 @@ export default class WindowManager {
     path = '/',
     opener?: BrowserWindow | null,
     restore?: SavedWindow,
+    shows?: WindowState,
   ): Promise<BrowserWindow | null> {
     if (!isAllowedWindowPath(path)) {
       console.warn(`Blocked a window open with an unsupported route: ${path}`);
@@ -65,8 +68,13 @@ export default class WindowManager {
     WindowManager.#opened += 1;
     trackWindow(window);
 
-    if (restore) {
-      setRestore(window.webContents, { projectId: restore.projectId, layout: restore.layout });
+    // What the window opens once its page asks: a restored window's project and
+    // tabs, or the project it was opened for
+    const state =
+      shows ?? (restore ? { projectId: restore.projectId, layout: restore.layout } : null);
+
+    if (state) {
+      setRestore(window.webContents, state);
     }
 
     // The window draws its own menu bar from the same menu, so the native one

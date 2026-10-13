@@ -21,6 +21,7 @@ import type {
   PageResult,
   QueryRequest,
   QueryResult,
+  RescueReport,
   ToolResult,
   WriteResult,
 } from './data';
@@ -74,6 +75,10 @@ export const mainChannels = {
   checkDatabase: 'msgCheckDatabase',
   compactDatabase: 'msgCompactDatabase',
   backupDatabase: 'msgBackupDatabase',
+  rescueDatabase: 'msgRescueDatabase',
+  rescueProject: 'msgRescueProject',
+  changePassword: 'msgChangePassword',
+  openProjectWindow: 'msgOpenProjectWindow',
 } as const;
 
 /*
@@ -156,8 +161,22 @@ export interface MainChannelSignatures {
   [mainChannels.runQuery]: (request: QueryRequest) => QueryResult;
   [mainChannels.checkDatabase]: () => ToolResult<CheckReport>;
   [mainChannels.compactDatabase]: () => ToolResult<CompactReport>;
-  /* Asks where with the save dialog, titled `title`, and writes a copy of the file there */
-  [mainChannels.backupDatabase]: (title: string) => ToolResult<BackupReport>;
+  /*
+   * Asks where with the save dialog, titled `title`, and writes a copy of the
+   * file there, encrypted with `password` when one is given
+   * */
+  [mainChannels.backupDatabase]: (title: string, password?: string) => ToolResult<BackupReport>;
+  /* Rescues what the open file still holds into a new file, which becomes a project */
+  [mainChannels.rescueDatabase]: (title: string) => ToolResult<RescueReport>;
+  /* The same, for a project no window has open, with `password` tried first */
+  [mainChannels.rescueProject]: (
+    projectId: number,
+    password: string | null,
+    title: string,
+  ) => ToolResult<RescueReport>;
+  [mainChannels.changePassword]: (password: string) => ToolResult<{ remembered: boolean }>;
+  /* Opens the project in a new window, beside the one the call came from */
+  [mainChannels.openProjectWindow]: (projectId: number) => boolean;
 }
 
 export interface RendererChannelSignatures {

@@ -5,6 +5,7 @@ import { usePlToast } from 'plass-ui';
 import { mainChannels } from '@/common/ipc';
 import type { OpenRequest, OpenResult, Project, UpgradeChoice } from '@/common/projects';
 import type { WorkspaceLayout } from '@/common/workspace';
+import type { RescueReport } from '@/common/data';
 
 /* What opening a project waits on the user for, as a dialog asks it */
 export type OpenQuestion =
@@ -23,7 +24,10 @@ export type OpenQuestion =
       password?: string;
       rememberPassword: boolean;
     }
-  | { kind: 'missing'; project: Project };
+  | { kind: 'missing'; project: Project }
+  /* The engine found the file damaged, which a rescue into a new file may recover from */
+  | { kind: 'damaged'; project: Project; message: string }
+  | { kind: 'rescued'; project: Project; report: RescueReport };
 
 type OpenOptions = Omit<OpenRequest, 'projectId'>;
 
@@ -102,6 +106,10 @@ export default function useOpenProject() {
         });
 
         return;
+      case 'damaged':
+        setQuestion({ kind: 'damaged', project, message: result.message });
+
+        return;
       case 'not-database':
         setQuestion(null);
         toast.add({ title: t('home.not-database', { name: project.name }), color: 'danger' });
@@ -145,11 +153,38 @@ export default function useOpenProject() {
     }
   };
 
+  /* Rescues what the damaged file of `project` still holds into a new project */
+  const rescue = async (project: Project): Promise<void> => {
+    setBusy(true);
+
+    try {
+      const result = await window.mainApi.invoke(
+        mainChannels.rescueProject,
+        project.id,
+        null,
+        t('tools.rescue-title'),
+      );
+
+      if (result.status === 'ok') {
+        setQuestion({ kind: 'rescued', project, report: result.report });
+      } else if (result.status === 'error') {
+        setQuestion(null);
+        toast.add({
+          title: t('home.open-failed', { name: project.name, message: result.message }),
+          color: 'danger',
+        });
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return {
     opening,
     busy,
     question,
     open,
+    rescue,
     dismiss: () => {
       restoring.current = null;
       setQuestion(null);

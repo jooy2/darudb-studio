@@ -8,6 +8,7 @@ import ProjectToolbar, { useDiscard } from '@/renderer/components/project/Projec
 import SchemaTree from '@/renderer/components/project/SchemaTree';
 import StatusBar from '@/renderer/components/project/StatusBar';
 import useEditTexts from '@/renderer/components/project/useEditTexts';
+import useToolTexts from '@/renderer/components/project/useToolTexts';
 import Workspace from '@/renderer/components/project/Workspace';
 import useMenuCommands from '@/renderer/hooks/useMenuCommands';
 import LoadingScreen from '@/renderer/screens/LoadingScreen';
@@ -49,6 +50,7 @@ export default function ProjectScreen() {
   const [t] = useTranslation();
   const dispatch = useAppDispatch();
   const texts = useEditTexts();
+  const toolTexts = useToolTexts();
   const discard = useDiscard();
   const session = useAppSelector((state) => state.project.session);
   const pending = useAppSelector((state) => state.project.pending);
@@ -141,9 +143,7 @@ export default function ProjectScreen() {
   }, [discard, navigate]);
 
   const runToolFromMenu = (tool: Tool): void => {
-    void dispatch(
-      runTool(tool, t('tools.backup-title'), (path) => t('tools.backup-done', { path })),
-    );
+    void dispatch(runTool(tool, toolTexts));
   };
 
   const submit = (): void => {

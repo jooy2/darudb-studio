@@ -10,6 +10,7 @@ import {
 import { openExternalLink } from './security';
 import { noticesFile } from './constants';
 import { reportWindowState, takeRestore } from './workspace';
+import { changePassword, rescueOpenProject, rescueProject } from './tools';
 import WindowManager from './WindowManager';
 import AppMenu from './AppMenu';
 import { getSettings, updateSettings, validSettingChanges } from './settings';
@@ -258,12 +259,74 @@ export default class IPCs {
       return database ? compactDatabase(database) : noProject;
     });
 
-    handle(mainChannels.backupDatabase, (event, title) => {
+    handle(mainChannels.backupDatabase, (event, title, password) => {
       const database = databaseOf(event);
 
       return database
-        ? backupDatabase(database, BrowserWindow.fromWebContents(event.sender), String(title))
+        ? backupDatabase(
+            database,
+            BrowserWindow.fromWebContents(event.sender),
+            String(title),
+            password,
+          )
         : noProject;
+    });
+
+    // A rescue closes the window's file and opens it again, and adds a project
+    handle(mainChannels.rescueDatabase, async (event, title) => {
+      const window = BrowserWindow.fromWebContents(event.sender);
+
+      if (!window) {
+        return noProject;
+      }
+
+      const result = await rescueOpenProject(window, String(title));
+
+      if (result.status === 'ok') {
+        AppMenu.setShowsProject(window, result.report.reopened);
+        broadcast(rendererChannels.projectsChanged, null);
+      }
+
+      return result;
+    });
+
+    handle(mainChannels.rescueProject, async (event, projectId, password, title) => {
+      const result = await rescueProject(
+        BrowserWindow.fromWebContents(event.sender),
+        projectId,
+        password,
+        String(title),
+      );
+
+      if (result.status === 'ok') {
+        broadcast(rendererChannels.projectsChanged, BrowserWindow.fromWebContents(event.sender));
+      }
+
+      return result;
+    });
+
+    handle(mainChannels.changePassword, (event, password) => {
+      const window = BrowserWindow.fromWebContents(event.sender);
+
+      return window ? changePassword(window, password) : noProject;
+    });
+
+    handle(mainChannels.openProjectWindow, async (event, projectId) => {
+      if (!Number.isSafeInteger(projectId)) {
+        return false;
+      }
+
+      const window = await WindowManager.create(
+        '/',
+        BrowserWindow.fromWebContents(event.sender),
+        undefined,
+        {
+          projectId,
+          layout: null,
+        },
+      );
+
+      return window !== null;
     });
   }
 }

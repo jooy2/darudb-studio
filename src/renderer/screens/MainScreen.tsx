@@ -182,6 +182,11 @@ export default function MainScreen() {
         }
         onUpgrade={(question, upgrade) => void opener.withUpgrade(question, upgrade)}
         onDelete={(project) => void handleDeleteMissing(project)}
+        onRescue={(project) => void opener.rescue(project)}
+        onOpen={(project) => {
+          opener.dismiss();
+          void opener.open(project);
+        }}
       />
     </div>
   );

@@ -17,6 +17,7 @@ import type {
   CheckReport,
   CompactReport,
   Key,
+  RescueReport,
   Row,
   SortKey,
   ToolResult,
@@ -60,13 +61,15 @@ export interface StatusMessage {
   tone: StatusTone;
 }
 
-export type Tool = 'check' | 'compact' | 'backup';
+export type Tool = 'check' | 'compact' | 'backup' | 'rescue' | 'password';
 
 /* What each tool found or did the last time it ran */
 export interface ToolReports {
   check: ToolResult<CheckReport> | null;
   compact: ToolResult<CompactReport> | null;
   backup: ToolResult<BackupReport> | null;
+  rescue: ToolResult<RescueReport> | null;
+  password: ToolResult<{ remembered: boolean }> | null;
 }
 
 /* An object of a grid, by its key, or by the id of the insert that waits to add it */
@@ -107,7 +110,7 @@ const emptyState = (): ProjectState => ({
   lastQuery: 0,
   status: null,
   selection: null,
-  toolReports: { check: null, compact: null, backup: null },
+  toolReports: { check: null, compact: null, backup: null, rescue: null, password: null },
   runningTool: null,
 });
 
@@ -343,6 +346,8 @@ export const projectSlice = createSlice({
         | { tool: 'check'; result: ToolReports['check'] }
         | { tool: 'compact'; result: ToolReports['compact'] }
         | { tool: 'backup'; result: ToolReports['backup'] }
+        | { tool: 'rescue'; result: ToolReports['rescue'] }
+        | { tool: 'password'; result: ToolReports['password'] }
       >,
     ) => {
       const { tool, result } = action.payload;
@@ -691,12 +696,22 @@ export const submitPending =
  * Runs a tool and keeps what it found for the tools tab, which it brings
  * forward. `backupTitle` titles the save dialog a backup asks where with.
  * */
+/* What the tools say and ask with, in the window's language, and what a tool is given */
+export interface ToolTexts {
+  backupTitle: string;
+  rescueTitle: string;
+  backupDone: (path: string) => string;
+  rescueDone: (path: string) => string;
+  passwordDone: string;
+}
+
+/*
+ * Runs a tool and keeps what it found for the tools tab, which it brings
+ * forward. `password` is the new password of a password change, or the one a
+ * backup encrypts its copy with.
+ * */
 export const runTool =
-  (
-    tool: Tool,
-    backupTitle: string,
-    backupDone: (path: string) => string,
-  ): AppThunk<Promise<void>> =>
+  (tool: Tool, texts: ToolTexts, password?: string): AppThunk<Promise<void>> =>
   async (dispatch, getState) => {
     if (getState().project.runningTool !== null) {
       return;
@@ -715,13 +730,34 @@ export const runTool =
       dispatch(toolFinished({ tool, result }));
       // The file is smaller now, which the status bar shows
       await dispatch(refreshProject());
-    } else {
-      const result = await window.mainApi.invoke(mainChannels.backupDatabase, backupTitle);
+    } else if (tool === 'backup') {
+      const result = await window.mainApi.invoke(
+        mainChannels.backupDatabase,
+        texts.backupTitle,
+        password,
+      );
 
       dispatch(toolFinished({ tool, result }));
 
       if (result.status === 'ok') {
-        dispatch(statusChanged({ text: backupDone(result.report.path), tone: 'success' }));
+        dispatch(statusChanged({ text: texts.backupDone(result.report.path), tone: 'success' }));
+      }
+    } else if (tool === 'rescue') {
+      const result = await window.mainApi.invoke(mainChannels.rescueDatabase, texts.rescueTitle);
+
+      dispatch(toolFinished({ tool, result }));
+
+      if (result.status === 'ok') {
+        dispatch(statusChanged({ text: texts.rescueDone(result.report.path), tone: 'success' }));
+        await dispatch(refreshProject());
+      }
+    } else {
+      const result = await window.mainApi.invoke(mainChannels.changePassword, password ?? '');
+
+      dispatch(toolFinished({ tool, result }));
+
+      if (result.status === 'ok') {
+        dispatch(statusChanged({ text: texts.passwordDone, tone: 'success' }));
       }
     }
   };

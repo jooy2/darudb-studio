@@ -1,7 +1,7 @@
 import { useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CopyCheck, FileX, LockKeyhole, CircleArrowUp } from 'lucide-react';
-import { PlButton, PlCheckbox, PlModal, PlTextField } from 'plass-ui';
+import { CopyCheck, FileExclamationPoint, FileX, LockKeyhole, CircleArrowUp } from 'lucide-react';
+import { PlAlert, PlButton, PlCheckbox, PlModal, PlTextField } from 'plass-ui';
 import type { OpenQuestion } from '@/renderer/hooks/useOpenProject';
 import { mainChannels } from '@/common/ipc';
 import type { Project, UpgradeChoice } from '@/common/projects';
@@ -13,6 +13,9 @@ interface OpenDialogsProps {
   onPassword: (project: Project, password: string, remember: boolean) => void;
   onUpgrade: (question: Extract<OpenQuestion, { kind: 'upgrade' }>, upgrade: UpgradeChoice) => void;
   onDelete: (project: Project) => void;
+  onRescue: (project: Project) => void;
+  /* Opens the project a rescue added */
+  onOpen: (project: Project) => void;
 }
 
 const closeWith =
@@ -132,6 +135,8 @@ export default function OpenDialogs({
   onPassword,
   onUpgrade,
   onDelete,
+  onRescue,
+  onOpen,
 }: OpenDialogsProps) {
   const [t] = useTranslation();
 
@@ -191,6 +196,73 @@ export default function OpenDialogs({
             <span className="choice__text">{t('open-dialog.upgrade-original-text')}</span>
           </button>
         </div>
+      </PlModal>
+    );
+  }
+
+  if (question?.kind === 'damaged') {
+    const { project, message } = question;
+
+    return (
+      <PlModal
+        data-testid="damaged-dialog"
+        open
+        onOpenChange={closeWith(onDismiss)}
+        title={t('open-dialog.damaged-title', { name: project.name })}
+        width={520}
+        actions={
+          <div className="dialog-actions">
+            <PlButton variant="ghost" onClick={onDismiss}>
+              {t('common.cancel')}
+            </PlButton>
+            <PlButton data-testid="btn-rescue" loading={busy} onClick={() => onRescue(project)}>
+              {t('tools.rescue')}
+            </PlButton>
+          </div>
+        }
+      >
+        <div className="notice">
+          <FileExclamationPoint className="notice__icon" aria-hidden="true" />
+          <div className="notice__text">
+            <p className="notice__line">{t('open-dialog.damaged-text')}</p>
+            <p className="notice__line notice__detail">{message}</p>
+          </div>
+        </div>
+      </PlModal>
+    );
+  }
+
+  if (question?.kind === 'rescued') {
+    const { report } = question;
+
+    return (
+      <PlModal
+        data-testid="rescued-dialog"
+        open
+        onOpenChange={closeWith(onDismiss)}
+        title={t('open-dialog.rescued-title')}
+        width={520}
+        actions={
+          <div className="dialog-actions">
+            <PlButton variant="ghost" onClick={onDismiss}>
+              {t('common.close')}
+            </PlButton>
+            <PlButton data-testid="btn-open-rescued" onClick={() => onOpen(report.project)}>
+              {t('tools.rescue-open')}
+            </PlButton>
+          </div>
+        }
+      >
+        <PlAlert color={report.whole ? 'success' : 'warning'} variant="glass" size="sm">
+          {report.whole
+            ? t('tools.rescue-whole', { path: report.path })
+            : t('tools.rescue-partial', {
+                path: report.path,
+                pages: report.pagesDamaged,
+                objects: report.objectsDropped,
+                values: report.valuesLost,
+              })}
+        </PlAlert>
       </PlModal>
     );
   }
