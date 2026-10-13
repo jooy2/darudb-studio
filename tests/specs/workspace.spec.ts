@@ -123,10 +123,9 @@ test('The last windows, projects and tabs open again', async ({ page, util }) =>
 
 test('A window closed before the app quits does not open again', async ({ util }) => {
   try {
-    const [first, second] = getApp().windows();
-
-    // The window on the project goes, and the list stays
-    await closeWindow((await first.getByTestId('project-screen').count()) > 0 ? first : second);
+    // The window on the project goes, and the list stays. The project opens a
+    // moment after its window, so the window is found once it shows it.
+    await closeWindow(await projectWindow());
     await expect.poll(() => getApp().windows().length).toBe(1);
 
     const relaunched = await relaunchApp();
