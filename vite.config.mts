@@ -5,6 +5,7 @@ import ReactPlugin from '@vitejs/plugin-react-swc';
 import { resolve, dirname } from 'path';
 import { readFileSync, rmSync } from 'fs';
 import { builtinModules } from 'module';
+import bundledPackages from './buildAssets/notices/bundledPackages';
 
 const projectRoot = dirname(fileURLToPath(import.meta.url));
 
@@ -31,6 +32,10 @@ export default defineConfig(({ command, mode }) => {
 
   rmSync(resolve(projectRoot, 'dist'), { recursive: true, force: true });
 
+  // Where each build lists the packages it bundled, which
+  // `buildAssets/notices/write.mjs` turns into the third-party notices
+  const packageLists = resolve(projectRoot, 'dist/.packages');
+
   const electronPluginConfigs: ElectronSimpleOptions = {
     main: {
       entry: 'src/main/index.ts',
@@ -48,6 +53,7 @@ export default defineConfig(({ command, mode }) => {
             '@': resolve(projectRoot, 'src'),
           },
         },
+        plugins: [bundledPackages('main', packageLists)],
         // `isDevEnv` in `src/main/constants.ts` is derived from this, so
         // replacing it at build time lets the bundler drop the development
         // branch of `app.on('ready')` along with everything it reaches for.
@@ -81,6 +87,7 @@ export default defineConfig(({ command, mode }) => {
     preload: {
       input: resolve(projectRoot, 'src/preload/index.ts'),
       vite: {
+        plugins: [bundledPackages('preload', packageLists)],
         resolve: {
           alias: {
             '@': resolve(projectRoot, 'src'),
@@ -121,6 +128,7 @@ export default defineConfig(({ command, mode }) => {
     },
     plugins: [
       ReactPlugin(),
+      bundledPackages('renderer', packageLists),
       // Docs: https://github.com/electron-vite/vite-plugin-electron
       electron(electronPluginConfigs),
     ],

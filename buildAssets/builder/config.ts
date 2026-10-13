@@ -17,6 +17,9 @@ const config: Configuration = {
     buildResources: './buildAssets/installer/',
     output: './release/${version}'
   },
+  // The notices of the packages the app ships, on disk next to the licenses of
+  // Electron and Chromium, as well as inside the app, where its Help menu shows them
+  extraResources: [{ from: 'dist/THIRD_PARTY_NOTICES.txt', to: 'THIRD_PARTY_NOTICES.txt' }],
   files: [
     /* A list of files not to be included in the build. */
     /*

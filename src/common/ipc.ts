@@ -63,6 +63,7 @@ export const mainChannels = {
   openProject: 'msgOpenProject',
   closeProject: 'msgCloseProject',
   requestSession: 'msgRequestSession',
+  requestNotices: 'msgRequestNotices',
   countObjects: 'msgCountObjects',
   readPage: 'msgReadPage',
   writeChanges: 'msgWriteChanges',
@@ -134,6 +135,8 @@ export interface MainChannelSignatures {
   [mainChannels.closeProject]: () => boolean;
   /* The project the window the call came from has open, or `null` */
   [mainChannels.requestSession]: () => Session | null;
+  /* The third-party notices the build wrote, or `null` for a build that has none */
+  [mainChannels.requestNotices]: () => string | null;
   /*
    * The objects of the project the window has open, see `common/data`. Each
    * resolves with an outcome rather than rejecting, so the window can show

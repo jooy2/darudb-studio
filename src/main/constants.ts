@@ -35,6 +35,9 @@ const currentDirName = dirname(fileURLToPath(import.meta.url));
 // Both are resolved from `dist/main`, where this file ends up after the build
 export const preloadFile = join(currentDirName, '../preload/index.js');
 export const appIndexFile = join(currentDirName, '../index.html');
+// Written by `buildAssets/notices/write.mjs` after the build, so a development
+// run has it only once the app was built
+export const noticesFile = join(currentDirName, '../THIRD_PARTY_NOTICES.txt');
 
 /*
  * Applied to every window, so the main window and the ones `WindowManager`

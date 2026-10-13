@@ -121,6 +121,11 @@
     "theme-system": "System",
     "title": "Einstellungen"
   },
+  "notices": {
+    "missing": "Die Hinweise entstehen beim Bauen der App, und dieser Start hat keine.",
+    "text": "DaruDB Studio ist mit diesen Open-Source-Paketen gebaut, jedes unter seiner eigenen Lizenz.",
+    "title": "Lizenzen von Drittanbietern"
+  },
   "sidebar": {
     "add-object": "Objekt hinzufügen …",
     "auto-increment": "automatisch hochgezählt",
@@ -288,6 +293,7 @@
     "new-project": "Neues Projekt …",
     "new-query": "Neue Abfrage",
     "new-window": "Neues Fenster",
+    "notices": "Lizenzen von Drittanbietern",
     "paste": "Einsetzen",
     "paste-and-match-style": "Einsetzen und Stil anpassen",
     "quit": "{{name}} beenden",

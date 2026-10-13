@@ -121,6 +121,11 @@
     "theme-system": "System",
     "title": "Settings"
   },
+  "notices": {
+    "missing": "The notices are written when the app is built, and this run was started without them.",
+    "text": "DaruDB Studio is built with these open source packages, each under its own license.",
+    "title": "Third-Party Licenses"
+  },
   "sidebar": {
     "add-object": "Add Object…",
     "auto-increment": "auto-increment",
@@ -288,6 +293,7 @@
     "new-project": "New Project…",
     "new-query": "New Query",
     "new-window": "New Window",
+    "notices": "Third-Party Licenses",
     "paste": "Paste",
     "paste-and-match-style": "Paste and Match Style",
     "quit": "Quit {{name}}",

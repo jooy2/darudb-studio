@@ -121,6 +121,11 @@
     "theme-system": "システム",
     "title": "設定"
   },
+  "notices": {
+    "missing": "告知ファイルはアプリのビルド時に作成されますが、今回の実行にはありません。",
+    "text": "DaruDB Studio は次のオープンソースパッケージで作られており、それぞれに固有のライセンスがあります。",
+    "title": "サードパーティのライセンス"
+  },
   "sidebar": {
     "add-object": "オブジェクトを追加…",
     "auto-increment": "自動採番",
@@ -288,6 +293,7 @@
     "new-project": "新規プロジェクト…",
     "new-query": "新規クエリ",
     "new-window": "新規ウインドウ",
+    "notices": "サードパーティのライセンス",
     "paste": "ペースト",
     "paste-and-match-style": "ペーストしてスタイルを合わせる",
     "quit": "{{name}}を終了",

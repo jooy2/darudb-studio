@@ -1,3 +1,5 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import type { Page } from 'playwright';
 import { mainChannels } from '../../src/common/ipc';
 import { languageOf } from '../../src/common/locales';
@@ -131,6 +133,35 @@ test('The native menu speaks the language the user picked', async ({ page, util 
 
     await invokeMain(page, mainChannels.updateSettings, { language: null });
     await expect.poll(nativeLabel).toBe(translate(systemLanguage, 'menu.new-window'));
+  } catch (error) {
+    throw await util.onTestError(error);
+  }
+});
+
+test('The build writes the third-party notices, and the Help menu shows them', async ({
+  page,
+  util,
+}) => {
+  try {
+    const notices = readFileSync(join(process.cwd(), 'dist', 'THIRD_PARTY_NOTICES.txt'), 'utf8');
+
+    // Bundled packages, with the license text each one carries
+    expect(notices).toMatch(/^react 19\./m);
+    expect(notices).toMatch(/^lucide-react \d+\.\d+\.\d+\nLicense: ISC/m);
+    expect(notices).toContain('ISC License');
+    // The runtime dependency the app ships as it is
+    expect(notices).toMatch(/^darudb \d+\.\d+\.\d+\nLicense: MIT/m);
+    expect(notices).not.toMatch(/^darudb-studio /m);
+
+    await page.getByTestId('app-menu-bar').getByRole('menuitem', { name: 'Help' }).click();
+    await page.getByRole('menuitem', { name: 'Third-Party Licenses' }).click();
+
+    const dialog = page.getByTestId('notices-dialog');
+
+    await expect(dialog.getByTestId('notices-text')).toContainText('lucide-react');
+    await util.captureScreenshot(page, 'notices');
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
   } catch (error) {
     throw await util.onTestError(error);
   }

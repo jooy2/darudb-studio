@@ -1,3 +1,4 @@
+import { readFile } from 'fs/promises';
 import { BrowserWindow, IpcMainEvent, IpcMainInvokeEvent, ipcMain } from 'electron';
 import {
   mainChannels,
@@ -7,6 +8,7 @@ import {
   type MainChannelResult,
 } from '@/common/ipc';
 import { openExternalLink } from './security';
+import { noticesFile } from './constants';
 import WindowManager from './WindowManager';
 import AppMenu from './AppMenu';
 import { getSettings, updateSettings, validSettingChanges } from './settings';
@@ -196,6 +198,8 @@ export default class IPCs {
 
       return closed;
     });
+
+    handle(mainChannels.requestNotices, () => readFile(noticesFile, 'utf8').catch(() => null));
 
     handle(mainChannels.requestSession, (event) =>
       sessionOf(BrowserWindow.fromWebContents(event.sender)),

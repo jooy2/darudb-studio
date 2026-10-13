@@ -121,6 +121,11 @@
     "theme-system": "시스템",
     "title": "설정"
   },
+  "notices": {
+    "missing": "고지 파일은 앱을 빌드할 때 만들어지는데, 이번 실행에는 없습니다.",
+    "text": "DaruDB Studio는 다음 오픈 소스 패키지로 만들어졌으며, 각 패키지에는 고유한 라이선스가 있습니다.",
+    "title": "서드파티 라이선스"
+  },
   "sidebar": {
     "add-object": "객체 추가…",
     "auto-increment": "자동 증가",
@@ -288,6 +293,7 @@
     "new-project": "새 프로젝트…",
     "new-query": "새 쿼리",
     "new-window": "새 윈도우",
+    "notices": "서드파티 라이선스",
     "paste": "붙여넣기",
     "paste-and-match-style": "붙여넣고 스타일 일치시키기",
     "quit": "{{name}} 종료",

@@ -121,6 +121,11 @@
     "theme-system": "Système",
     "title": "Réglages"
   },
+  "notices": {
+    "missing": "Les mentions sont écrites à la compilation de l’app, et ce lancement n’en a pas.",
+    "text": "DaruDB Studio est construit avec ces paquets open source, chacun sous sa propre licence.",
+    "title": "Licences tierces"
+  },
   "sidebar": {
     "add-object": "Ajouter un objet…",
     "auto-increment": "auto-incrément",
@@ -288,6 +293,7 @@
     "new-project": "Nouveau projet…",
     "new-query": "Nouvelle requête",
     "new-window": "Nouvelle fenêtre",
+    "notices": "Licences tierces",
     "paste": "Coller",
     "paste-and-match-style": "Coller et adapter le style",
     "quit": "Quitter {{name}}",

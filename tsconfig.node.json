@@ -29,6 +29,7 @@
     "eslint.config.ts",
     "vite.config.mts",
     "buildAssets/builder",
+    "buildAssets/notices",
     "tests/**/*.ts",
     "tests/**/*.spec.ts"
   ],

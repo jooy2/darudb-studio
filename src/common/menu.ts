@@ -61,6 +61,7 @@ export const appCommands = [
   'discard',
   'open-website',
   'open-repository',
+  'show-notices',
 ] as const;
 
 export type AppCommand = (typeof appCommands)[number];
@@ -348,6 +349,8 @@ export const buildMenu = (platform: MenuPlatform, development: boolean): MenuEnt
     submenu: [
       { id: 'help.website', label: 'menu.website', command: 'open-website' },
       { id: 'help.repository', label: 'menu.repository', command: 'open-repository' },
+      separator('help.separator-notices'),
+      { id: 'help.notices', label: 'menu.notices', command: 'show-notices' },
       ...(mac
         ? []
         : [

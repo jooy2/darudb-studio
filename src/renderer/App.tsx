@@ -6,9 +6,10 @@ import LocaleProvider from '@/renderer/components/base/LocaleProvider';
 import SettingsProvider from '@/renderer/components/base/SettingsProvider';
 import ThemeProvider from '@/renderer/components/base/ThemeProvider';
 import { MenuModelContext } from '@/renderer/components/menu/MenuModelContext';
+import NoticesDialog from '@/renderer/components/settings/NoticesDialog';
 import SettingsDialog from '@/renderer/components/settings/SettingsDialog';
 import useMenuCommands from '@/renderer/hooks/useMenuCommands';
-import { setSettingsOpen } from '@/renderer/store/slices/appScreenSlice';
+import { setNoticesOpen, setSettingsOpen } from '@/renderer/store/slices/appScreenSlice';
 import { useAppDispatch } from '@/renderer/store/hooks';
 import type { MenuModel } from '@/common/ipc';
 
@@ -16,12 +17,13 @@ import NotFoundScreen from '@/renderer/screens/NotFoundScreen';
 import MainScreen from '@/renderer/screens/MainScreen';
 import ProjectScreen from '@/renderer/screens/ProjectScreen';
 
-/* What every screen shares: the settings dialog, which any of them opens */
+/* What every screen shares: the dialogs any of them opens */
 function Screens() {
   const dispatch = useAppDispatch();
 
   useMenuCommands({
     settings: () => dispatch(setSettingsOpen(true)),
+    'show-notices': () => dispatch(setNoticesOpen(true)),
   });
 
   return (
@@ -36,6 +38,7 @@ function Screens() {
         </Routes>
       </HashRouter>
       <SettingsDialog />
+      <NoticesDialog />
     </>
   );
 }
