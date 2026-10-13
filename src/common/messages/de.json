@@ -43,6 +43,7 @@
   "project-dialog": {
     "browse": "Durchsuchen …",
     "choose-title": "DaruDB-Datenbankdatei wählen",
+    "copy-replaced": "Die Arbeitskopie, die die App für dieses Projekt angelegt hat, wird beim Speichern gelöscht.",
     "create": "Anlegen",
     "create-title": "Neues Projekt",
     "delete": "Projekt löschen",

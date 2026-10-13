@@ -231,8 +231,18 @@ export default function ProjectDialog({ project = undefined, onClose }: ProjectD
 
   // A file known to be plain needs no password; one that is gone may still have one
   const passwordUseless = checked && file?.check.status === 'ok' && !file.check.encrypted;
-  const fileDescription =
-    file && checked ? (fileProblem(file.check) ?? describeFile(file.check)) : null;
+  // Another file in place of the working copy the app made leaves the copy with nothing to point at
+  const replacesCopy =
+    project !== undefined &&
+    project.sourcePath !== null &&
+    file !== null &&
+    file.path !== project.filePath;
+  const fileDescription = [
+    file && checked ? (fileProblem(file.check) ?? describeFile(file.check)) : null,
+    replacesCopy ? t('project-dialog.copy-replaced') : null,
+  ]
+    .filter(Boolean)
+    .join(' ');
   const passwordDescription = (() => {
     if (!canRemember) {
       return t('project-dialog.no-keystore');

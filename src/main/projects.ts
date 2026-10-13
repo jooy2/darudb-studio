@@ -144,10 +144,18 @@ const passwordOf = (
   return sealSecret(draft.password);
 };
 
+/* Deletes the working copy the app made for `stored`, if the project works on one */
+const removeWorkingCopy = async (stored: StoredProject): Promise<void> => {
+  if (stored.sourcePath !== null && isWorkingCopy(stored.filePath)) {
+    await rm(stored.filePath, { force: true });
+  }
+};
+
 /*
  * Creates the project `draft` describes, or changes the one its `id` names,
- * and resolves with it. A file changed to another one leaves the working copy
- * it replaces behind as the user's.
+ * and resolves with it. A file changed to another one deletes the working copy
+ * the app made, which nothing points at any more; a file the user picked is
+ * never deleted.
  * */
 export const saveProject = async (draft: ProjectDraft): Promise<Project> => {
   const { name, filePath } = checkDraft(draft);
@@ -197,6 +205,10 @@ export const saveProject = async (draft: ProjectDraft): Promise<Project> => {
         await txn.collection('projects').put(saved);
       }),
     );
+
+    if (fileChanged) {
+      await removeWorkingCopy(current);
+    }
   }
 
   return projectOf(saved);
@@ -219,9 +231,7 @@ export const deleteProject = async (id: number): Promise<void> => {
     }),
   );
 
-  if (current.sourcePath !== null && isWorkingCopy(current.filePath)) {
-    await rm(current.filePath, { force: true });
-  }
+  await removeWorkingCopy(current);
 };
 
 /* The remembered password of the project, or `null` without one or when it cannot be read */

@@ -43,6 +43,7 @@
   "project-dialog": {
     "browse": "찾아보기…",
     "choose-title": "DaruDB 데이터베이스 파일 선택",
+    "copy-replaced": "저장하면 앱이 이 프로젝트를 위해 만든 작업 사본은 삭제됩니다.",
     "create": "만들기",
     "create-title": "새 프로젝트",
     "delete": "프로젝트 삭제",

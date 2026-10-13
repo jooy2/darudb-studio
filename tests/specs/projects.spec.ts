@@ -1,8 +1,8 @@
-import { mkdtempSync, rmSync } from 'fs';
+import { existsSync, mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { mainChannels } from '../../src/common/ipc';
-import type { FileCheck, Project } from '../../src/common/projects';
+import type { FileCheck, OpenResult, Project } from '../../src/common/projects';
 import type { AppSettings } from '../../src/common/settings';
 import { makeNotADatabase, makeSampleDatabase } from '../databases';
 import { invokeMain } from '../ipc';
@@ -122,6 +122,54 @@ test('The new settings are checked and kept', async ({ page, util }) => {
       menuBarStyle: 'collapsed',
       editMode: 'submit',
     });
+  } catch (error) {
+    throw await util.onTestError(error);
+  }
+});
+
+test('A working copy goes when its project points at another file', async ({ page, util }) => {
+  try {
+    const older = makeSampleDatabase(files, 'older.darudb', { olderFormat: true });
+    const other = makeSampleDatabase(files, 'other.darudb');
+    const project = await invokeMain<Project>(page, mainChannels.saveProject, {
+      name: 'Older',
+      filePath: older,
+    });
+    const opened = await invokeMain<OpenResult>(page, mainChannels.openProject, {
+      projectId: project.id,
+      upgrade: 'copy',
+    });
+
+    expect(opened.status).toBe('opened');
+
+    const copy = opened.status === 'opened' ? opened.database.path : '';
+
+    expect(copy).not.toBe(older);
+    expect(existsSync(copy)).toBe(true);
+    await invokeMain(page, mainChannels.closeProject);
+
+    // A new name alone keeps the copy
+    await invokeMain(page, mainChannels.saveProject, {
+      id: project.id,
+      name: 'Older, renamed',
+      filePath: copy,
+    });
+    expect(existsSync(copy)).toBe(true);
+
+    const moved = await invokeMain<Project>(page, mainChannels.saveProject, {
+      id: project.id,
+      name: 'Older, renamed',
+      filePath: other,
+    });
+
+    expect(moved).toMatchObject({ filePath: other, sourcePath: null });
+    expect(existsSync(copy)).toBe(false);
+    // The files the user picked stay
+    expect(existsSync(older)).toBe(true);
+    expect(existsSync(other)).toBe(true);
+
+    await invokeMain(page, mainChannels.deleteProject, project.id);
+    expect(existsSync(other)).toBe(true);
   } catch (error) {
     throw await util.onTestError(error);
   }

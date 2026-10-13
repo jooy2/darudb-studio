@@ -43,6 +43,7 @@
   "project-dialog": {
     "browse": "Parcourir…",
     "choose-title": "Choisir un fichier de base de données DaruDB",
+    "copy-replaced": "La copie de travail que l’app a créée pour ce projet est supprimée à l’enregistrement.",
     "create": "Créer",
     "create-title": "Nouveau projet",
     "delete": "Supprimer le projet",

@@ -43,6 +43,7 @@
   "project-dialog": {
     "browse": "参照…",
     "choose-title": "DaruDB データベースファイルを選択",
+    "copy-replaced": "保存すると、アプリがこのプロジェクト用に作った作業用コピーは削除されます。",
     "create": "作成",
     "create-title": "新規プロジェクト",
     "delete": "プロジェクトを削除",

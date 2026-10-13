@@ -43,6 +43,7 @@
   "project-dialog": {
     "browse": "Browse…",
     "choose-title": "Choose a DaruDB database file",
+    "copy-replaced": "The working copy the app made for this project is deleted when you save.",
     "create": "Create",
     "create-title": "New Project",
     "delete": "Delete Project",
