@@ -44,7 +44,7 @@
     "test:linux": "npm run build:pre && xvfb-run --auto-servernum --server-args='-screen 0, 1280x960x24' -- playwright test"
   },
   "dependencies": {
-    "darudb": "^1.2.0"
+    "darudb": "^1.3.0"
   },
   "devDependencies": {
     "@electron/devtron": "^2.1.1",
