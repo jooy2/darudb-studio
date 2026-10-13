@@ -127,16 +127,18 @@ test('A password is tried before it is remembered', async ({ page, util }) => {
     // The name comes from the file, and the file says it is encrypted
     await expect(dialog.getByTestId('project-name')).toHaveValue('vault');
     await expect(dialog).toContainText('An encrypted DaruDB database.');
+    // The key is the file's encryption key, and a project does without one
+    await expect(dialog.getByText('Encryption key (optional)')).toBeVisible();
 
     await dialog.getByTestId('project-password').fill('wrong');
     await dialog.getByTestId('btn-save-project').click();
-    await expect(dialog).toContainText('This password does not open the file.');
+    await expect(dialog).toContainText('This encryption key does not open the file.');
 
     await dialog.getByTestId('project-password').fill(PASSWORD);
     await util.captureScreenshot(page, 'project-dialog');
     await dialog.getByTestId('btn-save-project').click();
     await expect(dialog).toBeHidden();
-    await expect(projectItem(page, 'vault')).toContainText('Password saved');
+    await expect(projectItem(page, 'vault')).toContainText('Key saved');
   } catch (error) {
     throw await util.onTestError(error);
   }
@@ -198,7 +200,7 @@ test('An encrypted file asks for its password once it is not remembered', async 
     await expect(dialog.getByTestId('open-password')).toBeFocused();
     await dialog.getByTestId('open-password').fill('wrong');
     await dialog.getByTestId('btn-open-with-password').click();
-    await expect(dialog).toContainText('This password does not open the file.');
+    await expect(dialog).toContainText('This encryption key does not open the file.');
     await expect(dialog.getByTestId('open-password')).toHaveValue('');
 
     await dialog.getByTestId('open-password').fill(PASSWORD);
@@ -207,7 +209,7 @@ test('An encrypted file asks for its password once it is not remembered', async 
     await dialog.getByTestId('btn-open-with-password').click();
     await expect(page.getByTestId('project-screen')).toBeVisible();
     await backToList(page);
-    await expect(projectItem(page, 'vault')).toContainText('Password saved');
+    await expect(projectItem(page, 'vault')).toContainText('Key saved');
   } catch (error) {
     throw await util.onTestError(error);
   }
