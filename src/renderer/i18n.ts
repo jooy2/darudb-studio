@@ -1,30 +1,14 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
-// The language list itself is shared with the main process, see `common/locales`
+// The language list and the strings are shared with the main process, which
+// labels the native menu with them, see `common/translations`
 import { fallbackLanguage, supportedLanguages, type SupportedLanguage } from '@/common/locales';
+import { messages, type Messages } from '@/common/translations';
 
-import de from '@/renderer/locales/de/common.json';
-import en from '@/renderer/locales/en/common.json';
-import fr from '@/renderer/locales/fr/common.json';
-import ja from '@/renderer/locales/ja/common.json';
-import ko from '@/renderer/locales/ko/common.json';
-
-/*
- * Translations are bundled rather than fetched at runtime. Every language
- * together is a few kilobytes, and the app reads them from disk, so a request
- * per language only bought a first render with the raw keys in it.
- *
- * Typing every entry as `typeof en` makes a missing or misspelled key a build
- * error, so the languages cannot drift apart.
- * */
-const resources: Record<SupportedLanguage, { common: typeof en }> = {
-  de: { common: de },
-  en: { common: en },
-  fr: { common: fr },
-  ja: { common: ja },
-  ko: { common: ko },
-};
+const resources = Object.fromEntries(
+  supportedLanguages.map((language) => [language, { common: messages[language] }]),
+) as Record<SupportedLanguage, { common: Messages }>;
 
 /*
  * Starts on the language the user picked, which the main process keeps in the

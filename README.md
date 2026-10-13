@@ -18,8 +18,8 @@ The app is an [Electron](https://www.electronjs.org) app with a [React](https://
 | -------------- | -------------------------------------------------------------------------- |
 | `src/main`     | The main process: windows, IPC handlers and the app's settings file        |
 | `src/preload`  | The bridge the renderer reaches the main process through, `window.mainApi` |
-| `src/renderer` | The interface, in React, with its translations in `locales`                |
-| `src/common`   | Constants and types every process shares, such as the IPC contract         |
+| `src/renderer` | The interface, in React                                                    |
+| `src/common`   | What every process shares: the IPC contract, types and the translations    |
 | `tests`        | End-to-end tests that drive the built app with Playwright                  |
 | `buildAssets`  | The electron-builder configuration and the app icons                       |
 

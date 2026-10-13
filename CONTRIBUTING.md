@@ -42,7 +42,7 @@ Anything the main process receives from a renderer is untrusted input and is che
 
 ## Translations
 
-The interface ships in English, German, French, Japanese and Korean, one file per language in `src/renderer/locales`. Every file holds the same keys, and a key missing from one of them fails the build. Add a new string to every file in the same change. Write it in your own language if you cannot write the others, and say so in the pull request; a maintainer will follow up on the translation.
+The interface ships in English, German, French, Japanese and Korean, one file per language in `src/common/messages`. Every file holds the same keys, and a key missing from one of them fails the build. Add a new string to every file in the same change. Write it in your own language if you cannot write the others, and say so in the pull request; a maintainer will follow up on the translation.
 
 ## Third-party dependencies
 

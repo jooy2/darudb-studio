@@ -23,7 +23,7 @@
 - [ ] `npm run lint` and `npm run format` pass
 - [ ] `npm test` passes
 - [ ] I added or updated tests for the behaviour I changed
-- [ ] I added every new interface string to **all five** files in `src/renderer/locales` (or said below which ones still need a translation)
+- [ ] I added every new interface string to **all five** files in `src/common/messages` (or said below which ones still need a translation)
 - [ ] A change to the interface comes with a screenshot in the light and the dark theme
 - [ ] This adds **no new runtime dependency** — or it does, and I have said below what it does, what its licence is, and what it brings with it
 

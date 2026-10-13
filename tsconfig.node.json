@@ -22,6 +22,7 @@
   "include": [
     "types",
     "src/common",
+    "src/common/**/*.json",
     "src/main",
     "src/preload",
     "package.json",
