@@ -1,6 +1,7 @@
 import type { IpcRendererEvent } from 'electron';
 import type { SupportedLanguage } from './locales';
 import type { AppSettings } from './settings';
+import type { ChosenFile, FileCheck, Project, ProjectDraft } from './projects';
 
 /*
  * The IPC contract, shared by the three processes.
@@ -29,8 +30,15 @@ export const mainChannels = {
   closeWindow: 'msgCloseWindow',
   requestWindowInfo: 'msgRequestWindowInfo',
   requestSettings: 'msgRequestSettings',
+  updateSettings: 'msgUpdateSettings',
   setDarkTheme: 'msgSetDarkTheme',
   setLanguage: 'msgSetLanguage',
+  listProjects: 'msgListProjects',
+  saveProject: 'msgSaveProject',
+  deleteProject: 'msgDeleteProject',
+  chooseDatabaseFile: 'msgChooseDatabaseFile',
+  checkDatabaseFile: 'msgCheckDatabaseFile',
+  canRememberPasswords: 'msgCanRememberPasswords',
 } as const;
 
 /*
@@ -40,6 +48,8 @@ export const rendererChannels = {
   windowsUpdated: 'msgWindowsUpdated',
   darkThemeUpdated: 'msgDarkThemeUpdated',
   languageUpdated: 'msgLanguageUpdated',
+  settingsUpdated: 'msgSettingsUpdated',
+  projectsChanged: 'msgProjectsChanged',
 } as const;
 
 /*
@@ -71,14 +81,27 @@ export interface MainChannelSignatures {
   [mainChannels.closeWindow]: () => boolean;
   [mainChannels.requestWindowInfo]: () => WindowInfo;
   [mainChannels.requestSettings]: () => AppSettings;
+  /* Stores the valid ones of `changes` and resolves with every setting */
+  [mainChannels.updateSettings]: (changes: Partial<AppSettings>) => AppSettings;
   [mainChannels.setDarkTheme]: (darkTheme: boolean) => void;
   [mainChannels.setLanguage]: (language: SupportedLanguage) => void;
+  [mainChannels.listProjects]: () => Project[];
+  [mainChannels.saveProject]: (draft: ProjectDraft) => Project;
+  [mainChannels.deleteProject]: (id: number) => void;
+  /* The open dialog, titled `title`; `null` when it was cancelled */
+  [mainChannels.chooseDatabaseFile]: (title: string) => ChosenFile | null;
+  [mainChannels.checkDatabaseFile]: (path: string, password?: string) => FileCheck;
+  /* Whether this system has a keystore to keep remembered passwords in */
+  [mainChannels.canRememberPasswords]: () => boolean;
 }
 
 export interface RendererChannelSignatures {
   [rendererChannels.windowsUpdated]: (childWindowIds: number[]) => void;
   [rendererChannels.darkThemeUpdated]: (darkTheme: boolean) => void;
   [rendererChannels.languageUpdated]: (language: SupportedLanguage) => void;
+  [rendererChannels.settingsUpdated]: (settings: AppSettings) => void;
+  /* A window created, changed or deleted a project: the list is to be read again */
+  [rendererChannels.projectsChanged]: () => void;
 }
 
 export type MainChannelArgs<Channel extends MainChannel> = Parameters<

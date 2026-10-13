@@ -1,6 +1,7 @@
 import { BrowserWindow, IpcMainEvent, IpcMainInvokeEvent, ipcMain } from 'electron';
 import {
   mainChannels,
+  rendererChannels,
   type MainChannel,
   type MainChannelArgs,
   type MainChannelResult,
@@ -8,7 +9,25 @@ import {
 import { openExternalLink } from './security';
 import WindowManager from './WindowManager';
 import { setDarkTheme, setLanguage } from './appearance';
-import { getSettings } from './settings';
+import { getSettings, updateSettings, validSettingChanges } from './settings';
+import { deleteProject, listProjects, saveProject } from './projects';
+import { checkDatabaseFile, chooseDatabaseFile } from './files';
+import { canRememberSecrets } from './secrets';
+
+/*
+ * Sends `channel` to every window but `sender`, which already knows.
+ * */
+const broadcast = <Args extends unknown[]>(
+  channel: string,
+  sender: BrowserWindow | null,
+  ...args: Args
+): void => {
+  BrowserWindow.getAllWindows().forEach((browserWindow) => {
+    if (!browserWindow.isDestroyed() && browserWindow !== sender) {
+      browserWindow.webContents.send(channel, ...args);
+    }
+  });
+};
 
 /*
  * `ipcMain.on` and `ipcMain.handle`, checked against the contract in
@@ -73,6 +92,48 @@ export default class IPCs {
 
     // The stored preferences, which a window reads before its first render
     handle(mainChannels.requestSettings, () => getSettings());
+
+    // A change of the preferences a window's settings dialog makes. Only the
+    // valid ones are kept, and every other window hears of them.
+    handle(mainChannels.updateSettings, (event, changes) => {
+      updateSettings(validSettingChanges(changes));
+
+      const settings = getSettings();
+
+      broadcast(
+        rendererChannels.settingsUpdated,
+        BrowserWindow.fromWebContents(event.sender),
+        settings,
+      );
+
+      return settings;
+    });
+
+    handle(mainChannels.listProjects, () => listProjects());
+
+    // Every window shows the list, so a change in one reaches the others
+    handle(mainChannels.saveProject, async (event, draft) => {
+      const project = await saveProject(draft);
+
+      broadcast(rendererChannels.projectsChanged, BrowserWindow.fromWebContents(event.sender));
+
+      return project;
+    });
+
+    handle(mainChannels.deleteProject, async (event, id) => {
+      await deleteProject(id);
+      broadcast(rendererChannels.projectsChanged, BrowserWindow.fromWebContents(event.sender));
+    });
+
+    handle(mainChannels.chooseDatabaseFile, (event, title) =>
+      chooseDatabaseFile(BrowserWindow.fromWebContents(event.sender), String(title)),
+    );
+
+    handle(mainChannels.checkDatabaseFile, (event, path, password) =>
+      checkDatabaseFile(path, typeof password === 'string' ? password : undefined),
+    );
+
+    handle(mainChannels.canRememberPasswords, () => canRememberSecrets());
 
     // State a freshly loaded window needs before the next `msgWindowsUpdated`
     // broadcast reaches it

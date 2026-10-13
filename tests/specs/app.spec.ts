@@ -2,7 +2,8 @@ import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import type { Page } from 'playwright';
 import pkg from '../../package.json' with { type: 'json' };
-import { mainChannels, type MainChannel } from '../../src/common/ipc';
+import { mainChannels } from '../../src/common/ipc';
+import { invokeMain } from '../ipc';
 import {
   test,
   expect,
@@ -18,22 +19,6 @@ test.afterAll(afterAll);
 
 // The settings file, as `src/main/settings.ts` names it
 const SETTINGS_FILE_NAME = 'studio.darudb';
-
-/*
- * Tests run in Node.js, where there is no preload bridge. The page has one, and
- * this is how a test calls it there.
- * */
-const invokeMain = (target: Page, channel: MainChannel, ...args: unknown[]) =>
-  target.evaluate(
-    ({ evaluatedChannel, evaluatedArgs }) => {
-      const { mainApi } = window as unknown as {
-        mainApi: { invoke: (channel: string, ...args: unknown[]) => Promise<unknown> };
-      };
-
-      return mainApi.invoke(evaluatedChannel, ...evaluatedArgs);
-    },
-    { evaluatedChannel: channel, evaluatedArgs: args },
-  );
 
 const getTheme = (target: Page) => target.evaluate(() => document.documentElement.dataset.theme);
 

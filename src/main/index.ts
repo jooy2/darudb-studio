@@ -12,7 +12,8 @@ import {
 } from './constants';
 import { registerWindowSecurity } from './security';
 import { getBackgroundColor } from './appearance';
-import { closeSettings, openSettings } from './settings';
+import { loadSettings } from './settings';
+import { closeStore, openStore } from './store';
 
 // How long a quit waits for the settings file to close. A DaruDB commit is
 // atomic, so quitting before a write finishes loses that one change and leaves
@@ -128,7 +129,8 @@ app.on('ready', async () => {
   }
 
   // Read before the first window, which is painted with the stored theme
-  await openSettings();
+  await openStore();
+  await loadSettings();
 
   // Initialize IPC Communication. Handlers must be registered only once,
   // otherwise re-creating the window would attach duplicated listeners.
@@ -149,7 +151,7 @@ const closeSettingsBeforeQuit = async (): Promise<void> => {
   });
 
   try {
-    const result = await Promise.race([closeSettings().then(() => 'closed' as const), timeout]);
+    const result = await Promise.race([closeStore().then(() => 'closed' as const), timeout]);
 
     if (result === 'timeout') {
       console.warn(
