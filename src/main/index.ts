@@ -25,10 +25,36 @@ if (userDataOverride) {
   app.setPath('userData', userDataOverride);
 }
 
+/*
+ * One run of the app at a time for a user data folder. A second start hands
+ * over to the first, which opens a window for it, and ends before it does
+ * anything else: two runs would share the app's data file, and each would
+ * keep the windows it has open for the next launch over the other's. The
+ * self-check stays out of it, since it touches nothing of the user's.
+ * */
+const isOnlyRun = selfCheckRequested || app.requestSingleInstanceLock();
+
+if (!isOnlyRun) {
+  // At once and without the quit events, which would keep this run's windows,
+  // none, as the ones the next launch opens
+  app.exit(0);
+}
+
 // Chromium picks how it draws as it starts, so the setting is read before `ready`
-if (!selfCheckRequested && !wantsHardwareAcceleration()) {
+if (isOnlyRun && !selfCheckRequested && !wantsHardwareAcceleration()) {
   app.disableHardwareAcceleration();
 }
+
+// Settled once the app is ready to open a window: its data file read and its IPC handlers in place
+let markStarted: () => void = () => undefined;
+const started = new Promise<void>((resolve) => {
+  markStarted = resolve;
+});
+
+// A second start of the app, which ended at once, asks this run for a window
+app.on('second-instance', () => {
+  void started.then(() => WindowManager.create());
+});
 
 const installDevTron = async () => {
   try {
@@ -40,6 +66,10 @@ const installDevTron = async () => {
 };
 
 app.on('ready', async () => {
+  if (!isOnlyRun) {
+    return;
+  }
+
   if (isHiddenRun || selfCheckRequested) {
     app.dock?.hide();
   }
@@ -90,12 +120,16 @@ app.on('ready', async () => {
   for (const window of restored) {
     await WindowManager.create('/', null, window);
   }
+
+  markStarted();
 });
 
 // The windows open now are the ones the next launch opens, so the list of them
 // is kept before they close one after another
 app.on('before-quit', () => {
-  void freezeWorkspace();
+  if (isOnlyRun) {
+    void freezeWorkspace();
+  }
 });
 
 /*
@@ -138,7 +172,7 @@ const closeStoreBeforeQuit = async (): Promise<void> => {
 // stay open, and so call the quit off. The first quit waits for the close, then
 // quits again for real.
 app.on('will-quit', (event) => {
-  if (closingStore) {
+  if (closingStore || !isOnlyRun) {
     return;
   }
 

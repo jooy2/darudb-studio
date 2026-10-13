@@ -15,9 +15,9 @@ import { deleteProject, listProjects, samplesPath, saveProject } from './project
  * itself, so a sample can be edited, broken or compacted freely. The samples
  * of a run are deleted, with their projects, as the run quits.
  *
- * Several runs of the app may share the user data folder, so a sample's file
- * is named after the process that wrote it: a run deletes its own samples as
- * it quits, and those of runs that ended without doing so as it starts.
+ * A sample's file is named after the process that wrote it: a run deletes its
+ * own samples as it quits, and as it starts, those of runs that are gone,
+ * which ended without getting to it.
  *
  * The data comes from a seeded generator, so every sample holds the same
  * objects. The names, addresses and numbers in it are made up.

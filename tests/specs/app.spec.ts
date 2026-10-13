@@ -1,4 +1,4 @@
-import { spawnSync } from 'child_process';
+import { spawn, spawnSync } from 'child_process';
 import { existsSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { createRequire } from 'module';
 import { join } from 'path';
@@ -22,6 +22,11 @@ test.afterAll(afterAll);
 
 // The settings file, as `src/main/settings.ts` names it
 const SETTINGS_FILE_NAME = 'studio.darudb';
+
+// The `electron` package resolves to the path of its binary
+const electronBinary = createRequire(join(process.cwd(), 'package.json'))('electron') as string;
+// A CI runner has no setuid sandbox helper, as the launches in `fixtures.ts` know
+const sandbox = process.env.CI === 'true' ? ['--no-sandbox'] : [];
 
 const getTheme = (target: Page) => target.evaluate(() => document.documentElement.dataset.theme);
 
@@ -278,12 +283,45 @@ test('Opening at login is kept, and a test run leaves the system alone', async (
   }
 });
 
+test('A second start opens a window in the running app, and ends', async ({ page, util }) => {
+  try {
+    const before = getApp().windows().length;
+    const opened = getApp().waitForEvent('window');
+    // Started as the app is, on the same user data folder
+    const second = spawn(electronBinary, [pkg.main, ...sandbox], {
+      env: {
+        ...process.env,
+        NODE_ENV: 'production',
+        DARUDB_STUDIO_HIDDEN: '1',
+        DARUDB_STUDIO_USER_DATA: getUserDataPath(),
+      },
+      stdio: 'ignore',
+    });
+    const exitCode = await new Promise<number | null>((resolve) => {
+      second.once('exit', resolve);
+    });
+
+    expect(exitCode).toBe(0);
+
+    const window = await opened;
+
+    await window.waitForLoadState('load');
+    await expect(window.getByTestId('main-logo')).toBeVisible();
+    expect(getApp().windows()).toHaveLength(before + 1);
+
+    const closed = window.waitForEvent('close');
+
+    await invokeMain(window, mainChannels.closeWindow).catch(() => undefined);
+    await closed;
+    // The first window is as it was
+    await expect(page.getByTestId('main-logo')).toBeVisible();
+  } catch (error) {
+    throw await util.onTestError(error);
+  }
+});
+
 test('The self-check loads the engine without a window', async ({ util }) => {
   try {
-    // The `electron` package resolves to the path of its binary
-    const electronBinary = createRequire(join(process.cwd(), 'package.json'))('electron') as string;
-    // A CI runner has no setuid sandbox helper, as the launches in `fixtures.ts` know
-    const sandbox = process.env.CI === 'true' ? ['--no-sandbox'] : [];
     const run = spawnSync(electronBinary, [pkg.main, '--self-check', ...sandbox], {
       encoding: 'utf8',
       timeout: 60_000,
