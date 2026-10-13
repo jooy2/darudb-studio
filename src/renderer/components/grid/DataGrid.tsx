@@ -677,19 +677,28 @@ export default function DataGrid({
 
     handle.setPointerCapture(event.pointerId);
 
+    // Kept here as well: the last move and the release can come before the
+    // grid draws again, which is when the widths it holds catch up
+    let width = startWidth;
+
     const move = (moveEvent: globalThis.PointerEvent): void => {
-      const width = Math.min(
+      width = Math.min(
         MAX_COLUMN_WIDTH,
         Math.max(MIN_COLUMN_WIDTH, startWidth + moveEvent.clientX - startX),
       );
 
-      setWidths((current) => ({ ...current, [column.name]: width }));
+      const resized = width;
+
+      setWidths((current) => ({ ...current, [column.name]: resized }));
     };
     const end = (): void => {
       handle.removeEventListener('pointermove', move);
       handle.removeEventListener('pointerup', end);
       handle.removeEventListener('pointercancel', end);
-      onWidthsChange?.(widthsRef.current);
+
+      if (width !== startWidth) {
+        onWidthsChange?.({ ...widthsRef.current, [column.name]: width });
+      }
     };
 
     handle.addEventListener('pointermove', move);
