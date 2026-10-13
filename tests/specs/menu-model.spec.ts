@@ -37,7 +37,10 @@ for (const { platform, development } of builds) {
       ).toBeTruthy();
     }
 
-    expect(ids.includes('view.toggle-dev-tools')).toBe(development);
+    expect(ids.includes('view.reload')).toBe(development);
+    // No entry opens the developer tools, and opening or closing a window is in the Window menu
+    expect(entries.some((entry) => entry.role === ('toggleDevTools' as string))).toBe(false);
+    expect(ids).toEqual(expect.arrayContaining(['window.new-window', 'window.close']));
     expect(ids.includes('app.about')).toBe(platform === 'mac');
     expect(ids.includes('help.about')).toBe(platform !== 'mac');
   });

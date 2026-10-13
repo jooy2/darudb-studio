@@ -35,7 +35,6 @@ export type MenuRole =
   | 'stopSpeaking'
   | 'reload'
   | 'forceReload'
-  | 'toggleDevTools'
   | 'resetZoom'
   | 'zoomIn'
   | 'zoomOut'
@@ -96,7 +95,7 @@ const separator = (id: string): MenuEntry => ({ id, separator: true });
 
 /*
  * The menu for `platform`. `development` adds the items of a development
- * build, which reload the page and open the developer tools.
+ * build, which reload the page.
  * */
 export const buildMenu = (platform: MenuPlatform, development: boolean): MenuEntry[] => {
   const mac = platform === 'mac';
@@ -132,12 +131,6 @@ export const buildMenu = (platform: MenuPlatform, development: boolean): MenuEnt
     label: 'menu.file',
     submenu: [
       {
-        id: 'file.new-window',
-        label: 'menu.new-window',
-        command: 'new-window',
-        accelerator: 'CmdOrCtrl+Shift+N',
-      },
-      {
         id: 'file.new-project',
         label: 'menu.new-project',
         command: 'new-project',
@@ -151,17 +144,11 @@ export const buildMenu = (platform: MenuPlatform, development: boolean): MenuEnt
         accelerator: 'CmdOrCtrl+Shift+W',
         needsProject: true,
       },
-      separator('file.separator-window'),
+      // The app menu of macOS has the settings and the quit
       ...(mac
-        ? [
-            {
-              id: 'file.close',
-              label: 'menu.close-window',
-              role: 'close',
-              accelerator: 'Cmd+W',
-            } as const,
-          ]
+        ? []
         : [
+            separator('file.separator-settings'),
             {
               id: 'file.settings',
               label: 'menu.settings',
@@ -254,12 +241,6 @@ export const buildMenu = (platform: MenuPlatform, development: boolean): MenuEnt
               role: 'forceReload',
               accelerator: 'Shift+CmdOrCtrl+R',
             } as const,
-            {
-              id: 'view.toggle-dev-tools',
-              label: 'menu.toggle-dev-tools',
-              role: 'toggleDevTools',
-              accelerator: mac ? 'Alt+Cmd+I' : 'Ctrl+Shift+I',
-            } as const,
             separator('view.separator-zoom'),
           ]
         : []),
@@ -315,31 +296,39 @@ export const buildMenu = (platform: MenuPlatform, development: boolean): MenuEnt
     ],
   });
 
+  // Everything about the windows themselves, opening one included
   menus.push({
     id: 'window',
     label: 'menu.window',
     ...(mac ? { role: 'window' as const } : {}),
     submenu: [
       {
+        id: 'window.new-window',
+        label: 'menu.new-window',
+        command: 'new-window',
+        accelerator: 'CmdOrCtrl+Shift+N',
+      },
+      separator('window.separator-size'),
+      {
         id: 'window.minimize',
         label: 'menu.minimize',
         role: 'minimize',
         accelerator: 'CmdOrCtrl+M',
       },
+      ...(mac ? [{ id: 'window.zoom', label: 'menu.zoom', role: 'zoom' } as const] : []),
+      separator('window.separator-close'),
+      {
+        id: 'window.close',
+        label: 'menu.close-window',
+        role: 'close',
+        accelerator: 'CmdOrCtrl+W',
+      },
       ...(mac
         ? [
-            { id: 'window.zoom', label: 'menu.zoom', role: 'zoom' } as const,
             separator('window.separator-front'),
             { id: 'window.front', label: 'menu.bring-all-to-front', role: 'front' } as const,
           ]
-        : [
-            {
-              id: 'window.close',
-              label: 'menu.close-window',
-              role: 'close',
-              accelerator: 'Ctrl+W',
-            } as const,
-          ]),
+        : []),
     ],
   });
 

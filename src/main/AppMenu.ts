@@ -113,9 +113,6 @@ const runRole = (role: MenuRole, window: BrowserWindow | null): void => {
     case 'forceReload':
       contents?.reloadIgnoringCache();
       return;
-    case 'toggleDevTools':
-      contents?.toggleDevTools();
-      return;
     case 'resetZoom':
       contents?.setZoomLevel(0);
       return;

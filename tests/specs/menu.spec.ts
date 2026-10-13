@@ -63,7 +63,7 @@ test('New Window in the menu opens another window', async ({ page, util }) => {
   try {
     const opened = getApp().waitForEvent('window');
 
-    await page.getByTestId('app-menu-bar').getByRole('menuitem', { name: 'File' }).click();
+    await page.getByTestId('app-menu-bar').getByRole('menuitem', { name: 'Window' }).click();
     await page.getByRole('menuitem', { name: /New Window/ }).click();
 
     const window = await opened;
@@ -82,7 +82,7 @@ test('New Window in the menu opens another window', async ({ page, util }) => {
 test('A click on an entry the menu does not have is ignored', async ({ page, util }) => {
   try {
     await sendMain(page, mainChannels.invokeMenuEntry, 'file.nothing');
-    await sendMain(page, mainChannels.invokeMenuEntry, { id: 'file.new-window' });
+    await sendMain(page, mainChannels.invokeMenuEntry, { id: 'window.new-window' });
     // A project entry from a window without a project does nothing either
     await sendMain(page, mainChannels.invokeMenuEntry, 'database.refresh');
 
@@ -119,7 +119,7 @@ test('The native menu speaks the language the user picked', async ({ page, util 
   try {
     const nativeLabel = () =>
       getApp().evaluate(
-        ({ Menu }) => Menu.getApplicationMenu()?.getMenuItemById('file.new-window')?.label,
+        ({ Menu }) => Menu.getApplicationMenu()?.getMenuItemById('window.new-window')?.label,
       );
 
     await invokeMain(page, mainChannels.updateSettings, { language: 'en' });
