@@ -1,0 +1,43 @@
+name: ✨ Feature request
+description: Something the app should be able to do and cannot.
+title: 'feat: '
+labels: ['enhancement']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the suggestion. Please write the issue in English so everyone can follow it.
+
+        If the feature is something the database itself would have to do, such as a new query or a new field type, [DaruDB](https://github.com/jooy2/darudb/issues) is the better place for it.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you start
+      options:
+        - label: I searched the existing issues and this is not a duplicate.
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What you are trying to do with a database file, and where the app stops you. Describe the situation rather than the screen you have in mind — the best solution is often not the one either of us thought of first.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would like
+      description: The behaviour, and how you would expect to reach it in the app. A sketch or a screenshot of another tool is welcome.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you are doing instead
+      description: The workaround you have now, if any, and why it is not enough.
+    validations:
+      required: false

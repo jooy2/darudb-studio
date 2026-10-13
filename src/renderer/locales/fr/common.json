@@ -1,0 +1,11 @@
+{
+  "common": {
+    "language": "Langue",
+    "switch-theme": "Changer de thème",
+    "version": "Version {{version}}"
+  },
+  "not-found": {
+    "home": "Aller à l'écran principal",
+    "title": "Écran introuvable"
+  }
+}

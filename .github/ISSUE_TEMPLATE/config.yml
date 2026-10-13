@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 🔐 Security vulnerability
+    url: https://github.com/jooy2/darudb-studio/security/advisories/new
+    about: Report it privately. Do not open a public issue — see SECURITY.md.
+  - name: 🗄️ A problem in the database engine
+    url: https://github.com/jooy2/darudb/issues
+    about: A bug in DaruDB itself, which every application that uses it would see, belongs to the DaruDB repository.
+  - name: 📘 DaruDB documentation
+    url: https://darudb.cdget.com
+    about: Guides and the full API of the database the app opens, in English and Korean.

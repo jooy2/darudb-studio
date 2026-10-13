@@ -1,0 +1,72 @@
+name: 🐛 Bug report
+description: The app does something it should not, or fails to do what it should.
+title: 'fix: '
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file this. Please write the issue in English so everyone can follow it.
+
+        **If the bug has a security impact — a database file that makes the app run code or reach files it should not — do not file it here.** [SECURITY.md](https://github.com/jooy2/darudb-studio/blob/main/SECURITY.md) has the private route.
+
+        **If a database file was damaged, keep a copy of it before you try anything else.** Remove anything private from a file before you attach it here, since an issue is public.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you start
+      options:
+        - label: I searched the existing issues and this is not a duplicate.
+          required: true
+        - label: I am on the latest version of the app.
+          required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: The version of DaruDB Studio you are on, or the commit if you built it yourself.
+      placeholder: '0.1.0'
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happens
+    attributes:
+      label: What happens
+      description: What you see, and what you expected to see instead. Paste an error message as it was shown.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: How to reproduce
+      description: The steps, from opening the app. A screenshot or a small database file that shows the problem is the most useful thing you can attach.
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Where you ran into it.
+      value: |
+        - OS and version:
+        - CPU architecture:
+        - Version of the package that wrote the database file, if you know it:
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Logs, what you already tried.
+    validations:
+      required: false

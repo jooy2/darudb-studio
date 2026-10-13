@@ -1,0 +1,11 @@
+{
+  "common": {
+    "language": "Sprache",
+    "switch-theme": "Erscheinungsbild wechseln",
+    "version": "Version {{version}}"
+  },
+  "not-found": {
+    "home": "Zum Hauptbildschirm",
+    "title": "Bildschirm nicht gefunden"
+  }
+}

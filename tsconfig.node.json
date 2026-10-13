@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "Preserve",
+    "moduleDetection": "force",
+    "jsx": "preserve",
+    "composite": true,
+    /* A referenced project cannot disable emit, so throwaway output is kept out of the way. */
+    "outDir": ".tscache",
+    "tsBuildInfoFile": ".tscache/node.tsbuildinfo",
+    "strict": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    /* Kept in sync with `tsconfig.json`, so that `@/common` resolves in every process. */
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "lib": ["esnext", "dom"]
+  },
+  "include": [
+    "types",
+    "src/common",
+    "src/main",
+    "src/preload",
+    "package.json",
+    "eslint.config.ts",
+    "vite.config.mts",
+    "buildAssets/builder",
+    "tests/**/*.ts",
+    "tests/**/*.spec.ts"
+  ]
+}

@@ -1,0 +1,93 @@
+/*
+ * The page itself.
+ *
+ * Plass UI brings its design tokens, the rules its components use and a small
+ * reset whose rules all have zero specificity, so anything written here wins.
+ * What it leaves to the app is the page under the components: its glass needs
+ * something behind it, and the background is the app's to paint.
+ *
+ * The theme is chosen by `ThemeProvider`, which sets `data-theme` on `<html>`.
+ * Plass reads the same attribute, so the page and the components switch
+ * together. The first color of the background gradient is also the color the
+ * main process paints a window with before the page exists, see
+ * `src/common/theme.ts`.
+ * */
+
+@import 'plass-ui/styles.css';
+
+:root {
+  /* Native widgets and scrollbars follow the theme the app settled on */
+  color-scheme: light dark;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: linear-gradient(160deg, var(--plass-bg-from) 0%, var(--plass-bg-to) 100%);
+  background-attachment: fixed;
+  color: var(--plass-fg);
+  /* A desktop window is not a document, so a stray drag selects nothing */
+  user-select: none;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* The layout the screens share */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Wide enough that the trigger does not resize as the language changes */
+.app__language {
+  width: 10rem;
+}
+
+.app__main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  /*
+   * `safe` keeps the top of the content reachable once the window is shorter
+   * than the content itself.
+   * */
+  justify-content: safe center;
+  gap: 1rem;
+  padding: 2rem 1.5rem;
+  text-align: center;
+}
+
+.app__main-logo {
+  width: 6rem;
+  height: 6rem;
+}
+
+.app__muted {
+  opacity: 0.7;
+}
+
+/* A screen that carries nothing but one message, centered in its window */
+
+.app-notice {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 2rem;
+  text-align: center;
+}

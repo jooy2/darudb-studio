@@ -1,0 +1,11 @@
+{
+  "common": {
+    "language": "言語",
+    "switch-theme": "テーマを切り替え",
+    "version": "バージョン {{version}}"
+  },
+  "not-found": {
+    "home": "メイン画面へ移動",
+    "title": "画面が見つかりません"
+  }
+}

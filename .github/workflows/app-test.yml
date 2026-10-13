@@ -1,0 +1,93 @@
+name: app-test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**'
+      - '!**/*.md'
+      - '!LICENSE'
+      - '!.github/**'
+      - '.github/workflows/app-test.yml'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  code-style:
+    runs-on: ubuntu-latest
+    name: Lint and format check
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check lint rules
+        run: npm run lint
+
+      - name: Check code style
+        run: npm run format
+
+  app-test:
+    runs-on: ${{ matrix.os }}
+    name: Test Node.js ${{ matrix.node_version }} on ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        node_version: ['22', '24', '26']
+        os: [windows-latest, macos-latest, ubuntu-latest]
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Install xvfb
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt install -y -q --no-install-recommends xvfb
+
+      - name: Setup Node.js ${{ matrix.node_version }}
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node_version }}
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test module script (Windows or macOS)
+        if: runner.os != 'Linux'
+        run: |
+          npm run test
+
+      - name: Test module script (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          npm run test:linux
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-${{ matrix.os }}-node${{ matrix.node_version }}
+          path: tests/results
+          retention-days: 7
+          if-no-files-found: ignore

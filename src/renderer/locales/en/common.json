@@ -1,0 +1,11 @@
+{
+  "common": {
+    "language": "Language",
+    "switch-theme": "Switch theme",
+    "version": "Version {{version}}"
+  },
+  "not-found": {
+    "home": "Go to main screen",
+    "title": "Screen Not Found"
+  }
+}
