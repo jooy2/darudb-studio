@@ -2,6 +2,7 @@ import type { IpcRendererEvent } from 'electron';
 import type { SupportedLanguage } from './locales';
 import type { AppSettings } from './settings';
 import type { ChosenFile, FileCheck, Project, ProjectDraft } from './projects';
+import type { AppCommand, MenuEntry, MenuPlatform } from './menu';
 
 /*
  * The IPC contract, shared by the three processes.
@@ -28,7 +29,6 @@ export const mainChannels = {
   openExternalLink: 'msgOpenExternalLink',
   openWindow: 'msgOpenWindow',
   closeWindow: 'msgCloseWindow',
-  requestWindowInfo: 'msgRequestWindowInfo',
   requestSettings: 'msgRequestSettings',
   updateSettings: 'msgUpdateSettings',
   setDarkTheme: 'msgSetDarkTheme',
@@ -39,28 +39,27 @@ export const mainChannels = {
   chooseDatabaseFile: 'msgChooseDatabaseFile',
   checkDatabaseFile: 'msgCheckDatabaseFile',
   canRememberPasswords: 'msgCanRememberPasswords',
+  requestMenu: 'msgRequestMenu',
+  invokeMenuEntry: 'msgInvokeMenuEntry',
+  listenMenuCommands: 'msgListenMenuCommands',
+  setShowsProject: 'msgSetShowsProject',
 } as const;
 
 /*
  * Channels the main process may push to the renderer.
  * */
 export const rendererChannels = {
-  windowsUpdated: 'msgWindowsUpdated',
   darkThemeUpdated: 'msgDarkThemeUpdated',
   languageUpdated: 'msgLanguageUpdated',
   settingsUpdated: 'msgSettingsUpdated',
   projectsChanged: 'msgProjectsChanged',
+  menuCommand: 'msgMenuCommand',
 } as const;
 
-/*
- * Payload of `msgRequestWindowInfo`, and of `msgWindowsUpdated` for the part of
- * it that can change while a window is open.
- * */
-export interface WindowInfo {
-  /* Whether the calling window was opened on top of the main window */
-  isChildWindow: boolean;
-  /* Ids of the child windows open right now, the main window aside */
-  childWindowIds: number[];
+/* What a window draws its menu bar from: the entries, and how to show their accelerators */
+export interface MenuModel {
+  entries: MenuEntry[];
+  platform: MenuPlatform;
 }
 
 export type MainChannel = (typeof mainChannels)[keyof typeof mainChannels];
@@ -77,9 +76,10 @@ export type RendererChannel = (typeof rendererChannels)[keyof typeof rendererCha
  * */
 export interface MainChannelSignatures {
   [mainChannels.openExternalLink]: (url: string) => void;
+  /* Opens another window on the route `path`, and resolves with its id, or `null` when refused */
   [mainChannels.openWindow]: (path: string) => number | null;
+  /* Closes the window the call came from */
   [mainChannels.closeWindow]: () => boolean;
-  [mainChannels.requestWindowInfo]: () => WindowInfo;
   [mainChannels.requestSettings]: () => AppSettings;
   /* Stores the valid ones of `changes` and resolves with every setting */
   [mainChannels.updateSettings]: (changes: Partial<AppSettings>) => AppSettings;
@@ -93,15 +93,26 @@ export interface MainChannelSignatures {
   [mainChannels.checkDatabaseFile]: (path: string, password?: string) => FileCheck;
   /* Whether this system has a keystore to keep remembered passwords in */
   [mainChannels.canRememberPasswords]: () => boolean;
+  [mainChannels.requestMenu]: () => MenuModel;
+  /* Does what the menu entry `id` does, for the window the call came from */
+  [mainChannels.invokeMenuEntry]: (id: string) => void;
+  /*
+   * Tells the main process the window now listens for menu commands. One sent
+   * before that waits for it, as a command for a window that is still loading.
+   * */
+  [mainChannels.listenMenuCommands]: () => void;
+  /* Reports whether the window shows a project, which the entries for one need */
+  [mainChannels.setShowsProject]: (showsProject: boolean) => void;
 }
 
 export interface RendererChannelSignatures {
-  [rendererChannels.windowsUpdated]: (childWindowIds: number[]) => void;
   [rendererChannels.darkThemeUpdated]: (darkTheme: boolean) => void;
   [rendererChannels.languageUpdated]: (language: SupportedLanguage) => void;
   [rendererChannels.settingsUpdated]: (settings: AppSettings) => void;
   /* A window created, changed or deleted a project: the list is to be read again */
   [rendererChannels.projectsChanged]: () => void;
+  /* A command of the application menu for what the window shows */
+  [rendererChannels.menuCommand]: (command: AppCommand) => void;
 }
 
 export type MainChannelArgs<Channel extends MainChannel> = Parameters<

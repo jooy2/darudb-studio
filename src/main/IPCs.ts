@@ -8,6 +8,7 @@ import {
 } from '@/common/ipc';
 import { openExternalLink } from './security';
 import WindowManager from './WindowManager';
+import AppMenu from './AppMenu';
 import { setDarkTheme, setLanguage } from './appearance';
 import { getSettings, updateSettings, validSettingChanges } from './settings';
 import { deleteProject, listProjects, saveProject } from './projects';
@@ -68,27 +69,47 @@ export default class IPCs {
       setDarkTheme(darkTheme, BrowserWindow.fromWebContents(event.sender));
     });
 
+    // The native menu is labelled in the language too
     on(mainChannels.setLanguage, (event, language) => {
       setLanguage(language, BrowserWindow.fromWebContents(event.sender));
+      AppMenu.refresh();
     });
 
     // Open a renderer route in a window of its own. Returns the id of the new
-    // window, or `null` when the request was refused (feature switched off,
-    // window limit reached, route not allowed)
+    // window, or `null` when the request was refused (window limit reached,
+    // route not allowed)
     handle(mainChannels.openWindow, async (event, path) => {
-      const childWindow = await WindowManager.open(
-        path,
-        BrowserWindow.fromWebContents(event.sender),
-      );
+      const window = await WindowManager.create(path, BrowserWindow.fromWebContents(event.sender));
 
-      return childWindow?.id ?? null;
+      return window?.id ?? null;
     });
 
-    // Close the window the request came from. Only windows owned by
-    // `WindowManager` are closed, the main window ignores it.
-    handle(mainChannels.closeWindow, (event) =>
-      WindowManager.close(BrowserWindow.fromWebContents(event.sender)),
-    );
+    // Close the window the request came from
+    handle(mainChannels.closeWindow, (event) => {
+      const window = BrowserWindow.fromWebContents(event.sender);
+
+      window?.close();
+
+      return window !== null;
+    });
+
+    // What a window draws its menu bar from, and the clicks on it
+    handle(mainChannels.requestMenu, () => ({
+      entries: AppMenu.entries(),
+      platform: process.platform === 'darwin' ? 'mac' : 'other',
+    }));
+
+    on(mainChannels.invokeMenuEntry, (event, id) => {
+      AppMenu.invoke(id, BrowserWindow.fromWebContents(event.sender));
+    });
+
+    on(mainChannels.listenMenuCommands, (event) => {
+      AppMenu.listen(event.sender);
+    });
+
+    on(mainChannels.setShowsProject, (event, showsProject) => {
+      AppMenu.setShowsProject(BrowserWindow.fromWebContents(event.sender), showsProject === true);
+    });
 
     // The stored preferences, which a window reads before its first render
     handle(mainChannels.requestSettings, () => getSettings());
@@ -134,16 +155,5 @@ export default class IPCs {
     );
 
     handle(mainChannels.canRememberPasswords, () => canRememberSecrets());
-
-    // State a freshly loaded window needs before the next `msgWindowsUpdated`
-    // broadcast reaches it
-    handle(mainChannels.requestWindowInfo, (event) => {
-      const senderWindow = BrowserWindow.fromWebContents(event.sender);
-
-      return {
-        isChildWindow: WindowManager.isChildWindow(senderWindow),
-        childWindowIds: WindowManager.getIds(),
-      };
-    });
   }
 }

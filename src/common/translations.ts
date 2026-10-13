@@ -24,14 +24,20 @@ export type Messages = typeof en;
 export const messages: Record<SupportedLanguage, Messages> = { de, en, fr, ja, ko };
 
 /*
- * The message `key` names in `language`, for code that runs without i18next.
+ * The message `key` names in `language`, for code that runs without i18next,
+ * with each `{{placeholder}}` of it replaced by the value `values` gives it.
  * A key is a group and a name, `menu.file`, as the files nest them.
  * */
-export const translate = (language: SupportedLanguage, key: string): string => {
+export const translate = (
+  language: SupportedLanguage,
+  key: string,
+  values: Record<string, string> = {},
+): string => {
   const [group, name] = key.split('.');
-  const value = (messages[language] as Record<string, Record<string, string> | undefined>)[group]?.[
-    name
-  ];
+  const groups = messages[language] as Record<string, Record<string, string> | undefined>;
+  const value = groups[group]?.[name] ?? key;
 
-  return value ?? key;
+  return value.replace(/{{\s*(\w+)\s*}}/g, (placeholder, slot: string) =>
+    Object.hasOwn(values, slot) ? values[slot] : placeholder,
+  );
 };

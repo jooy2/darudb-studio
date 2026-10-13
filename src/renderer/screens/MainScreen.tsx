@@ -10,6 +10,7 @@ import {
 import { setDarkTheme } from '@/renderer/store/slices/appScreenSlice';
 import { useAppDispatch, useAppSelector } from '@/renderer/store/hooks';
 import ThemeIcon from '@/renderer/components/ThemeIcon';
+import AppMenuBar from '@/renderer/components/menu/AppMenuBar';
 import { APP_NAME } from '@/renderer/constants';
 import { fallbackLanguage, languageNames, supportedLanguages } from '@/common/locales';
 
@@ -47,6 +48,7 @@ export default function MainScreen() {
   return (
     <div className="app">
       <PlHeader
+        size="sm"
         brand={
           <PlAppLogo data-testid="main-logo" size="sm" src="images/logo.png" name={APP_NAME} />
         }
@@ -77,7 +79,9 @@ export default function MainScreen() {
             </div>
           </>
         }
-      />
+      >
+        <AppMenuBar />
+      </PlHeader>
 
       <main className="app__main">
         <img className="app__main-logo" alt="" src="images/logo.png" draggable="false" />

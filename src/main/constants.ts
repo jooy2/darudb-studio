@@ -57,32 +57,28 @@ export const sharedWebPreferences: WebPreferences = {
 };
 
 /* ------------------------------------------------------
- * Feature switches
+ * Windows
  * ------------------------------------------------------ */
 
-// Lets the renderer open extra windows on top of the main window through
-// `WindowManager`. While it is `false`, every open request is refused and
-// logged, whatever `childWindowOptions` below says.
-export const FEAT_MULTI_WINDOW = true;
-
-export interface ChildWindowOptions {
+export interface WindowOptions {
   width: number;
   height: number;
+  minWidth: number;
+  minHeight: number;
   maxWindows: number;
   cascadeOffset: { x: number; y: number };
-  allowDuplicatePath: boolean;
 }
 
-// Size and placement of the windows opened by `WindowManager`.
-// Only used while `FEAT_MULTI_WINDOW` is enabled.
-export const childWindowOptions: ChildWindowOptions = {
-  width: 1160,
-  height: 600,
-  // Upper bound on windows open at the same time, the main window aside
-  maxWindows: 5,
+// Size and placement of every window `WindowManager` opens
+export const windowOptions: WindowOptions = {
+  width: 1280,
+  height: 800,
+  // The project screen's sidebar, toolbar and table need this much room
+  minWidth: 880,
+  minHeight: 560,
+  // Upper bound on windows open at the same time, which keeps a runaway
+  // shortcut from opening hundreds
+  maxWindows: 20,
   // Each window is placed down and to the right of the one that opened it
   cascadeOffset: { x: 32, y: 32 },
-  // false, to focus the window already showing a route instead of opening
-  // a second one for the same path
-  allowDuplicatePath: true,
 };

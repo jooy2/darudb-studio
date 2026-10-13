@@ -1,164 +1,106 @@
 import { BrowserWindow, screen } from 'electron';
 import {
-  FEAT_MULTI_WINDOW,
   appIndexFile,
-  childWindowOptions,
   devServerUrl,
   isDevEnv,
   isHiddenRun,
   sharedWebPreferences,
+  windowOptions,
 } from './constants';
 import { isAllowedWindowPath, registerWindowSecurity } from './security';
 import { getBackgroundColor } from './appearance';
-import { rendererChannels } from '@/common/ipc';
 
 /*
- * Child window manager
+ * The app's windows.
  *
- * Owns every window opened on top of the main window. The main window itself
- * stays in `index.ts`, so closing a child can never take the app down.
- * Windows are keyed by `BrowserWindow.id`, which Electron never reuses.
+ * Every window is the same: it opens on the project list, and can open one
+ * project. None of them is the main one, so closing any of them leaves the
+ * others as they were, and the app quits when the last one closes, except on
+ * macOS, where it stays in the Dock and `activate` opens a new one.
  * */
 export default class WindowManager {
-  // Insertion ordered, so the cascade follows the order windows opened in
-  private static childWindows = new Map<number, { window: BrowserWindow; path: string }>();
+  static #opened = 0;
 
   /*
-   * Opens a renderer route in a window of its own. Resolves with the window, or
-   * with `null` when the request was refused.
+   * Opens a window on the renderer route `path`, placed down and to the right
+   * of `opener` when there is one. Resolves with the window, or with `null`
+   * when the request was refused: a route that is not one of the app's, or
+   * too many windows already.
    * */
-  static async open(path: string, parent?: BrowserWindow | null): Promise<BrowserWindow | null> {
-    if (!FEAT_MULTI_WINDOW) {
-      console.warn(`Multi window is disabled. Ignored open request: ${path}`);
-
-      return null;
-    }
-
+  static async create(path = '/', opener?: BrowserWindow | null): Promise<BrowserWindow | null> {
     if (!isAllowedWindowPath(path)) {
       console.warn(`Blocked a window open with an unsupported route: ${path}`);
 
       return null;
     }
 
-    if (!childWindowOptions.allowDuplicatePath) {
-      const openedWindow = WindowManager.findByPath(path);
-
-      // Bring the window that already shows this route forward rather than
-      // stacking an identical one behind it
-      if (openedWindow) {
-        openedWindow.focus();
-
-        return openedWindow;
-      }
-    }
-
-    if (WindowManager.childWindows.size >= childWindowOptions.maxWindows) {
-      console.warn(
-        `Reached the maximum number of windows (${childWindowOptions.maxWindows}). Ignored open request: ${path}`,
-      );
+    if (BrowserWindow.getAllWindows().length >= windowOptions.maxWindows) {
+      console.warn(`Reached the maximum number of windows (${windowOptions.maxWindows}).`);
 
       return null;
     }
 
-    const childWindow = new BrowserWindow({
-      width: childWindowOptions.width,
-      height: childWindowOptions.height,
-      // Keep the window hidden until the first paint is ready to avoid a white flash
+    const first = WindowManager.#opened === 0;
+    const window = new BrowserWindow({
+      width: windowOptions.width,
+      height: windowOptions.height,
+      minWidth: windowOptions.minWidth,
+      minHeight: windowOptions.minHeight,
+      // Kept hidden until the first paint is ready, which avoids a white flash
       show: false,
       backgroundColor: getBackgroundColor(),
       webPreferences: sharedWebPreferences,
-      ...WindowManager.getCascadeBounds(parent),
+      ...WindowManager.#cascadeBounds(opener),
     });
 
+    WindowManager.#opened += 1;
+
+    // The window draws its own menu bar from the same menu, so the native one
+    // is hidden on Windows and Linux; its accelerators still work. The macOS
+    // menu bar belongs to the system and stays.
     if (process.platform !== 'darwin') {
-      childWindow.setMenu(null);
+      window.setMenuBarVisibility(false);
     }
 
-    registerWindowSecurity(childWindow);
+    // Never let the renderer navigate away from the application itself.
+    // Everything that points somewhere else is handed to the default browser.
+    registerWindowSecurity(window);
 
-    WindowManager.childWindows.set(childWindow.id, { window: childWindow, path });
-
-    // `closed` fires after the window is gone, so the entry cannot be left
-    // behind by a close the renderer did not ask for (window button, quit)
-    childWindow.on('closed', (): void => {
-      WindowManager.childWindows.delete(childWindow.id);
-      WindowManager.notifyWindowsUpdated();
-    });
-
-    childWindow.once('ready-to-show', (): void => {
+    window.once('ready-to-show', (): void => {
+      // A test run drives the window without ever putting it on the screen
       if (isHiddenRun) {
         return;
       }
 
-      childWindow.show();
-      childWindow.focus();
+      if (isDevEnv && first) {
+        window.webContents.openDevTools();
+      }
+
+      window.setAlwaysOnTop(true);
+      window.show();
+      window.focus();
+      window.setAlwaysOnTop(false);
     });
 
-    // Announced before the load rather than after it, so a window that is still
-    // loading is already part of the list every other window sees
-    WindowManager.notifyWindowsUpdated();
-
-    // Every window loads the same renderer bundle, only the route differs
     try {
       if (isDevEnv) {
-        await childWindow.loadURL(`${devServerUrl}#${path}`);
+        await window.loadURL(`${devServerUrl}#${path}`);
       } else {
-        await childWindow.loadFile(appIndexFile, { hash: path });
+        await window.loadFile(appIndexFile, { hash: path });
       }
     } catch (error) {
       // A load can fail or be aborted, and the window would otherwise stay
-      // registered while showing nothing. Destroying it fires `closed`, which
-      // takes the entry back out and tells the other windows.
+      // open showing nothing.
       console.error(`Failed to load the window route "${path}":`, error);
 
-      if (!childWindow.isDestroyed()) {
-        childWindow.destroy();
+      if (!window.isDestroyed()) {
+        window.destroy();
       }
 
       return null;
     }
 
-    return childWindow;
-  }
-
-  /*
-   * Closes a window this manager owns. The main window is not one of them, so
-   * a component shared by both cannot shut the app down through here.
-   * */
-  static close(window: BrowserWindow | null): boolean {
-    if (!window || !WindowManager.isChildWindow(window)) {
-      return false;
-    }
-
-    window.close();
-
-    return true;
-  }
-
-  static closeAll(): void {
-    for (const { window } of [...WindowManager.childWindows.values()]) {
-      if (!window.isDestroyed()) {
-        window.close();
-      }
-    }
-  }
-
-  static isChildWindow(window: BrowserWindow | null): boolean {
-    return window ? WindowManager.childWindows.has(window.id) : false;
-  }
-
-  static getIds(): number[] {
-    return [...WindowManager.childWindows.keys()];
-  }
-
-  private static findByPath(path: string): BrowserWindow | null {
-    for (const child of WindowManager.childWindows.values()) {
-      if (child.path === path && !child.window.isDestroyed()) {
-        return child.window;
-      }
-    }
-
-    return null;
+    return window;
   }
 
   /*
@@ -166,46 +108,26 @@ export default class WindowManager {
    * work area of the display that window sits on. Without the clamp a long
    * cascade would walk windows off the bottom right of the screen.
    * */
-  private static getCascadeBounds(
-    parent?: BrowserWindow | null,
+  static #cascadeBounds(
+    opener?: BrowserWindow | null,
   ): { x: number; y: number } | Record<string, never> {
-    if (!parent || parent.isDestroyed()) {
+    if (!opener || opener.isDestroyed()) {
       return {};
     }
 
-    const parentBounds = parent.getBounds();
-    const step = WindowManager.childWindows.size + 1;
-    const { workArea } = screen.getDisplayMatching(parentBounds);
+    const bounds = opener.getBounds();
+    const { workArea } = screen.getDisplayMatching(bounds);
+    const { cascadeOffset, width, height } = windowOptions;
 
     return {
       x: Math.max(
         workArea.x,
-        Math.min(
-          workArea.x + workArea.width - childWindowOptions.width,
-          parentBounds.x + childWindowOptions.cascadeOffset.x * step,
-        ),
+        Math.min(workArea.x + workArea.width - width, bounds.x + cascadeOffset.x),
       ),
       y: Math.max(
         workArea.y,
-        Math.min(
-          workArea.y + workArea.height - childWindowOptions.height,
-          parentBounds.y + childWindowOptions.cascadeOffset.y * step,
-        ),
+        Math.min(workArea.y + workArea.height - height, bounds.y + cascadeOffset.y),
       ),
     };
-  }
-
-  /*
-   * Every window runs the same renderer code, so the window list is pushed to
-   * all of them at once instead of only to the one that triggered the change.
-   * */
-  private static notifyWindowsUpdated(): void {
-    const childWindowIds = WindowManager.getIds();
-
-    BrowserWindow.getAllWindows().forEach((browserWindow) => {
-      if (!browserWindow.isDestroyed()) {
-        browserWindow.webContents.send(rendererChannels.windowsUpdated, childWindowIds);
-      }
-    });
   }
 }

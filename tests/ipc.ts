@@ -20,3 +20,19 @@ export const invokeMain = <Result = unknown>(
     },
     { evaluatedChannel: channel, evaluatedArgs: args },
   ) as Promise<Result>;
+
+/*
+ * The same, for a channel the main process listens on without answering. The
+ * promise settles once the message is sent, not once it is handled.
+ * */
+export const sendMain = (target: Page, channel: MainChannel, ...args: unknown[]): Promise<void> =>
+  target.evaluate(
+    ({ evaluatedChannel, evaluatedArgs }) => {
+      const { mainApi } = window as unknown as {
+        mainApi: { send: (channel: string, ...args: unknown[]) => void };
+      };
+
+      mainApi.send(evaluatedChannel, ...evaluatedArgs);
+    },
+    { evaluatedChannel: channel, evaluatedArgs: args },
+  );
