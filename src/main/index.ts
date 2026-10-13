@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, nativeTheme } from 'electron';
 
 import IPCs from './IPCs';
 import AppMenu from './AppMenu';
@@ -9,6 +9,7 @@ import { closeStore, openStore } from './store';
 import { closeAllProjects } from './sessions';
 import { freezeWorkspace, loadWorkspace } from './workspace';
 import { runSelfCheck, selfCheckRequested } from './selfCheck';
+import { refreshTitleBars } from './appearance';
 
 // How long a quit waits for the app's data file to close. A DaruDB commit is
 // atomic, so quitting before a write finishes loses that one change and leaves
@@ -60,6 +61,8 @@ app.on('ready', async () => {
   // otherwise opening another window would attach duplicated listeners.
   IPCs.initialize();
   AppMenu.initialize();
+  // The system's theme, which the windows follow while the user has picked none
+  nativeTheme.on('updated', refreshTitleBars);
 
   // The windows the app had open when it last quit, when the settings ask for them
   const restored = getSettings().restoreWorkspace ? await loadWorkspace() : [];

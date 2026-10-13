@@ -101,6 +101,11 @@ test('The menu bar folds behind one button, in every window', async ({ page, uti
     // Changed in the other window, which hands it to this one
     await invokeMain(other, mainChannels.updateSettings, { menuBarStyle: 'collapsed' });
     await expect(page.getByTestId('app-menu-bar')).toBeHidden();
+    // The button is the last thing in the header, at the top right
+    await expect(page.locator('.app-header button').last()).toHaveAttribute(
+      'data-testid',
+      'app-menu-button',
+    );
     await page.getByTestId('app-menu-button').click();
     await page.getByRole('menuitem', { name: 'Help' }).click();
     await expect(page.getByRole('menuitem', { name: 'DaruDB on GitHub' })).toBeVisible();

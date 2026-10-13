@@ -64,4 +64,18 @@ img {
   gap: 1.5rem;
   padding: 2rem;
   text-align: center;
+  /* It has no header, so the window is dragged by it, short of its link home */
+  -webkit-app-region: drag;
+}
+
+.app-notice :is(button, a) {
+  -webkit-app-region: no-drag;
+}
+
+/*
+ * What opens over the page, a dialog or a menu, takes the clicks that land on
+ * it, where they would otherwise drag the window by the header under it
+ * */
+.plass-portal {
+  -webkit-app-region: no-drag;
 }

@@ -3,7 +3,24 @@
  * follow its theme and its glass in both color schemes.
  * */
 
-/* The bar every screen starts with */
+/*
+ * The bar every screen starts with, which is the window's title bar too: the
+ * window is dragged by it, by anything in it short of what takes a click. The
+ * system's own buttons sit over one of its ends, and the window controls
+ * overlay says where: the traffic lights of macOS take the start up to
+ * `titlebar-area-x`, the buttons of Windows and Linux whatever lies past the
+ * end of `titlebar-area-width`.
+ * */
+
+.app-header {
+  padding-inline-start: env(titlebar-area-x, 0px);
+  padding-inline-end: calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw));
+  -webkit-app-region: drag;
+}
+
+.app-header :is(button, a, input, [role='menubar'], [role='menuitem']) {
+  -webkit-app-region: no-drag;
+}
 
 .app-header__brand {
   max-width: 18rem;
@@ -20,6 +37,8 @@
   gap: 0.875rem;
   padding: 2rem;
   text-align: center;
+  /* It has no header, and nothing in it takes a click, so the window is dragged by all of it */
+  -webkit-app-region: drag;
 }
 
 .loading-screen__logo {

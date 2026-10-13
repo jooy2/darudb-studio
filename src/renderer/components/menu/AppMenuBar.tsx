@@ -11,7 +11,6 @@ import {
   PlMenuSubmenu,
 } from 'plass-ui';
 import { useMenuModel } from '@/renderer/components/menu/MenuModelContext';
-import { useAppSelector } from '@/renderer/store/hooks';
 import { APP_NAME } from '@/renderer/constants';
 import { mainChannels } from '@/common/ipc';
 import { acceleratorLabel, type MenuEntry, type MenuRole } from '@/common/menu';
@@ -32,21 +31,22 @@ const EDITING_ROLES = new Set<MenuRole>([
 const MENU_AREAS = '[role="menu"], [role="menubar"], [data-app-menu-button]';
 
 interface AppMenuBarProps {
+  /* Whether every menu is behind one button rather than in a row, as the settings say */
+  collapsed?: boolean;
   /* Whether the window shows a project, which the entries for one need */
   showsProject?: boolean;
 }
 
 /*
  * The application menu, drawn in the window: every menu in a row, or all of
- * them behind one button, as the settings say.
+ * them behind one button.
  *
  * It lists what the native menu lists, from the same entries, and a click goes
  * to the main process, which does what the native menu would. The shortcuts it
  * shows are the native menu's, which is what answers them.
  * */
-export default function AppMenuBar({ showsProject = false }: AppMenuBarProps) {
+export default function AppMenuBar({ collapsed = false, showsProject = false }: AppMenuBarProps) {
   const { entries, platform } = useMenuModel();
-  const menuBarStyle = useAppSelector((state) => state.settings.menuBarStyle);
   const [t] = useTranslation();
   // The element the user worked in before a menu took the focus
   const lastFocused = useRef<HTMLElement | null>(null);
@@ -116,10 +116,11 @@ export default function AppMenuBar({ showsProject = false }: AppMenuBarProps) {
       );
     });
 
-  if (menuBarStyle === 'collapsed') {
+  if (collapsed) {
     return (
       <PlMenu
         size="sm"
+        align="end"
         trigger={
           <PlIconButton
             data-testid="app-menu-button"

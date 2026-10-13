@@ -9,7 +9,12 @@ import {
   windowOptions,
 } from './constants';
 import { isAllowedWindowPath, registerWindowSecurity } from './security';
-import { getBackgroundColor, getLanguage } from './appearance';
+import {
+  getBackgroundColor,
+  getLanguage,
+  getTitleBarOverlay,
+  TITLE_BAR_HEIGHT,
+} from './appearance';
 import { resumeWorkspace, setRestore, trackWindow, type SavedWindow } from './workspace';
 import type { WindowState } from '@/common/workspace';
 
@@ -59,6 +64,15 @@ export default class WindowManager {
       // Kept hidden until the first paint is ready, which avoids a white flash
       show: false,
       backgroundColor: getBackgroundColor(),
+      // The page draws the title bar: the header of every screen is the bar
+      // the window is dragged by, and the system's own buttons sit in it, the
+      // traffic lights of macOS at its left, the buttons of Windows and Linux
+      // at its right. The page reads where they are from the window controls
+      // overlay, see `.app-header` in `screens.css`.
+      titleBarStyle: 'hidden',
+      ...(process.platform === 'darwin'
+        ? { titleBarOverlay: true, trafficLightPosition: { x: 16, y: (TITLE_BAR_HEIGHT - 16) / 2 } }
+        : { titleBarOverlay: getTitleBarOverlay() }),
       webPreferences: sharedWebPreferences,
       ...(restore
         ? WindowManager.#restoredBounds(restore.bounds)
@@ -78,8 +92,9 @@ export default class WindowManager {
     }
 
     // The window draws its own menu bar from the same menu, so the native one
-    // is hidden on Windows and Linux; its accelerators still work. The macOS
-    // menu bar belongs to the system and stays.
+    // is hidden on Windows and Linux, as a window without a frame has no room
+    // for it anyway; its accelerators still work. The macOS menu bar belongs
+    // to the system and stays.
     if (process.platform !== 'darwin') {
       window.setMenuBarVisibility(false);
     }

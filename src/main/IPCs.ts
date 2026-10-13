@@ -8,6 +8,7 @@ import {
   type MainChannelResult,
 } from '@/common/ipc';
 import { openExternalLink } from './security';
+import { refreshTitleBars } from './appearance';
 import { noticesFile } from './constants';
 import { reportWindowState, takeRestore } from './workspace';
 import { changePassword, rescueOpenProject, rescueProject } from './tools';
@@ -123,6 +124,11 @@ export default class IPCs {
       // The native menu is labelled in the language too
       if (valid.language !== undefined) {
         AppMenu.refresh();
+      }
+
+      // And the window's own buttons are drawn in the theme
+      if (valid.darkTheme !== undefined) {
+        refreshTitleBars();
       }
 
       const settings = getSettings();

@@ -16,3 +16,12 @@ export const backgroundColors = {
   dark: '#111731',
   light: '#eef2fb',
 } as const;
+
+/*
+ * The color of text, `--plass-fg` in Plass UI, which the system draws the
+ * window's own buttons in on Windows and Linux, over the header.
+ * */
+export const foregroundColors = {
+  dark: '#e7eaf3',
+  light: '#1b1e27',
+} as const;

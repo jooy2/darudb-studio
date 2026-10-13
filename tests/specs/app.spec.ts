@@ -57,6 +57,45 @@ test('Document element check', async ({ page, util }) => {
   }
 });
 
+test('The header is the title bar the window is dragged by', async ({ page, util }) => {
+  try {
+    const bar = await page.evaluate(() => {
+      const header = document.querySelector('.app-header') as HTMLElement;
+      const style = getComputedStyle(header);
+      const overlay = (
+        navigator as Navigator & {
+          windowControlsOverlay?: { visible: boolean; getTitlebarAreaRect: () => DOMRect };
+        }
+      ).windowControlsOverlay;
+      const area = overlay?.getTitlebarAreaRect();
+      const button = document.querySelector('[data-testid="btn-settings"]') as HTMLElement;
+
+      return {
+        overlay: overlay?.visible ?? false,
+        start: parseFloat(style.paddingInlineStart),
+        end: parseFloat(style.paddingInlineEnd),
+        areaStart: area?.x ?? 0,
+        areaEnd: window.innerWidth - (area ? area.x + area.width : window.innerWidth),
+        header: style.getPropertyValue('-webkit-app-region'),
+        button: getComputedStyle(button).getPropertyValue('-webkit-app-region'),
+      };
+    });
+
+    // The window has no frame of its own, and the system's buttons sit in the header
+    expect(bar.overlay).toBe(true);
+    expect(bar.header).toBe('drag');
+    expect(bar.button).toBe('no-drag');
+    // The header leaves their room free, at whichever end they are
+    expect(bar.start).toBeCloseTo(bar.areaStart, 0);
+    expect(bar.end).toBeCloseTo(bar.areaEnd, 0);
+    expect(bar.start + bar.end).toBeGreaterThan(0);
+    // The logo alone, without the app's name beside it
+    await expect(page.getByTestId('main-logo')).not.toContainText('DaruDB Studio');
+  } catch (error) {
+    throw await util.onTestError(error);
+  }
+});
+
 test('Theme and language reach every window', async ({ page, util }) => {
   try {
     const openedWindow = getApp().waitForEvent('window');
