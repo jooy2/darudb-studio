@@ -10,6 +10,19 @@ import type {
   Session,
 } from './projects';
 import type { AppCommand, MenuEntry, MenuPlatform } from './menu';
+import type {
+  BackupReport,
+  Change,
+  CheckReport,
+  CompactReport,
+  CountsResult,
+  PageRequest,
+  PageResult,
+  QueryRequest,
+  QueryResult,
+  ToolResult,
+  WriteResult,
+} from './data';
 
 /*
  * The IPC contract, shared by the three processes.
@@ -50,6 +63,13 @@ export const mainChannels = {
   openProject: 'msgOpenProject',
   closeProject: 'msgCloseProject',
   requestSession: 'msgRequestSession',
+  countObjects: 'msgCountObjects',
+  readPage: 'msgReadPage',
+  writeChanges: 'msgWriteChanges',
+  runQuery: 'msgRunQuery',
+  checkDatabase: 'msgCheckDatabase',
+  compactDatabase: 'msgCompactDatabase',
+  backupDatabase: 'msgBackupDatabase',
 } as const;
 
 /*
@@ -114,6 +134,20 @@ export interface MainChannelSignatures {
   [mainChannels.closeProject]: () => boolean;
   /* The project the window the call came from has open, or `null` */
   [mainChannels.requestSession]: () => Session | null;
+  /*
+   * The objects of the project the window has open, see `common/data`. Each
+   * resolves with an outcome rather than rejecting, so the window can show
+   * the engine's message.
+   * */
+  [mainChannels.countObjects]: () => CountsResult;
+  [mainChannels.readPage]: (request: PageRequest) => PageResult;
+  /* Writes the changes in one transaction: all of them, or none */
+  [mainChannels.writeChanges]: (changes: Change[]) => WriteResult;
+  [mainChannels.runQuery]: (request: QueryRequest) => QueryResult;
+  [mainChannels.checkDatabase]: () => ToolResult<CheckReport>;
+  [mainChannels.compactDatabase]: () => ToolResult<CompactReport>;
+  /* Asks where with the save dialog, titled `title`, and writes a copy of the file there */
+  [mainChannels.backupDatabase]: (title: string) => ToolResult<BackupReport>;
 }
 
 export interface RendererChannelSignatures {

@@ -84,8 +84,10 @@ const closeStoreBeforeQuit = async (): Promise<void> => {
 };
 
 // The files close before the app quits, so a quit does not cut a write short.
-// The first quit waits for the close, then quits again for real.
-app.on('before-quit', (event) => {
+// They close once every window has, since a window that holds edits may ask to
+// stay open, and so call the quit off. The first quit waits for the close, then
+// quits again for real.
+app.on('will-quit', (event) => {
   if (closingStore) {
     return;
   }
@@ -94,7 +96,9 @@ app.on('before-quit', (event) => {
   closingStore = true;
 
   void closeStoreBeforeQuit().then(() => {
-    app.quit();
+    // On the next turn: a quit asked for while Electron still handles the one
+    // this handler put off is dropped, as it is when nothing was open to close
+    setImmediate(() => app.quit());
   });
 });
 

@@ -1,5 +1,6 @@
 import { configureStore, type ThunkAction, type UnknownAction } from '@reduxjs/toolkit';
 import appScreenSlice, { createAppScreenState } from '@/renderer/store/slices/appScreenSlice';
+import projectSlice from '@/renderer/store/slices/projectSlice';
 import settingsSlice from '@/renderer/store/slices/settingsSlice';
 import type { AppSettings } from '@/common/settings';
 
@@ -12,6 +13,7 @@ export const createAppStore = (settings: AppSettings) =>
     reducer: {
       appScreen: appScreenSlice,
       settings: settingsSlice,
+      project: projectSlice,
     },
     preloadedState: {
       appScreen: createAppScreenState(),

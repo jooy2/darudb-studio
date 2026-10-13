@@ -31,5 +31,7 @@
     "buildAssets/builder",
     "tests/**/*.ts",
     "tests/**/*.spec.ts"
-  ]
+  ],
+  /* Tests of renderer code are checked with the renderer, in `tsconfig.json` */
+  "exclude": ["tests/renderer"]
 }

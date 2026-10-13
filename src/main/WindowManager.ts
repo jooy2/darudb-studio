@@ -1,4 +1,5 @@
-import { BrowserWindow, screen } from 'electron';
+import { BrowserWindow, dialog, screen } from 'electron';
+import { translate } from '@/common/translations';
 import {
   appIndexFile,
   devServerUrl,
@@ -8,7 +9,7 @@ import {
   windowOptions,
 } from './constants';
 import { isAllowedWindowPath, registerWindowSecurity } from './security';
-import { getBackgroundColor } from './appearance';
+import { getBackgroundColor, getLanguage } from './appearance';
 
 /*
  * The app's windows.
@@ -61,6 +62,32 @@ export default class WindowManager {
     if (process.platform !== 'darwin') {
       window.setMenuBarVisibility(false);
     }
+
+    // A page that holds edits for a submit asks before it goes, by refusing to
+    // unload; Electron leaves the question to the app. A test run puts no
+    // dialog on the screen, and lets the page go.
+    window.webContents.on('will-prevent-unload', (event) => {
+      if (isHiddenRun) {
+        event.preventDefault();
+
+        return;
+      }
+
+      const language = getLanguage();
+      const choice = dialog.showMessageBoxSync(window, {
+        type: 'warning',
+        buttons: [translate(language, 'unload.leave'), translate(language, 'common.cancel')],
+        defaultId: 1,
+        cancelId: 1,
+        message: translate(language, 'unload.title'),
+        detail: translate(language, 'unload.text'),
+      });
+
+      // Letting the unload go ahead is what closing without the edits takes
+      if (choice === 0) {
+        event.preventDefault();
+      }
+    });
 
     // Never let the renderer navigate away from the application itself.
     // Everything that points somewhere else is handed to the default browser.

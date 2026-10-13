@@ -12,6 +12,7 @@ import {
   type UpgradeChoice,
 } from '@/common/projects';
 import { isHiddenRun } from './constants';
+import { schemaOf } from './data';
 import { errorOf } from './files';
 import {
   getProject,
@@ -214,7 +215,12 @@ export const openProject = async (
   if (holder === window) {
     const { database } = openProjectOf(window)!;
 
-    return { status: 'opened', project, database: await infoOf(database) };
+    return {
+      status: 'opened',
+      project,
+      database: await infoOf(database),
+      schema: schemaOf(database),
+    };
   }
 
   // A password typed now is tried instead of the remembered one
@@ -278,6 +284,7 @@ export const openProject = async (
       status: 'opened',
       project: (await getProject(project.id)) ?? project,
       database: await infoOf(database),
+      schema: schemaOf(database),
     };
   } catch (error) {
     await database.closeAsync().catch(() => undefined);
@@ -296,5 +303,7 @@ export const sessionOf = async (window: BrowserWindow | null): Promise<Session |
 
   const project = await getProject(open.projectId);
 
-  return project ? { project, database: await infoOf(open.database) } : null;
+  return project
+    ? { project, database: await infoOf(open.database), schema: schemaOf(open.database) }
+    : null;
 };

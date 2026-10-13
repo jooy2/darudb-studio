@@ -13,7 +13,16 @@ import { getSettings, updateSettings, validSettingChanges } from './settings';
 import { deleteProject, getProject, listProjects, saveProject } from './projects';
 import { checkDatabaseFile, chooseDatabaseFile } from './files';
 import { canRememberSecrets } from './secrets';
-import { closeProject, isProjectOpen, openProject, sessionOf } from './sessions';
+import { closeProject, isProjectOpen, openProject, openProjectOf, sessionOf } from './sessions';
+import {
+  backupDatabase,
+  checkDatabase,
+  compactDatabase,
+  countObjects,
+  readPage,
+  runQuery,
+  writeChanges,
+} from './data';
 
 /*
  * Sends `channel` to every window but `sender`, which already knows.
@@ -191,5 +200,59 @@ export default class IPCs {
     handle(mainChannels.requestSession, (event) =>
       sessionOf(BrowserWindow.fromWebContents(event.sender)),
     );
+
+    // The objects of the project the window has open. Each one names no
+    // project: it is always the sender's own, which a window cannot change.
+    const databaseOf = (event: IpcMainInvokeEvent) =>
+      openProjectOf(BrowserWindow.fromWebContents(event.sender))?.database ?? null;
+    const noProject = {
+      status: 'error',
+      code: 'NO_PROJECT',
+      message: 'the window has no project open',
+    } as const;
+
+    handle(mainChannels.countObjects, (event) => {
+      const database = databaseOf(event);
+
+      return database ? countObjects(database) : noProject;
+    });
+
+    handle(mainChannels.readPage, (event, request) => {
+      const database = databaseOf(event);
+
+      return database ? readPage(database, request) : noProject;
+    });
+
+    handle(mainChannels.writeChanges, (event, changes) => {
+      const database = databaseOf(event);
+
+      return database ? writeChanges(database, changes) : { ...noProject, index: null };
+    });
+
+    handle(mainChannels.runQuery, (event, request) => {
+      const database = databaseOf(event);
+
+      return database ? runQuery(database, request) : noProject;
+    });
+
+    handle(mainChannels.checkDatabase, (event) => {
+      const database = databaseOf(event);
+
+      return database ? checkDatabase(database) : noProject;
+    });
+
+    handle(mainChannels.compactDatabase, (event) => {
+      const database = databaseOf(event);
+
+      return database ? compactDatabase(database) : noProject;
+    });
+
+    handle(mainChannels.backupDatabase, (event, title) => {
+      const database = databaseOf(event);
+
+      return database
+        ? backupDatabase(database, BrowserWindow.fromWebContents(event.sender), String(title))
+        : noProject;
+    });
   }
 }

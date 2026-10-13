@@ -17,6 +17,8 @@ export const sampleSchema = schema(1, {
     tags: t.list(t.string()).optional(),
     team: t.link('teams').optional(),
     address: t.object({ city: t.string(), zip: t.string().optional() }).optional(),
+    active: t.bool().default(false),
+    avatar: t.bytes().optional(),
   }),
 });
 
@@ -51,6 +53,8 @@ export const makeSampleDatabase = (
         tags: index % 2 === 0 ? ['red'] : [],
         team: index % 2 === 0 ? 'north' : 'south',
         address: index === 0 ? { city: 'Busan' } : null,
+        active: index % 3 === 0,
+        avatar: index === 0 ? new Uint8Array([0xca, 0xfe, 0x01]) : null,
       })),
     );
   });

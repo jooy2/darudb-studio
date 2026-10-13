@@ -60,6 +60,9 @@ const createProject = async (
   await expect(projectItem(target, name)).toBeVisible();
 };
 
+/* Brings the tools tab forward, which lists what is known of the file */
+const showFacts = (target: Page) => target.getByTestId('btn-tools').click();
+
 const backToList = async (target: Page): Promise<void> => {
   await target.getByTestId('btn-close-project').click();
   await expect(target.getByTestId('project-list')).toBeVisible();
@@ -144,6 +147,7 @@ test('A project opens, and closes back to the list', async ({ page, util }) => {
     await createProject(page, makeSampleDatabase(files, 'plain.darudb'), 'Plain');
     await openProject(page, 'Plain');
     await expect(page.getByTestId('project-screen')).toBeVisible();
+    await showFacts(page);
     await expect(page.getByTestId('project-format-version')).toHaveText('6');
     await expect(page.getByTestId('project-encrypted')).toHaveText('Not encrypted');
     expect(await page.evaluate(() => document.title)).toBe('Plain - DaruDB Studio');
@@ -171,6 +175,7 @@ test('An encrypted file asks for its password once it is not remembered', async 
   try {
     // The remembered password opens it at once
     await openProject(page, 'vault');
+    await showFacts(page);
     await expect(page.getByTestId('project-encrypted')).toHaveText('Encrypted');
     await backToList(page);
 
@@ -225,6 +230,7 @@ test('A file in an older format opens on a copy, or raised in place', async ({ p
     await expect(dialog).toContainText('format version 5');
     await util.captureScreenshot(page, 'upgrade-dialog');
     await dialog.getByTestId('btn-upgrade-copy').click();
+    await showFacts(page);
     await expect(page.getByTestId('project-format-version')).toHaveText('6');
     // The copy lives in the app's own folder, and the original is untouched
     await expect(page.getByTestId('project-path')).toContainText(
@@ -237,6 +243,7 @@ test('A file in an older format opens on a copy, or raised in place', async ({ p
     await createProject(page, raised, 'Raised');
     await openProject(page, 'Raised');
     await page.getByTestId('upgrade-dialog').getByTestId('btn-upgrade-original').click();
+    await showFacts(page);
     await expect(page.getByTestId('project-path')).toHaveText(raised);
     expect(await check(raised)).toMatchObject({ formatVersion: 6, needsUpgrade: false });
     await backToList(page);

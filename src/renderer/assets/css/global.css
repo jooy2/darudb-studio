@@ -15,6 +15,7 @@
 
 @import 'plass-ui/styles.css';
 @import './screens.css';
+@import './project.css';
 
 :root {
   /* Native widgets and scrollbars follow the theme the app settled on */

@@ -10,6 +10,8 @@
  * See `src/common/ipc.ts` for what may live in this folder.
  * */
 
+import type { DatabaseSchema } from './data';
+
 export interface Project {
   id: number;
   name: string;
@@ -103,10 +105,12 @@ export interface DatabaseInfo {
   fileSize: number;
 }
 
-/* A project open in a window, and its file */
+/* A project open in a window, its file, and the schema the file holds */
 export interface Session {
   project: Project;
   database: DatabaseInfo;
+  /* `null` for a file that holds no schema, whose objects cannot be read */
+  schema: DatabaseSchema | null;
 }
 
 /*

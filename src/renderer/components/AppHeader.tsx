@@ -32,6 +32,7 @@ export default function AppHeader({
     <PlHeader
       className="app-header"
       size="sm"
+      density="compact"
       brand={
         <PlAppLogo
           className="app-header__brand"
