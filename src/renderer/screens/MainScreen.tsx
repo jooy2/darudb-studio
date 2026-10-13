@@ -1,7 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Database, LayoutGrid, List, Plus } from 'lucide-react';
-import { PlButton, PlEmpty, PlSegment, PlSegmentedButton, PlTypography } from 'plass-ui';
+import { Database, FlaskConical, LayoutGrid, List, Plus } from 'lucide-react';
+import {
+  PlButton,
+  PlEmpty,
+  PlSegment,
+  PlSegmentedButton,
+  PlTypography,
+  usePlToast,
+} from 'plass-ui';
 import AppHeader from '@/renderer/components/AppHeader';
 import OpenDialogs from '@/renderer/components/projects/OpenDialogs';
 import ProjectDialog from '@/renderer/components/projects/ProjectDialog';
@@ -32,6 +39,9 @@ export default function MainScreen() {
   const view = useAppSelector((state) => state.settings.projectView);
   const { projects, refresh } = useProjects();
   const opener = useOpenProject();
+  const toast = usePlToast();
+  // Whether the sample database is being written, before it opens
+  const [preparingSample, setPreparingSample] = useState(false);
   // The project dialog: open on a project to edit, or on none to create one
   const [editing, setEditing] = useState<{ project?: Project } | null>(null);
   const [shownLongEnough, setShownLongEnough] = useState(false);
@@ -86,6 +96,30 @@ export default function MainScreen() {
     void refresh();
   };
 
+  // A sample written fresh into the app's folder, and opened at once
+  const handleOpenSample = async (): Promise<void> => {
+    setPreparingSample(true);
+
+    let project: Project;
+
+    try {
+      project = await window.mainApi.invoke(mainChannels.createSampleProject);
+    } catch (error) {
+      toast.add({
+        title: t('home.sample-failed', {
+          message: error instanceof Error ? error.message : String(error),
+        }),
+        color: 'danger',
+      });
+
+      return;
+    } finally {
+      setPreparingSample(false);
+    }
+
+    await opener.open(project);
+  };
+
   const handleDeleteMissing = async (project: Project): Promise<void> => {
     await window.mainApi.invoke(mainChannels.deleteProject, project.id);
     opener.dismiss();
@@ -103,6 +137,10 @@ export default function MainScreen() {
 
   if (opener.opening) {
     return <LoadingScreen status={t('loading.opening', { name: opener.opening.name })} />;
+  }
+
+  if (preparingSample) {
+    return <LoadingScreen status={t('loading.sample')} />;
   }
 
   const newProjectButton = (
@@ -151,6 +189,15 @@ export default function MainScreen() {
                   </PlSegment>
                 </PlSegmentedButton>
               )}
+              <PlButton
+                data-testid="btn-open-sample"
+                size="sm"
+                variant="glass"
+                startIcon={<FlaskConical />}
+                onClick={() => void handleOpenSample()}
+              >
+                {t('home.open-sample')}
+              </PlButton>
               {newProjectButton}
             </div>
             {projects.length === 0 ? (

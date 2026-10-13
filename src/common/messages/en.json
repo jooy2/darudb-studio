@@ -13,6 +13,7 @@
     "opening": "Opening {{name}}…",
     "projects": "Loading your projects…",
     "ready": "Ready",
+    "sample": "Preparing the sample data…",
     "session": "Reading the schema…"
   },
   "home": {
@@ -25,10 +26,14 @@
     "not-database": "{{name}} points at a file that is not a DaruDB database. Edit the project to choose another one.",
     "open-elsewhere": "{{name}} is open in another window, which is now in front.",
     "open-failed": "{{name}} could not be opened: {{message}}",
+    "open-sample": "Open Sample Data File",
     "opened": "Opened {{when}}",
     "password-saved": "Key saved",
     "projects": "Projects",
     "repository": "DaruDB on GitHub",
+    "sample": "Sample, deleted on quit",
+    "sample-failed": "The sample data could not be prepared: {{message}}",
+    "sample-name": "Sample shop",
     "view": "Layout",
     "view-grid": "Grid",
     "view-list": "List",
@@ -45,6 +50,7 @@
     "create-title": "New Project",
     "delete": "Delete Project",
     "delete-copy-text": "The project is removed from the list, along with the working copy the app made. The original file stays where it is.",
+    "delete-sample-text": "The project is removed from the list, along with its sample data file.",
     "delete-text": "The project is removed from the list. The database file stays where it is.",
     "delete-title": "Delete {{name}}?",
     "edit-title": "Edit Project",
@@ -66,6 +72,7 @@
     "password": "Encryption key (optional)",
     "password-hint": "Kept encrypted by your system. Leave it empty to be asked each time.",
     "password-kept": "An encryption key is saved. Type another one to replace it.",
+    "sample-replaced": "The sample data file of this project is deleted when you save.",
     "save": "Save",
     "save-failed": "The project could not be saved: {{message}}",
     "wrong-password": "This encryption key does not open the file."

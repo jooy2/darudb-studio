@@ -60,6 +60,7 @@ export const mainChannels = {
   listProjects: 'msgListProjects',
   saveProject: 'msgSaveProject',
   deleteProject: 'msgDeleteProject',
+  createSampleProject: 'msgCreateSampleProject',
   chooseDatabaseFile: 'msgChooseDatabaseFile',
   checkDatabaseFile: 'msgCheckDatabaseFile',
   canRememberPasswords: 'msgCanRememberPasswords',
@@ -130,6 +131,11 @@ export interface MainChannelSignatures {
   [mainChannels.listProjects]: () => Project[];
   [mainChannels.saveProject]: (draft: ProjectDraft) => Project;
   [mainChannels.deleteProject]: (id: number) => void;
+  /*
+   * Writes a new sample database into the app's own folder and adds it as a
+   * project, which the app deletes with the file as it quits
+   * */
+  [mainChannels.createSampleProject]: () => Project;
   /* The open dialog, titled `title`; `null` when it was cancelled */
   [mainChannels.chooseDatabaseFile]: (title: string) => ChosenFile | null;
   [mainChannels.checkDatabaseFile]: (path: string, password?: string) => FileCheck;

@@ -202,6 +202,7 @@ test('Tabs open, split into groups, move and merge', () => {
       updatedAt: 0,
       lastOpenedAt: null,
       missing: false,
+      sample: false,
     },
     database: {
       path: '/shop.darudb',

@@ -10,6 +10,7 @@ import { closeAllProjects } from './sessions';
 import { freezeWorkspace, loadWorkspace } from './workspace';
 import { runSelfCheck, selfCheckRequested } from './selfCheck';
 import { refreshTitleBars } from './appearance';
+import { removeSamples } from './sample';
 
 // How long a quit waits for the app's data file to close. A DaruDB commit is
 // atomic, so quitting before a write finishes loses that one change and leaves
@@ -56,6 +57,8 @@ app.on('ready', async () => {
   // Read before the first window, which is painted with the stored theme
   await openStore();
   await loadSettings();
+  // The samples of a run that ended without deleting them
+  await removeSamples('stale');
 
   // Initialize IPC Communication. Handlers must be registered only once,
   // otherwise opening another window would attach duplicated listeners.
@@ -83,9 +86,10 @@ app.on('before-quit', () => {
 });
 
 /*
- * Closes the app's data file and the databases the windows have open, or gives
- * up on them after `STORE_CLOSE_TIMEOUT_MS`. Never rejects, since a quit goes
- * ahead either way.
+ * Closes the databases the windows have open, deletes the samples of this run,
+ * whose files are closed by then and whose projects are in the app's data
+ * file, and closes that file. Gives up after `STORE_CLOSE_TIMEOUT_MS`. Never
+ * rejects, since a quit goes ahead either way.
  * */
 const closeStoreBeforeQuit = async (): Promise<void> => {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -95,7 +99,13 @@ const closeStoreBeforeQuit = async (): Promise<void> => {
   });
 
   try {
-    const closing = Promise.all([closeAllProjects(), closeStore()]).then(() => 'closed' as const);
+    const closing = (async () => {
+      await closeAllProjects();
+      await removeSamples('own');
+      await closeStore();
+
+      return 'closed' as const;
+    })();
     const result = await Promise.race([closing, timeout]);
 
     if (result === 'timeout') {

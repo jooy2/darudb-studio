@@ -13,6 +13,7 @@
     "opening": "{{name}}を開いています…",
     "projects": "プロジェクトを読み込んでいます…",
     "ready": "準備ができました",
+    "sample": "サンプルデータを準備しています…",
     "session": "スキーマを読み込んでいます…"
   },
   "home": {
@@ -25,10 +26,14 @@
     "not-database": "{{name}}が指すファイルは DaruDB データベースではありません。プロジェクトを編集して別のファイルを選んでください。",
     "open-elsewhere": "{{name}}は別のウインドウで開いているため、そのウインドウを手前に表示しました。",
     "open-failed": "{{name}}を開けませんでした: {{message}}",
+    "open-sample": "サンプルデータファイルを開く",
     "opened": "{{when}}に開きました",
     "password-saved": "キー保存済み",
     "projects": "プロジェクト",
     "repository": "GitHub の DaruDB",
+    "sample": "サンプル・終了時に削除",
+    "sample-failed": "サンプルデータを準備できませんでした: {{message}}",
+    "sample-name": "サンプルショップ",
     "view": "レイアウト",
     "view-grid": "グリッド",
     "view-list": "リスト",
@@ -45,6 +50,7 @@
     "create-title": "新規プロジェクト",
     "delete": "プロジェクトを削除",
     "delete-copy-text": "プロジェクトを一覧から削除し、アプリが作成した作業用コピーも削除します。元のファイルはそのまま残ります。",
+    "delete-sample-text": "プロジェクトを一覧から削除し、サンプルデータファイルも削除します。",
     "delete-text": "プロジェクトを一覧から削除します。データベースファイルはそのまま残ります。",
     "delete-title": "{{name}}を削除しますか?",
     "edit-title": "プロジェクトを編集",
@@ -66,6 +72,7 @@
     "password": "暗号化キー (任意)",
     "password-hint": "システムが暗号化して保管します。空欄にすると開くたびに確認します。",
     "password-kept": "暗号化キーが保存されています。置き換えるには別のキーを入力してください。",
+    "sample-replaced": "保存すると、このプロジェクトのサンプルデータファイルは削除されます。",
     "save": "保存",
     "save-failed": "プロジェクトを保存できませんでした: {{message}}",
     "wrong-password": "この暗号化キーではファイルを開けません。"

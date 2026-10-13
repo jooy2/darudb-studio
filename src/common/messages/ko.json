@@ -13,6 +13,7 @@
     "opening": "{{name}} 여는 중…",
     "projects": "프로젝트를 불러오는 중…",
     "ready": "준비됐습니다",
+    "sample": "샘플 데이터를 준비하는 중…",
     "session": "스키마를 읽는 중…"
   },
   "home": {
@@ -25,10 +26,14 @@
     "not-database": "{{name}}이(가) 가리키는 파일은 DaruDB 데이터베이스가 아닙니다. 프로젝트를 편집해 다른 파일을 고르세요.",
     "open-elsewhere": "{{name}}은(는) 다른 창에서 열려 있어 그 창을 앞으로 가져왔습니다.",
     "open-failed": "{{name}}을(를) 열지 못했습니다: {{message}}",
+    "open-sample": "샘플 데이터 파일 열기",
     "opened": "최근 열람: {{when}}",
     "password-saved": "키 저장됨",
     "projects": "프로젝트",
     "repository": "GitHub의 DaruDB",
+    "sample": "샘플 · 종료 시 삭제",
+    "sample-failed": "샘플 데이터를 준비하지 못했습니다: {{message}}",
+    "sample-name": "샘플 상점",
     "view": "배치",
     "view-grid": "격자",
     "view-list": "목록",
@@ -45,6 +50,7 @@
     "create-title": "새 프로젝트",
     "delete": "프로젝트 삭제",
     "delete-copy-text": "프로젝트를 목록에서 지우고, 앱이 만든 작업 사본도 함께 지웁니다. 원본 파일은 그대로 남습니다.",
+    "delete-sample-text": "프로젝트가 목록에서 사라지고, 샘플 데이터 파일도 함께 삭제됩니다.",
     "delete-text": "프로젝트를 목록에서 지웁니다. 데이터베이스 파일은 그대로 남습니다.",
     "delete-title": "{{name}}을(를) 삭제할까요?",
     "edit-title": "프로젝트 편집",
@@ -66,6 +72,7 @@
     "password": "암호화 키 (선택)",
     "password-hint": "시스템이 암호화해서 보관합니다. 비워 두면 열 때마다 묻습니다.",
     "password-kept": "암호화 키가 저장돼 있습니다. 바꾸려면 새 키를 입력하세요.",
+    "sample-replaced": "저장하면 이 프로젝트의 샘플 데이터 파일이 삭제됩니다.",
     "save": "저장",
     "save-failed": "프로젝트를 저장하지 못했습니다: {{message}}",
     "wrong-password": "이 암호화 키로는 파일이 열리지 않습니다."

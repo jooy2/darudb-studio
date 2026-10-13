@@ -13,6 +13,7 @@
     "opening": "{{name}} wird geöffnet …",
     "projects": "Projekte werden geladen …",
     "ready": "Bereit",
+    "sample": "Beispieldaten werden vorbereitet…",
     "session": "Schema wird gelesen …"
   },
   "home": {
@@ -25,10 +26,14 @@
     "not-database": "{{name}} verweist auf eine Datei, die keine DaruDB-Datenbank ist. Bearbeiten Sie das Projekt, um eine andere zu wählen.",
     "open-elsewhere": "{{name}} ist in einem anderen Fenster geöffnet, das jetzt im Vordergrund ist.",
     "open-failed": "{{name}} konnte nicht geöffnet werden: {{message}}",
+    "open-sample": "Beispieldatei öffnen",
     "opened": "Geöffnet {{when}}",
     "password-saved": "Schlüssel gespeichert",
     "projects": "Projekte",
     "repository": "DaruDB auf GitHub",
+    "sample": "Beispiel, wird beim Beenden gelöscht",
+    "sample-failed": "Die Beispieldaten konnten nicht vorbereitet werden: {{message}}",
+    "sample-name": "Beispielladen",
     "view": "Anordnung",
     "view-grid": "Raster",
     "view-list": "Liste",
@@ -45,6 +50,7 @@
     "create-title": "Neues Projekt",
     "delete": "Projekt löschen",
     "delete-copy-text": "Das Projekt wird aus der Liste entfernt, zusammen mit der Arbeitskopie, die die App angelegt hat. Die Originaldatei bleibt, wo sie ist.",
+    "delete-sample-text": "Das Projekt wird aus der Liste entfernt, zusammen mit seiner Beispieldatei.",
     "delete-text": "Das Projekt wird aus der Liste entfernt. Die Datenbankdatei bleibt, wo sie ist.",
     "delete-title": "{{name}} löschen?",
     "edit-title": "Projekt bearbeiten",
@@ -66,6 +72,7 @@
     "password": "Verschlüsselungsschlüssel (optional)",
     "password-hint": "Wird von Ihrem System verschlüsselt aufbewahrt. Leer lassen, um jedes Mal gefragt zu werden.",
     "password-kept": "Ein Schlüssel ist gespeichert. Geben Sie einen anderen ein, um ihn zu ersetzen.",
+    "sample-replaced": "Die Beispieldatei dieses Projekts wird beim Speichern gelöscht.",
     "save": "Speichern",
     "save-failed": "Das Projekt konnte nicht gespeichert werden: {{message}}",
     "wrong-password": "Mit diesem Schlüssel lässt sich die Datei nicht öffnen."

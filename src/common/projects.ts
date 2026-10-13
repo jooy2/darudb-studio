@@ -29,6 +29,11 @@ export interface Project {
   lastOpenedAt: number | null;
   /* Whether the file was missing from its path when the projects were listed */
   missing: boolean;
+  /*
+   * Whether the file is a sample database the app wrote, which it deletes,
+   * with the project, as it quits
+   * */
+  sample: boolean;
 }
 
 /* What the project dialog saves: a new project without `id`, or a change to one with it */

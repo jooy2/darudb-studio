@@ -13,6 +13,7 @@ import { noticesFile } from './constants';
 import { reportWindowState, takeRestore } from './workspace';
 import { changePassword, rescueOpenProject, rescueProject } from './tools';
 import { exportObjects, importObjects } from './transfer';
+import { createSampleProject } from './sample';
 import WindowManager from './WindowManager';
 import AppMenu from './AppMenu';
 import { getSettings, updateSettings, validSettingChanges } from './settings';
@@ -168,6 +169,14 @@ export default class IPCs {
 
       await deleteProject(id);
       broadcast(rendererChannels.projectsChanged, BrowserWindow.fromWebContents(event.sender));
+    });
+
+    handle(mainChannels.createSampleProject, async (event) => {
+      const project = await createSampleProject();
+
+      broadcast(rendererChannels.projectsChanged, BrowserWindow.fromWebContents(event.sender));
+
+      return project;
     });
 
     handle(mainChannels.chooseDatabaseFile, (event, title) =>

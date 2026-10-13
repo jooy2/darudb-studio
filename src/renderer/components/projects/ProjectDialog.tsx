@@ -204,8 +204,9 @@ export default function ProjectDialog({ project = undefined, onClose }: ProjectD
 
     const confirmed = await confirm.confirm({
       title: t('project-dialog.delete-title', { name: project.name }),
-      description:
-        project.sourcePath === null
+      description: project.sample
+        ? t('project-dialog.delete-sample-text')
+        : project.sourcePath === null
           ? t('project-dialog.delete-text')
           : t('project-dialog.delete-copy-text'),
       confirmLabel: t('project-dialog.delete'),
@@ -231,15 +232,18 @@ export default function ProjectDialog({ project = undefined, onClose }: ProjectD
 
   // A file known to be plain needs no password; one that is gone may still have one
   const passwordUseless = checked && file?.check.status === 'ok' && !file.check.encrypted;
-  // Another file in place of the working copy the app made leaves the copy with nothing to point at
-  const replacesCopy =
+  // Another file in place of the working copy or the sample the app made leaves it with nothing
+  // to point at, and it is deleted
+  const replacesAppFile =
     project !== undefined &&
-    project.sourcePath !== null &&
+    (project.sourcePath !== null || project.sample) &&
     file !== null &&
     file.path !== project.filePath;
   const fileDescription = [
     file && checked ? (fileProblem(file.check) ?? describeFile(file.check)) : null,
-    replacesCopy ? t('project-dialog.copy-replaced') : null,
+    replacesAppFile
+      ? t(project?.sample ? 'project-dialog.sample-replaced' : 'project-dialog.copy-replaced')
+      : null,
   ]
     .filter(Boolean)
     .join(' ');

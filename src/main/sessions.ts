@@ -50,6 +50,9 @@ const sessions = new Map<number, OpenProject>();
 /* The windows whose closing already closes their project */
 const watchedWindows = new WeakSet<BrowserWindow>();
 
+/* The databases still closing after their window went, which a quit waits for */
+const closing = new Set<Promise<void>>();
+
 /* The project `window` has open, with its database handle */
 export const openProjectOf = (window: BrowserWindow | null): OpenProject | null =>
   (window && sessions.get(window.id)) ?? null;
@@ -185,12 +188,15 @@ export const closeProject = async (window: BrowserWindow | null): Promise<boolea
   return true;
 };
 
-/* Closes every open project, as the app quits */
+/*
+ * Closes every open project, as the app quits, and waits for the ones still
+ * closing with their windows, so no file is open once it resolves
+ * */
 export const closeAllProjects = async (): Promise<void> => {
   const open = [...sessions.values()];
 
   sessions.clear();
-  await Promise.allSettled(open.map((session) => session.database.closeAsync()));
+  await Promise.allSettled([...open.map((session) => session.database.closeAsync()), ...closing]);
 };
 
 /*
@@ -279,9 +285,19 @@ export const openProject = async (
         const session = sessions.get(window.id);
 
         sessions.delete(window.id);
-        void session?.database.closeAsync().catch((error: unknown) => {
-          console.error('Failed to close a database with its window:', error);
-        });
+
+        if (!session) {
+          return;
+        }
+
+        const closed = session.database
+          .closeAsync()
+          .catch((error: unknown) => {
+            console.error('Failed to close a database with its window:', error);
+          })
+          .finally(() => closing.delete(closed));
+
+        closing.add(closed);
       });
     }
 

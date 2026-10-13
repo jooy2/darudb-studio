@@ -13,6 +13,7 @@
     "opening": "Ouverture de {{name}}…",
     "projects": "Chargement de vos projets…",
     "ready": "Prêt",
+    "sample": "Préparation des données d’exemple…",
     "session": "Lecture du schéma…"
   },
   "home": {
@@ -25,10 +26,14 @@
     "not-database": "{{name}} désigne un fichier qui n’est pas une base de données DaruDB. Modifiez le projet pour en choisir un autre.",
     "open-elsewhere": "{{name}} est ouvert dans une autre fenêtre, qui passe maintenant au premier plan.",
     "open-failed": "Impossible d’ouvrir {{name}} : {{message}}",
+    "open-sample": "Ouvrir le fichier d’exemple",
     "opened": "Ouvert {{when}}",
     "password-saved": "Clé enregistrée",
     "projects": "Projets",
     "repository": "DaruDB sur GitHub",
+    "sample": "Exemple, supprimé à la fermeture",
+    "sample-failed": "Les données d’exemple n’ont pas pu être préparées : {{message}}",
+    "sample-name": "Boutique d’exemple",
     "view": "Disposition",
     "view-grid": "Grille",
     "view-list": "Liste",
@@ -45,6 +50,7 @@
     "create-title": "Nouveau projet",
     "delete": "Supprimer le projet",
     "delete-copy-text": "Le projet est retiré de la liste, avec la copie de travail créée par l’app. Le fichier d’origine reste où il est.",
+    "delete-sample-text": "Le projet est retiré de la liste, avec son fichier d’exemple.",
     "delete-text": "Le projet est retiré de la liste. Le fichier de base de données reste où il est.",
     "delete-title": "Supprimer {{name}} ?",
     "edit-title": "Modifier le projet",
@@ -66,6 +72,7 @@
     "password": "Clé de chiffrement (facultative)",
     "password-hint": "Conservé chiffré par votre système. Laissez vide pour qu’il soit demandé à chaque fois.",
     "password-kept": "Une clé de chiffrement est enregistrée. Saisissez-en une autre pour la remplacer.",
+    "sample-replaced": "Le fichier d’exemple de ce projet est supprimé à l’enregistrement.",
     "save": "Enregistrer",
     "save-failed": "Impossible d’enregistrer le projet : {{message}}",
     "wrong-password": "Cette clé de chiffrement n’ouvre pas le fichier."

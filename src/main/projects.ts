@@ -34,11 +34,21 @@ interface StoredProject {
  * */
 export const workingCopiesPath = (): string => join(app.getPath('userData'), 'databases');
 
-const isWorkingCopy = (path: string): boolean => {
-  const inside = relative(workingCopiesPath(), path);
+/*
+ * The folder the sample databases are written to, see `sample.ts`. A project
+ * whose file is in it is a sample, which the app deletes as it quits.
+ * */
+export const samplesPath = (): string => join(app.getPath('userData'), 'samples');
+
+const isInside = (folder: string, path: string): boolean => {
+  const inside = relative(folder, path);
 
   return inside !== '' && !inside.startsWith('..') && !isAbsolute(inside);
 };
+
+const isWorkingCopy = (path: string): boolean => isInside(workingCopiesPath(), path);
+
+export const isSampleFile = (path: string): boolean => isInside(samplesPath(), path);
 
 const exists = async (path: string): Promise<boolean> => {
   try {
@@ -60,6 +70,7 @@ const projectOf = async (stored: StoredProject): Promise<Project> => ({
   updatedAt: stored.updatedAt,
   lastOpenedAt: stored.lastOpenedAt,
   missing: !(await exists(stored.filePath)),
+  sample: isSampleFile(stored.filePath),
 });
 
 const storeOrFail = () => {
@@ -144,9 +155,15 @@ const passwordOf = (
   return sealSecret(draft.password);
 };
 
-/* Deletes the working copy the app made for `stored`, if the project works on one */
-const removeWorkingCopy = async (stored: StoredProject): Promise<void> => {
-  if (stored.sourcePath !== null && isWorkingCopy(stored.filePath)) {
+/*
+ * Deletes the file of `stored` when the app made it: a working copy, or a
+ * sample database
+ * */
+const removeAppFile = async (stored: StoredProject): Promise<void> => {
+  const madeByApp =
+    (stored.sourcePath !== null && isWorkingCopy(stored.filePath)) || isSampleFile(stored.filePath);
+
+  if (madeByApp) {
     await rm(stored.filePath, { force: true });
   }
 };
@@ -154,8 +171,8 @@ const removeWorkingCopy = async (stored: StoredProject): Promise<void> => {
 /*
  * Creates the project `draft` describes, or changes the one its `id` names,
  * and resolves with it. A file changed to another one deletes the working copy
- * the app made, which nothing points at any more; a file the user picked is
- * never deleted.
+ * or the sample the app made, which nothing points at any more; a file the
+ * user picked is never deleted.
  * */
 export const saveProject = async (draft: ProjectDraft): Promise<Project> => {
   const { name, filePath } = checkDraft(draft);
@@ -207,7 +224,7 @@ export const saveProject = async (draft: ProjectDraft): Promise<Project> => {
     );
 
     if (fileChanged) {
-      await removeWorkingCopy(current);
+      await removeAppFile(current);
     }
   }
 
@@ -215,8 +232,9 @@ export const saveProject = async (draft: ProjectDraft): Promise<Project> => {
 };
 
 /*
- * Deletes the project, and the working copy the app made for it, which lives
- * in the app's data folder. A file the user picked stays where it is.
+ * Deletes the project, and the working copy or the sample the app made for
+ * it, which live in the app's data folder. A file the user picked stays where
+ * it is.
  * */
 export const deleteProject = async (id: number): Promise<void> => {
   const current = await storedProject(id);
@@ -231,7 +249,7 @@ export const deleteProject = async (id: number): Promise<void> => {
     }),
   );
 
-  await removeWorkingCopy(current);
+  await removeAppFile(current);
 };
 
 /* The remembered password of the project, or `null` without one or when it cannot be read */

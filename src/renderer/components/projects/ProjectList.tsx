@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { CopyCheck, Database, KeyRound, Pencil, TriangleAlert } from 'lucide-react';
+import { CopyCheck, Database, FlaskConical, KeyRound, Pencil, TriangleAlert } from 'lucide-react';
 import { PlChip, PlIconButton } from 'plass-ui';
 import { formatRelativeTime, splitPath } from '@/renderer/format';
 import type { Project } from '@/common/projects';
@@ -66,6 +66,11 @@ export default function ProjectList({ projects, view, onOpen, onEdit }: ProjectL
                   {project.hasPassword && (
                     <PlChip size="xs" variant="glass" startIcon={<KeyRound />}>
                       {t('home.password-saved')}
+                    </PlChip>
+                  )}
+                  {project.sample && (
+                    <PlChip size="xs" variant="glass" startIcon={<FlaskConical />}>
+                      {t('home.sample')}
                     </PlChip>
                   )}
                   {project.sourcePath !== null && (
