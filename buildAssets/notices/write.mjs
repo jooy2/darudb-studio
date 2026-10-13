@@ -3,7 +3,7 @@
  * its version, its license and the license text and notices the package
  * itself carries, as the MIT, ISC and similar licenses ask a copy to.
  *
- * It runs after `vite build`, from the lists `bundledPackages.ts` left in
+ * It runs after `vite build`, from the lists `bundledPackages.mts` left in
  * `dist/.packages`, and adds the runtime dependencies electron-builder copies
  * into the app as they are, with the dependencies they bring. Electron and
  * Chromium are not listed: their licenses ship with Electron, as `LICENSE`

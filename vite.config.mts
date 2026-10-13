@@ -1,11 +1,11 @@
 import { fileURLToPath } from 'url';
 import { defineConfig, loadEnv } from 'vite';
-import electron, { ElectronSimpleOptions } from 'vite-plugin-electron/simple';
+import electron, { type ElectronSimpleOptions } from 'vite-plugin-electron/simple';
 import ReactPlugin from '@vitejs/plugin-react-swc';
 import { resolve, dirname } from 'path';
 import { readFileSync, rmSync } from 'fs';
 import { builtinModules } from 'module';
-import bundledPackages from './buildAssets/notices/bundledPackages';
+import bundledPackages from './buildAssets/notices/bundledPackages.mts';
 
 const projectRoot = dirname(fileURLToPath(import.meta.url));
 
@@ -122,6 +122,9 @@ export default defineConfig(({ command, mode }) => {
       sourcemap: isDEV,
       minify: !isDEV,
       outDir: resolve(projectRoot, 'dist'),
+      // Emptied once for all three builds as this config is read, above, since
+      // the main process and the preload script are built into it too
+      emptyOutDir: false,
       // The renderer is loaded from disk rather than over a network, so the
       // default 500 kB warning does not describe a cost this app pays.
       chunkSizeWarningLimit: 1500,

@@ -13,6 +13,8 @@
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
+    /* The Vite config names the TypeScript modules it imports by their own extension, as Node.js takes them */
+    "rewriteRelativeImportExtensions": true,
     /* Kept in sync with `tsconfig.json`, so that `@/common` resolves in every process. */
     "paths": {
       "@/*": ["./src/*"]
