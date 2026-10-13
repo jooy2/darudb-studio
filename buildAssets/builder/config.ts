@@ -1,14 +1,28 @@
 /* eslint-disable no-template-curly-in-string */
-import type { Configuration } from 'electron-builder';
+import { Arch, type Configuration } from 'electron-builder';
 import dotenv from 'dotenv';
 import packageJson from '../../package.json' with { type: 'json' };
+import { ensureNativeBinary, otherBinaries } from './nativeBinaries';
 
 dotenv.config();
+
+// Whether the environment holds what signing and notarizing for macOS take.
+// The values are read by electron-builder itself; this only checks they are set.
+const signsMac = Boolean(process.env.CSC_LINK);
+const notarizesMac =
+  signsMac &&
+  ['APPLE_ID', 'APPLE_APP_SPECIFIC_PASSWORD', 'APPLE_TEAM_ID'].every((name) =>
+    Boolean(process.env[name]),
+  );
 
 const config: Configuration = {
   productName: packageJson.productName,
   appId: packageJson.appId,
   asar: true,
+  // The binary `darudb` loads, for the platform being packed, which npm may not have installed
+  beforePack: async ({ packager, electronPlatformName, arch }) => {
+    ensureNativeBinary(packager.projectDir, electronPlatformName, Arch[arch]);
+  },
   extends: null,
   compression: 'maximum',
   artifactName: '${productName} ${version}_${arch}.${ext}',
@@ -34,14 +48,18 @@ const config: Configuration = {
     '!release/**/*'
   ],
   mac: {
+    files: otherBinaries('darwin'),
     bundleVersion: '1.0',
     hardenedRuntime: true,
     gatekeeperAssess: false,
-    notarize: false,
+    // Signed with the Developer ID certificate in `CSC_LINK` when there is one,
+    // and notarized when Apple's credentials are there too, see CONTRIBUTING.md.
+    // Without them the app is built unsigned, which macOS opens only after the
+    // user allows it.
+    ...(signsMac ? {} : { identity: null }),
+    notarize: notarizesMac,
     icon: 'buildAssets/installer/icon.icns',
     type: 'distribution',
-    // TODO: Notarize for macOS
-    identity: null,
     target: [
       {
         target: 'dmg',
@@ -66,6 +84,7 @@ const config: Configuration = {
     sign: false
   },
   win: {
+    files: otherBinaries('win32'),
     icon: './buildAssets/installer/icon.ico',
     target: [
       {
@@ -93,6 +112,7 @@ const config: Configuration = {
     oneClick: true
   },
   linux: {
+    files: otherBinaries('linux'),
     executableName: packageJson.name.toLowerCase(),
     icon: 'buildAssets/installer/icon.png',
     category: 'Utility',

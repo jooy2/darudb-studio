@@ -32,6 +32,22 @@ The app needs Node.js 22.12 or later. Install the dependencies once with `npm in
 
 The end-to-end tests start the built app with Playwright and keep every window off the screen, so a run does not take the screen or the focus from you. `DARUDB_STUDIO_HIDDEN=1` is what hides the windows and `DARUDB_STUDIO_USER_DATA` gives the run a user data folder of its own; `tests/fixtures.ts` sets both. The app reads them only when it is not packaged. On Linux without a display, `npm run test:linux` runs the same tests under Xvfb.
 
+## Building the installers
+
+`npm run build:mac`, `npm run build:win` and `npm run build:linux` make the installers for one system into `release/<version>`, and `npm run build:dir` makes the app without an installer, which is quicker to check. The `build` workflow makes all of them, each on the system it is for, when it is started from the Actions tab or a tag `v<version>` is pushed, and keeps them as the run's artifacts.
+
+`darudb` loads a native binary from a package npm installs for the machine it runs on alone. Before electron-builder packs the app for a platform or an architecture, `buildAssets/builder/nativeBinaries.ts` fetches the binary for it from the registry, at the version of `darudb` installed, and every package leaves out the binaries of the other platforms. A macOS app keeps both of its architectures, which a universal app is merged from.
+
+The macOS app is signed and notarized when the environment holds the credentials, and built unsigned otherwise. The workflow reads them from these repository secrets:
+
+| Secret | What it is |
+| --- | --- |
+| `MAC_CERTIFICATE` | The Developer ID Application certificate, as a base64 `.p12` file |
+| `MAC_CERTIFICATE_PASSWORD` | The password of that file |
+| `APPLE_ID` | The Apple ID of the developer account |
+| `APPLE_APP_SPECIFIC_PASSWORD` | An app-specific password of that Apple ID |
+| `APPLE_TEAM_ID` | The team ID of the developer account |
+
 ## Where the code goes
 
 - **The main process**, `src/main`, owns everything that touches the file system, including every database the app opens. A renderer is sandboxed and cannot load the native addon of `darudb`.
