@@ -30,6 +30,14 @@ const setRestore = async (page: Page, on: boolean): Promise<void> => {
   await page.keyboard.press('Escape');
 };
 
+/* Where the window on a project is, as the system has it */
+const projectWindowBounds = () =>
+  getApp().evaluate(({ BrowserWindow }) =>
+    BrowserWindow.getAllWindows()
+      .find((window) => window.webContents.getURL().includes('#/project'))
+      ?.getBounds(),
+  );
+
 const openWindow = async (page: Page): Promise<Page> => {
   const opened = getApp().waitForEvent('window');
 
@@ -149,6 +157,9 @@ test('The last windows, projects and tabs open again', async ({ page, util }) =>
     // A second window, on the list
     await openWindow(page);
 
+    const bounds = await projectWindowBounds();
+    const panes = (await page.locator('.project-panes').boundingBox())!.width;
+
     await relaunchApp();
     await expect.poll(() => getApp().windows().length).toBe(2);
 
@@ -165,12 +176,17 @@ test('The last windows, projects and tabs open again', async ({ page, util }) =>
     await expect(groups.nth(1).getByTestId('filter-input')).toHaveValue('age >= 60');
     await expect(groups.nth(1).getByTestId('object-count')).toHaveText('10 objects');
 
+    // The window is where it was, at its size
+    expect(await projectWindowBounds()).toEqual(bounds);
+
     // The widths the user set came back, the column's exactly
     const restoredColumn = groups.nth(1).getByRole('columnheader', { name: /^name/ });
+    const restoredPanes = (await restored.locator('.project-panes').boundingBox())!.width;
 
     expect((await restoredColumn.boundingBox())!.width).toBeCloseTo(widened.column, 0);
     expect(
       Math.abs((await restored.getByTestId('sidebar').boundingBox())!.width - widened.sidebar),
+      `The sidebar, in panes ${panes}px wide before and ${restoredPanes}px after`,
     ).toBeLessThan(4);
     await util.captureScreenshot(restored, 'workspace-restored');
   } catch (error) {

@@ -98,7 +98,8 @@ test('A collection exports what its tab shows, as CSV and as JSON', async ({ pag
 
     await saveTo(json);
     await toolbarMenu(page, 'btn-export', /As JSON/);
-    await expect(page.getByTestId('status-message')).toContainText('Exported 10 objects');
+    // The message of this export, not the one before, which says the same count
+    await expect(page.getByTestId('status-message')).toHaveText(`Exported 10 objects to ${json}.`);
     expect(JSON.parse(readFileSync(json, 'utf8'))).toHaveLength(10);
 
     // The selected rows alone, from the grid's context menu

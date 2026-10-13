@@ -89,7 +89,11 @@ test('The header is the title bar the window is dragged by', async ({ page, util
     // The header leaves their room free, at whichever end they are
     expect(bar.start).toBeCloseTo(bar.areaStart, 0);
     expect(bar.end).toBeCloseTo(bar.areaEnd, 0);
-    expect(bar.start + bar.end).toBeGreaterThan(0);
+
+    // Linux lays its buttons out once a window is on the screen, which a test's never is
+    if (process.platform !== 'linux') {
+      expect(bar.start + bar.end).toBeGreaterThan(0);
+    }
     // The logo alone, without the app's name beside it
     await expect(page.getByTestId('main-logo')).not.toContainText('DaruDB Studio');
   } catch (error) {
@@ -278,7 +282,9 @@ test('The self-check loads the engine without a window', async ({ util }) => {
   try {
     // The `electron` package resolves to the path of its binary
     const electronBinary = createRequire(join(process.cwd(), 'package.json'))('electron') as string;
-    const run = spawnSync(electronBinary, [pkg.main, '--self-check'], {
+    // A CI runner has no setuid sandbox helper, as the launches in `fixtures.ts` know
+    const sandbox = process.env.CI === 'true' ? ['--no-sandbox'] : [];
+    const run = spawnSync(electronBinary, [pkg.main, '--self-check', ...sandbox], {
       encoding: 'utf8',
       timeout: 60_000,
       env: { ...process.env, NODE_ENV: 'production', DARUDB_STUDIO_HIDDEN: '1' },
