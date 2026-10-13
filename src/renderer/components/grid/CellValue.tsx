@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { bytesToHex, isBytes, isPlainObject, summarize } from '@/renderer/project/values';
+import { bytesToHex, isBytes, isPlainObject, summarize } from '@/common/values';
 import type { FieldType, Value } from '@/common/data';
 
 /*

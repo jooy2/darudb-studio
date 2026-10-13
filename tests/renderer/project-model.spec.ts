@@ -27,7 +27,7 @@ import {
   sameValue,
   summarize,
   toJson,
-} from '../../src/renderer/project/values';
+} from '../../src/common/values';
 import reducer, {
   closeTab,
   mergeGroup,

@@ -10,7 +10,7 @@ import useEditTexts from '@/renderer/components/project/useEditTexts';
 import { newRow, savedRow } from '@/renderer/project/gridRows';
 import { viewOf } from '@/renderer/project/pending';
 import usePagedRows from '@/renderer/project/usePagedRows';
-import { keyLabel } from '@/renderer/project/values';
+import { keyLabel } from '@/common/values';
 import {
   deleteObjects,
   editObject,

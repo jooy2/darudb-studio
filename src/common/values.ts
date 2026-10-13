@@ -1,4 +1,4 @@
-import type { FieldType, Key, SchemaCollection, SchemaField, Value } from '@/common/data';
+import type { FieldType, Key, SchemaCollection, SchemaField, Value } from './data';
 
 /*
  * Values as the project screen shows them and reads them back from what the

@@ -39,7 +39,7 @@ import {
   scalarText,
   toJson,
   typeName,
-} from '@/renderer/project/values';
+} from '@/common/values';
 import { useMenuModel } from '@/renderer/components/menu/MenuModelContext';
 import { acceleratorLabel } from '@/common/menu';
 import { keyText, type Row, type SchemaCollection, type SortKey, type Value } from '@/common/data';

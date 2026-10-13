@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Copy } from 'lucide-react';
 import { PlButton, PlModal } from 'plass-ui';
 import { ScalarValue } from '@/renderer/components/grid/CellValue';
-import { bytesToHex, isBytes, isPlainObject, toJson } from '@/renderer/project/values';
+import { bytesToHex, isBytes, isPlainObject, toJson } from '@/common/values';
 import type { FieldType, Value } from '@/common/data';
 
 /* A value laid out whole: a list as numbered items, an object as a table of its fields */

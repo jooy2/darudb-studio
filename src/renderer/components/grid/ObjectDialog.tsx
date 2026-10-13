@@ -12,7 +12,7 @@ import {
   scalarText,
   toJson,
   typeName,
-} from '@/renderer/project/values';
+} from '@/common/values';
 import type { Row, SchemaCollection, Value } from '@/common/data';
 
 interface ObjectDialogProps {

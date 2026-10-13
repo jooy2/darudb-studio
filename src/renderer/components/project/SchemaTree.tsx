@@ -23,7 +23,7 @@ import {
   PlTree,
   type PlTreeNode,
 } from 'plass-ui';
-import { typeName } from '@/renderer/project/values';
+import { typeName } from '@/common/values';
 import {
   loadCounts,
   openCollection,
