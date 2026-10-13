@@ -5,7 +5,7 @@ import type { Locator, Page } from 'playwright';
 import { mainChannels } from '../../src/common/ipc';
 import type { FileCheck } from '../../src/common/projects';
 import type { PageResult, Row } from '../../src/common/data';
-import { makeSampleDatabase } from '../databases';
+import { makeSampleDatabase, makeWideDatabase } from '../databases';
 import { invokeMain, sendMain } from '../ipc';
 import { test, expect, beforeAll, afterAll, getApp } from '../fixtures';
 
@@ -475,6 +475,43 @@ test('Copying from the grid copies its selected rows as JSON', async ({ page, ut
 
     expect(rows).toHaveLength(2);
     expect(rows[0]).toHaveProperty('email');
+  } catch (error) {
+    throw await util.onTestError(error);
+  }
+});
+
+test('A collection wider than the window draws the columns in view', async ({ page, util }) => {
+  try {
+    const path = makeWideDatabase(files, 'wide.darudb', 300);
+
+    await invokeMain(page, mainChannels.saveProject, { name: 'Wide', filePath: path });
+    await page.getByTestId('btn-close-project').click();
+    await page
+      .getByTestId('project-item')
+      .filter({ hasText: 'Wide' })
+      .getByTestId('btn-open-project')
+      .click();
+
+    const grid = visibleGrid(page);
+    const drawn = () => grid.locator('[data-row="0"] [data-col]').count();
+
+    await expect(grid.locator('[data-row="0"] [data-col="1"]')).toHaveText('0');
+    expect(await drawn()).toBeLessThan(40);
+
+    // Scrolled to its right end, the grid draws the last columns instead
+    await grid.evaluate((element) => {
+      element.scrollLeft = element.scrollWidth;
+    });
+    await expect(grid.locator('[data-row="0"] [data-col="300"]')).toHaveText('299');
+    await expect(grid.getByRole('columnheader', { name: /^f299/ })).toBeVisible();
+    expect(await drawn()).toBeLessThan(40);
+    await page.getByTestId('btn-close-project').click();
+    await page
+      .getByTestId('project-item')
+      .filter({ hasText: 'Shop' })
+      .getByTestId('btn-open-project')
+      .click();
+    await expect(page.getByTestId('project-screen')).toBeVisible();
   } catch (error) {
     throw await util.onTestError(error);
   }

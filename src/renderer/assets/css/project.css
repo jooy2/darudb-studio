@@ -1110,3 +1110,8 @@
 .value-editor__add {
   align-self: flex-start;
 }
+
+/* What the columns a wide grid leaves out take up */
+.grid__spacer {
+  flex: none;
+}

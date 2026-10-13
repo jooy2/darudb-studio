@@ -112,3 +112,35 @@ export const makeDamagedDatabase = (
 
   throw new Error('no page of the sample file is one the check reads');
 };
+
+/*
+ * A file with a collection of `fields` int fields, `f0` and on, and a few
+ * objects, for a grid wider than any window.
+ */
+export const makeWideDatabase = (dir: string, name: string, fields: number): string => {
+  const path = join(dir, name);
+  const db = Database.open(path, {
+    schema: schema(1, {
+      wide: collection(
+        Object.fromEntries(
+          Array.from({ length: fields }, (_, at) => [`f${at}`, t.int().default(0)]),
+        ),
+      ),
+    }),
+  });
+
+  db.write((txn) => {
+    txn
+      .collection('wide')
+      .insertMany(
+        Array.from({ length: 20 }, (_, row) =>
+          Object.fromEntries(
+            Array.from({ length: fields }, (_, at) => [`f${at}`, row * 1000 + at]),
+          ),
+        ),
+      );
+  });
+  db.close();
+
+  return path;
+};

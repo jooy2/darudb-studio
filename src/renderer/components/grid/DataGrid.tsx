@@ -89,6 +89,8 @@ interface DataGridProps {
 }
 
 const ROW_HEIGHT = 24;
+// Past this many columns, a row draws only the ones in view, as the grid draws only the rows in view
+const COLUMN_WINDOW_AT = 40;
 const HEADER_HEIGHT = 30;
 const GUTTER_WIDTH = 56;
 // How many rows a page key moves, less than a screen so the last one stays in view
@@ -225,6 +227,35 @@ export default function DataGrid({
     scrollPaddingStart: HEADER_HEIGHT,
   });
   const items = virtualizer.getVirtualItems();
+
+  // A collection with many fields draws the columns in view and a few on either side
+  const windowed = columns.length > COLUMN_WINDOW_AT;
+  const columnVirtualizer = useVirtualizer({
+    horizontal: true,
+    count: windowed ? columns.length : 0,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: (index) => widthOf(columns[index]),
+    overscan: 3,
+    paddingStart: GUTTER_WIDTH,
+  });
+
+  // The widths it placed the columns by change as the user resizes one
+  useEffect(() => {
+    columnVirtualizer.measure();
+  }, [columnVirtualizer, widths, columns]);
+
+  const columnItems = windowed ? columnVirtualizer.getVirtualItems() : [];
+  const shownColumns = windowed
+    ? columnItems.map((item) => ({ column: columns[item.index], col: item.index }))
+    : columns.map((column, col) => ({ column, col }));
+  // What the columns left out take up, so the rows keep their width and the shown ones their place
+  const leftPad = windowed && columnItems.length > 0 ? columnItems[0].start - GUTTER_WIDTH : 0;
+  const rightPad =
+    windowed && columnItems.length > 0 ? totalWidth - (columnItems.at(-1)?.end ?? totalWidth) : 0;
+  const spacer = (width: number, side: string) =>
+    width > 0 ? (
+      <div className="grid__spacer" key={side} aria-hidden="true" style={{ width }} />
+    ) : null;
   const firstRow = items[0]?.index ?? 0;
   const lastRow = items.at(-1)?.index ?? 0;
 
@@ -781,7 +812,8 @@ export default function DataGrid({
             <div className="grid__corner" role="columnheader" style={{ width: GUTTER_WIDTH }}>
               #
             </div>
-            {columns.map((column, col) => {
+            {spacer(leftPad, 'left')}
+            {shownColumns.map(({ column, col }) => {
               const sorted = sort.findIndex((key) => key.field === column.name);
               const sortKey = sort[sorted];
 
@@ -841,6 +873,7 @@ export default function DataGrid({
                 </div>
               );
             })}
+            {spacer(rightPad, 'right')}
           </div>
           {items.map((item) => {
             const row = rowAt(item.index);
@@ -866,7 +899,8 @@ export default function DataGrid({
                 <div className="grid__gutter" role="rowheader" style={{ width: GUTTER_WIDTH }}>
                   {item.index + 1}
                 </div>
-                {columns.map((column, col) => {
+                {spacer(leftPad, 'left')}
+                {shownColumns.map(({ column, col }) => {
                   const isActive = active?.row === item.index && active.col === col;
                   const isEditing = editing?.row === item.index && editing.col === col;
                   const value = row ? (row.values[column.name] ?? null) : undefined;
@@ -943,6 +977,7 @@ export default function DataGrid({
                     </div>
                   );
                 })}
+                {spacer(rightPad, 'right')}
               </div>
             );
           })}
