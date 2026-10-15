@@ -1,6 +1,6 @@
 import { memo, type KeyboardEvent } from 'react';
 import { NestedValue, type CellTexts } from '@/renderer/components/grid/CellValue';
-import { defaultWidth, GUTTER_WIDTH, type GridColumn } from '@/renderer/components/grid/columns';
+import { GUTTER_WIDTH, type GridColumn } from '@/renderer/components/grid/columns';
 import type { GridRow } from '@/renderer/components/grid/DataGrid';
 import { keyText } from '@/common/data';
 
@@ -47,8 +47,6 @@ interface GridRowViewProps {
   /* `undefined` while its page is being read */
   row: GridRow | undefined;
   columns: readonly ShownColumn[];
-  widths: Readonly<Record<string, number>>;
-  width: number;
   leftPad: number;
   rightPad: number;
   selected: boolean;
@@ -68,8 +66,6 @@ function GridRowView({
   start,
   row,
   columns,
-  widths,
-  width,
   leftPad,
   rightPad,
   selected,
@@ -95,7 +91,8 @@ function GridRowView({
       role="row"
       aria-rowindex={index + 2}
       aria-selected={selected}
-      style={{ width, transform: `translateY(${start}px)` }}
+      // The widths are variables of the grid, see `DataGrid`
+      style={{ width: 'var(--grid-width)', transform: `translateY(${start}px)` }}
     >
       <div className="grid__gutter" role="rowheader" style={{ width: GUTTER_WIDTH }}>
         {index + 1}
@@ -122,7 +119,7 @@ function GridRowView({
             role="gridcell"
             aria-colindex={col + 2}
             aria-selected={selected}
-            style={{ width: widths[column.name] ?? defaultWidth(column) }}
+            style={{ width: `var(--grid-col-${col})` }}
           >
             {isEditing && editing ? (
               <input

@@ -8,6 +8,7 @@ import {
   type KeyboardEvent,
   type MouseEvent,
   type PointerEvent,
+  type CSSProperties,
   type ReactNode,
 } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -214,6 +215,12 @@ export default function DataGrid({
 
   const widthOf = (column: GridColumn): number => widths[column.name] ?? defaultWidth(column);
   const totalWidth = GUTTER_WIDTH + columns.reduce((sum, column) => sum + widthOf(column), 0);
+  // The widths as variables of the grid, which its rows and cells take theirs
+  // from, so resizing a column changes the variables rather than every row
+  const widthVariables = Object.fromEntries([
+    ['--grid-width', `${totalWidth}px`],
+    ...columns.map((column, col) => [`--grid-col-${col}`, `${widthOf(column)}px`]),
+  ]) as CSSProperties;
 
   // A new filter, sort or collection is another list of rows
   useEffect(() => {
@@ -893,6 +900,7 @@ export default function DataGrid({
           aria-colcount={columns.length + 1}
           aria-multiselectable="true"
           aria-label={collection.name}
+          style={widthVariables}
           // A grid is one stop of the Tab key; the arrows move inside it
           tabIndex={0}
           onKeyDown={handleKeyDown}
@@ -993,8 +1001,6 @@ export default function DataGrid({
                 start={item.start}
                 row={rowAt(item.index)}
                 columns={shownColumns}
-                widths={widths}
-                width={totalWidth}
                 leftPad={leftPad}
                 rightPad={rightPad}
                 selected={contains(selection, item.index)}
