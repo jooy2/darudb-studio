@@ -120,12 +120,12 @@ export default class WindowManager {
       });
 
       // Letting the unload go ahead is what closing without the edits takes.
-      // Kept open, the window calls off a quit, and the list of open windows
-      // follows the windows again.
+      // Kept open, the window calls off its close or a quit, and the list of
+      // open windows follows the windows again.
       if (choice === 0) {
         event.preventDefault();
       } else {
-        resumeWorkspace();
+        resumeWorkspace(window);
       }
     });
 
