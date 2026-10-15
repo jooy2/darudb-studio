@@ -287,8 +287,9 @@ test('A cell edited far down the grid shows what was written', async ({ page, ut
     await page.getByTestId('cell-editor').press('Enter');
     await expect(cell(page, 475, 'age')).toHaveText('77');
     expect((await readUsers(page, 'id == 476'))[0].age).toBe(77);
+    // Back to the top left, which the double click may have scrolled away from
     await grid.evaluate((element) => {
-      element.scrollTop = 0;
+      element.scrollTo({ top: 0, left: 0 });
     });
     await expect(cell(page, 0, 'name')).toBeInViewport();
   } catch (error) {
