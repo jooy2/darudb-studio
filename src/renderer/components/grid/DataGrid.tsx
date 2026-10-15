@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -13,14 +14,21 @@ import { useTranslation } from 'react-i18next';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ArrowDown, ArrowUp, KeyRound, Zap } from 'lucide-react';
 import { PlContextMenu, PlMenuItem, PlMenuSeparator, PlMenuSubmenu } from 'plass-ui';
-import { NestedValue, ScalarValue, useCellTexts } from '@/renderer/components/grid/CellValue';
+import { ScalarValue, useCellTexts } from '@/renderer/components/grid/CellValue';
 import {
   columnsOf,
   defaultWidth,
+  GUTTER_WIDTH,
   MAX_COLUMN_WIDTH,
   MIN_COLUMN_WIDTH,
   type GridColumn,
 } from '@/renderer/components/grid/columns';
+import GridRowView, {
+  GridSpacer,
+  type CellEditorActions,
+  type EditingCell,
+  type ShownColumn,
+} from '@/renderer/components/grid/GridRowView';
 import {
   between,
   clamp,
@@ -43,7 +51,7 @@ import {
 import { useMenuModel } from '@/renderer/components/menu/MenuModelContext';
 import { acceleratorLabel } from '@/common/menu';
 import { transferFormats, type TransferFormat } from '@/common/transfer';
-import { keyText, type Row, type SchemaCollection, type SortKey, type Value } from '@/common/data';
+import type { Row, SchemaCollection, SortKey, Value } from '@/common/data';
 import type { ObjectTarget } from '@/renderer/store/slices/projectSlice';
 
 /* A row as the grid draws it: the object with the held edits applied */
@@ -92,17 +100,12 @@ const ROW_HEIGHT = 24;
 // Past this many columns, a row draws only the ones in view, as the grid draws only the rows in view
 const COLUMN_WINDOW_AT = 40;
 const HEADER_HEIGHT = 30;
-const GUTTER_WIDTH = 56;
 // How many rows a page key moves, less than a screen so the last one stays in view
 const PAGE_ROWS = 20;
 // The most rows a copy takes, so a selection of every row does not stall the window
 const COPY_LIMIT = 5000;
 
 type Cell = { row: number; col: number };
-
-/* What names a row's object across reads: its key, or the insert that waits to add it */
-const identityOf = (row: GridRow): string =>
-  'key' in row.target ? keyText(row.target.key) : row.target.insertId;
 
 const isMac = navigator.platform.toLowerCase().includes('mac');
 const modKey = (event: { metaKey: boolean; ctrlKey: boolean }): boolean =>
@@ -175,9 +178,7 @@ export default function DataGrid({
     setAnchorState(next);
   }, []);
   const [active, setActive] = useState<Cell | null>(null);
-  const [editing, setEditingState] = useState<
-    (Cell & { text: string; error: string | null }) | null
-  >(null);
+  const [editing, setEditingState] = useState<EditingCell | null>(null);
   // What the editor holds as of now. A commit reads it here rather than from the
   // render it was made in, so the blur that follows a commit finds nothing left
   // to commit, and an edit is never kept twice.
@@ -223,6 +224,20 @@ export default function DataGrid({
     count: rowCount,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => ROW_HEIGHT,
+    // A row's height is read from what the resize observer reports, never from
+    // the row as it is attached, which would lay the grid out once more for
+    // each row coming into view. Until it reports, a row is as tall as before.
+    measureElement: (element, entry, instance) => {
+      const box = entry?.borderBoxSize[0];
+
+      if (box) {
+        return Math.round(box.blockSize);
+      }
+
+      const key = instance.options.getItemKey(instance.indexFromElement(element));
+
+      return instance.itemSizeCache.get(key) ?? ROW_HEIGHT;
+    },
     overscan: 12,
     paddingStart: HEADER_HEIGHT,
     scrollPaddingStart: HEADER_HEIGHT,
@@ -245,18 +260,21 @@ export default function DataGrid({
     columnVirtualizer.measure();
   }, [columnVirtualizer, widths, columns]);
 
-  const columnItems = windowed ? columnVirtualizer.getVirtualItems() : [];
-  const shownColumns = windowed
-    ? columnItems.map((item) => ({ column: columns[item.index], col: item.index }))
-    : columns.map((column, col) => ({ column, col }));
+  const columnItems = windowed ? columnVirtualizer.getVirtualItems() : null;
+  // The same list while the columns in view stay the same, which a row compares to draw again
+  const shownColumns = useMemo<ShownColumn[]>(
+    () =>
+      columnItems
+        ? columnItems.map((item) => ({ column: columns[item.index], col: item.index }))
+        : columns.map((column, col) => ({ column, col })),
+    [columnItems, columns],
+  );
   // What the columns left out take up, so the rows keep their width and the shown ones their place
-  const leftPad = windowed && columnItems.length > 0 ? columnItems[0].start - GUTTER_WIDTH : 0;
+  const leftPad = columnItems && columnItems.length > 0 ? columnItems[0].start - GUTTER_WIDTH : 0;
   const rightPad =
-    windowed && columnItems.length > 0 ? totalWidth - (columnItems.at(-1)?.end ?? totalWidth) : 0;
-  const spacer = (width: number, side: string) =>
-    width > 0 ? (
-      <div className="grid__spacer" key={side} aria-hidden="true" style={{ width }} />
-    ) : null;
+    columnItems && columnItems.length > 0
+      ? totalWidth - (columnItems.at(-1)?.end ?? totalWidth)
+      : 0;
   const firstRow = items[0]?.index ?? 0;
   const lastRow = items.at(-1)?.index ?? 0;
 
@@ -369,6 +387,55 @@ export default function DataGrid({
 
     return true;
   };
+
+  // What the editor of a cell does, as of this draw. The rows are handed the
+  // actions below, which read it when they run, so they stay the same object
+  // and a row that is not being edited is not drawn again for them.
+  const editorActionsRef = useRef<CellEditorActions | null>(null);
+
+  useLayoutEffect(() => {
+    editorActionsRef.current = {
+      onChange: (text) => {
+        const current = editingRef.current;
+
+        if (current) {
+          setEditing({ ...current, text, error: null });
+        }
+      },
+      onKeyDown: (event) => {
+        const current = editingRef.current;
+
+        event.stopPropagation();
+
+        if (event.key === 'Enter' && commitEditing()) {
+          focusGrid();
+          event.preventDefault();
+        } else if (event.key === 'Tab' && current && commitEditing()) {
+          event.preventDefault();
+          focusGrid();
+          moveTo(current.row, current.col + (event.shiftKey ? -1 : 1), false);
+        } else if (event.key === 'Escape') {
+          setEditing(null);
+          focusGrid();
+        }
+      },
+      onBlur: () => {
+        // A value that does not read is dropped rather than kept half typed
+        if (!commitEditing()) {
+          setEditing(null);
+        }
+      },
+    };
+  });
+
+  const editor = useMemo<CellEditorActions>(
+    () => ({
+      onChange: (text) => editorActionsRef.current?.onChange(text),
+      onKeyDown: (event) => editorActionsRef.current?.onKeyDown(event),
+      onBlur: () => editorActionsRef.current?.onBlur(),
+    }),
+    [],
+  );
 
   const copyRows = async (): Promise<void> => {
     const rows = selectedRows(COPY_LIMIT);
@@ -830,7 +897,7 @@ export default function DataGrid({
               <div className="grid__corner" role="columnheader" style={{ width: GUTTER_WIDTH }}>
                 #
               </div>
-              {spacer(leftPad, 'left')}
+              <GridSpacer width={leftPad} />
               {shownColumns.map(({ column, col }) => {
                 const sorted = sort.findIndex((key) => key.field === column.name);
                 const sortKey = sort[sorted];
@@ -894,115 +961,29 @@ export default function DataGrid({
                   </div>
                 );
               })}
-              {spacer(rightPad, 'right')}
+              <GridSpacer width={rightPad} />
             </div>
-            {items.map((item) => {
-              const row = rowAt(item.index);
-              const isSelected = contains(selection, item.index);
-
-              return (
-                <div
-                  key={item.key}
-                  ref={virtualizer.measureElement}
-                  data-index={item.index}
-                  data-row={item.index}
-                  className={[
-                    'grid__row',
-                    item.index % 2 === 1 ? 'grid__row--odd' : '',
-                    isSelected ? 'grid__row--selected' : '',
-                    row ? `grid__row--${row.state}` : 'grid__row--loading',
-                  ].join(' ')}
-                  role="row"
-                  aria-rowindex={item.index + 2}
-                  aria-selected={isSelected}
-                  style={{ width: totalWidth, transform: `translateY(${item.start}px)` }}
-                >
-                  <div className="grid__gutter" role="rowheader" style={{ width: GUTTER_WIDTH }}>
-                    {item.index + 1}
-                  </div>
-                  {spacer(leftPad, 'left')}
-                  {shownColumns.map(({ column, col }) => {
-                    const isActive = active?.row === item.index && active.col === col;
-                    const isEditing = editing?.row === item.index && editing.col === col;
-                    const value = row ? (row.values[column.name] ?? null) : undefined;
-                    const changed = row?.changed.has(column.name) ?? false;
-
-                    return (
-                      <div
-                        key={column.name}
-                        data-col={col}
-                        className={[
-                          'grid__cell',
-                          column.type.kind === 'int' || column.type.kind === 'float'
-                            ? 'grid__cell--number'
-                            : '',
-                          isActive ? 'grid__cell--active' : '',
-                          changed ? 'grid__cell--changed' : '',
-                          isEditing ? 'grid__cell--editing' : '',
-                        ].join(' ')}
-                        role="gridcell"
-                        aria-colindex={col + 2}
-                        aria-selected={isSelected}
-                        style={{ width: widthOf(column) }}
-                      >
-                        {isEditing && editing ? (
-                          <input
-                            className="grid__editor"
-                            data-testid="cell-editor"
-                            aria-label={column.name}
-                            aria-invalid={editing.error !== null}
-                            title={editing.error ?? undefined}
-                            // Opened by the user to type into, so it takes the focus
-                            // eslint-disable-next-line jsx-a11y/no-autofocus
-                            autoFocus
-                            value={editing.text}
-                            placeholder={column.optional ? 'null' : ''}
-                            onChange={(event) =>
-                              setEditing({ ...editing, text: event.target.value, error: null })
-                            }
-                            onMouseDown={(event) => event.stopPropagation()}
-                            onKeyDown={(event) => {
-                              event.stopPropagation();
-
-                              if (event.key === 'Enter' && commitEditing()) {
-                                focusGrid();
-                                event.preventDefault();
-                              } else if (event.key === 'Tab' && commitEditing()) {
-                                event.preventDefault();
-                                focusGrid();
-                                moveTo(item.index, col + (event.shiftKey ? -1 : 1), false);
-                              } else if (event.key === 'Escape') {
-                                setEditing(null);
-                                focusGrid();
-                              }
-                            }}
-                            onBlur={() => {
-                              // A value that does not read is dropped rather than kept half typed
-                              if (!commitEditing()) {
-                                setEditing(null);
-                              }
-                            }}
-                          />
-                        ) : value === undefined || !row ? (
-                          <span className="grid__placeholder" />
-                        ) : (
-                          <NestedValue
-                            value={value}
-                            type={column.type}
-                            open={open}
-                            // By the object rather than its place, which a delete or a sort changes
-                            path={`${identityOf(row)}:${column.name}`}
-                            onToggle={toggleOpen}
-                            texts={cellTexts}
-                          />
-                        )}
-                      </div>
-                    );
-                  })}
-                  {spacer(rightPad, 'right')}
-                </div>
-              );
-            })}
+            {items.map((item) => (
+              <GridRowView
+                key={item.key}
+                index={item.index}
+                start={item.start}
+                row={rowAt(item.index)}
+                columns={shownColumns}
+                widths={widths}
+                width={totalWidth}
+                leftPad={leftPad}
+                rightPad={rightPad}
+                selected={contains(selection, item.index)}
+                activeCol={active?.row === item.index ? active.col : null}
+                editing={editing?.row === item.index ? editing : null}
+                open={open}
+                texts={cellTexts}
+                editor={editor}
+                onToggle={toggleOpen}
+                measure={virtualizer.measureElement}
+              />
+            ))}
           </div>
           {rowCount === 0 && <div className="grid__empty">{empty}</div>}
         </div>

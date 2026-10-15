@@ -9,6 +9,7 @@ import {
   unstageInsert,
   viewOf,
 } from '../../src/renderer/project/pending';
+import { rowMaker } from '../../src/renderer/project/gridRows';
 import {
   between,
   clamp,
@@ -161,6 +162,29 @@ test('Held edits fold into one change per object', () => {
   expect(changesOf(unstageInsert(pending, inserted.id))).toEqual([
     { kind: 'delete', collection: 'users', key: 1 },
   ]);
+});
+
+test('A grid row is made once while the held edits stay the same', () => {
+  const read = { id: 1, age: 30 };
+  const other = { id: 2, age: 40 };
+  const pending = stageUpdate([], 'users', 1, { age: 31 });
+  const rows = rowMaker(users, viewOf(pending, 'users'));
+
+  expect(rows.saved(read)).toBe(rows.saved(read));
+  expect(rows.saved(read)).toMatchObject({ state: 'changed', values: { id: 1, age: 31 } });
+  expect(rows.saved(other)).toMatchObject({ state: 'saved', values: other });
+
+  // Other held edits make every row anew
+  const next = rowMaker(users, viewOf(stageDelete(pending, 'users', 2), 'users'));
+
+  expect(next.saved(read)).not.toBe(rows.saved(read));
+  expect(next.saved(other).state).toBe('deleted');
+
+  const { inserted } = viewOf(stageInsert([], 'users', { age: 5 }).pending, 'users');
+  const added = rowMaker(users, viewOf([], 'users'));
+
+  expect(added.inserted(inserted[0])).toBe(added.inserted(inserted[0]));
+  expect(added.inserted(inserted[0]).state).toBe('new');
 });
 
 test('A selection keeps its rows as ranges', () => {

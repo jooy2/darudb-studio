@@ -9,7 +9,7 @@ import type { GridColumn } from '@/renderer/components/grid/columns';
 import { useMenuModel } from '@/renderer/components/menu/MenuModelContext';
 import useEditTexts from '@/renderer/components/project/useEditTexts';
 import useTransfer from '@/renderer/components/project/useTransfer';
-import { keysOf, savedRow } from '@/renderer/project/gridRows';
+import { keysOf, rowMaker } from '@/renderer/project/gridRows';
 import { viewOf } from '@/renderer/project/pending';
 import {
   deleteObjects,
@@ -91,10 +91,12 @@ export default function QueryTab({ tab, active }: { tab: WorkspaceTab; active: b
     }));
   };
 
+  const made = useMemo(() => (collection ? rowMaker(collection, view) : null), [collection, view]);
+
   const rowAt = useCallback(
     (index: number): GridRow | undefined =>
-      collection && rows[index] ? savedRow(collection, rows[index], view) : undefined,
-    [collection, rows, view],
+      made && rows[index] ? made.saved(rows[index]) : undefined,
+    [made, rows],
   );
 
   const handleSelection = useCallback(

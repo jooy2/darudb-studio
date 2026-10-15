@@ -26,6 +26,9 @@ const DEFAULT_WIDTHS: Record<FieldType['kind'], number> = {
   object: 190,
 };
 
+// The column of row numbers on the left of a grid, which stays in view
+export const GUTTER_WIDTH = 56;
+
 export const MIN_COLUMN_WIDTH = 48;
 
 export const MAX_COLUMN_WIDTH = 900;

@@ -8,7 +8,7 @@ import ValueDialog from '@/renderer/components/grid/ValueDialog';
 import type { GridColumn } from '@/renderer/components/grid/columns';
 import useEditTexts from '@/renderer/components/project/useEditTexts';
 import useTransfer from '@/renderer/components/project/useTransfer';
-import { keysOf, newRow, savedRow } from '@/renderer/project/gridRows';
+import { keysOf, rowMaker } from '@/renderer/project/gridRows';
 import { viewOf } from '@/renderer/project/pending';
 import usePagedRows from '@/renderer/project/usePagedRows';
 import { keyLabel } from '@/common/values';
@@ -58,17 +58,19 @@ export default function CollectionTab({ tab, active }: { tab: WorkspaceTab; acti
   const rowCount = held + (paged.total ?? 0);
   const { rowAt: pagedRowAt, load } = paged;
 
+  const made = useMemo(() => (collection ? rowMaker(collection, view) : null), [collection, view]);
+
   const rowAt = useCallback(
     (index: number): GridRow | undefined => {
       if (index < held) {
-        return newRow(view.inserted[index]);
+        return made?.inserted(view.inserted[index]);
       }
 
       const row = pagedRowAt(index - held);
 
-      return row && collection ? savedRow(collection, row, view) : undefined;
+      return row && made ? made.saved(row) : undefined;
     },
-    [held, view, pagedRowAt, collection],
+    [held, view, pagedRowAt, made],
   );
 
   const handleRangeChange = useCallback(
