@@ -446,6 +446,33 @@ test('A query runs in a tab of its own', async ({ page, util }) => {
   }
 });
 
+test('A tab behind another reads the file again once it comes to the front', async ({
+  page,
+  util,
+}) => {
+  try {
+    const query = page.getByTestId('query-tab').filter({ visible: true });
+    const found = query.getByTestId('query-grid').locator('[data-row="0"] [data-col="1"]');
+
+    await query.getByTestId('query-text').fill('id == 10');
+    await query.getByTestId('btn-run-query').click();
+    await expect(found).toHaveText('user 10');
+
+    // Changed and read again while the query is behind the collection's tab
+    await page.getByTestId('tab').filter({ hasText: 'users' }).click();
+    await invokeMain(page, mainChannels.writeChanges, [
+      { kind: 'update', collection: 'users', key: 10, values: { name: 'Behind' } },
+    ]);
+    await sendMain(page, mainChannels.invokeMenuEntry, 'database.refresh');
+    await expect(page.getByTestId('object-count').filter({ visible: true })).toBeVisible();
+
+    await page.getByTestId('tab').filter({ hasText: 'Query' }).click();
+    await expect(found).toHaveText('Behind');
+  } catch (error) {
+    throw await util.onTestError(error);
+  }
+});
+
 test('Tabs split into groups, move between them and merge back', async ({ page, util }) => {
   try {
     const groups = page.getByTestId('tab-group');

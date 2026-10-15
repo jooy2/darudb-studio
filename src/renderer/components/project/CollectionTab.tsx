@@ -11,6 +11,7 @@ import useTransfer from '@/renderer/components/project/useTransfer';
 import { keysOf, rowMaker } from '@/renderer/project/gridRows';
 import { viewOf } from '@/renderer/project/pending';
 import usePagedRows from '@/renderer/project/usePagedRows';
+import useShownRevision from '@/renderer/project/useShownRevision';
 import { keyLabel } from '@/common/values';
 import {
   deleteObjects,
@@ -34,14 +35,27 @@ const titleOf = (collection: SchemaCollection, row: GridRow, newLabel: string): 
  * the grid go through the project's thunks, which write them at once or hold
  * them for a submit, and the objects held to be inserted come first.
  * */
-export default function CollectionTab({ tab, active }: { tab: WorkspaceTab; active: boolean }) {
+export default function CollectionTab({
+  tab,
+  active,
+  shown,
+}: {
+  tab: WorkspaceTab;
+  /* Whether the tab is in front of the focused group, which the status bar follows */
+  active: boolean;
+  /* Whether the tab is in front of its group, and so in view */
+  shown: boolean;
+}) {
   const [t] = useTranslation();
   const dispatch = useAppDispatch();
   const confirm = usePlConfirm();
   const texts = useEditTexts();
   const transfer = useTransfer();
   const collections = useAppSelector((state) => state.project.session?.schema?.collections ?? []);
-  const revision = useAppSelector((state) => state.project.revision);
+  const revision = useShownRevision(
+    useAppSelector((state) => state.project.revision),
+    shown,
+  );
   const pending = useAppSelector((state) => state.project.pending);
   const editMode = useAppSelector((state) => state.settings.editMode);
   const collection = collections.find((each) => each.name === tab.collection);

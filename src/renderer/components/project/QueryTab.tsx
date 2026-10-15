@@ -11,6 +11,7 @@ import useEditTexts from '@/renderer/components/project/useEditTexts';
 import useTransfer from '@/renderer/components/project/useTransfer';
 import { keysOf, rowMaker } from '@/renderer/project/gridRows';
 import { viewOf } from '@/renderer/project/pending';
+import useShownRevision from '@/renderer/project/useShownRevision';
 import {
   deleteObjects,
   editObject,
@@ -31,7 +32,17 @@ type TabDialog =
  * and the objects it finds in a grid that edits them as a collection tab does.
  * A query that ran is run again after every write, so its results stay true.
  * */
-export default function QueryTab({ tab, active }: { tab: WorkspaceTab; active: boolean }) {
+export default function QueryTab({
+  tab,
+  active,
+  shown,
+}: {
+  tab: WorkspaceTab;
+  /* Whether the tab is in front of the focused group, which the status bar follows */
+  active: boolean;
+  /* Whether the tab is in front of its group, and so in view */
+  shown: boolean;
+}) {
   const [t, i18n] = useTranslation();
   const dispatch = useAppDispatch();
   const confirm = usePlConfirm();
@@ -39,7 +50,10 @@ export default function QueryTab({ tab, active }: { tab: WorkspaceTab; active: b
   const transfer = useTransfer();
   const { platform } = useMenuModel();
   const collections = useAppSelector((state) => state.project.session?.schema?.collections ?? []);
-  const revision = useAppSelector((state) => state.project.revision);
+  const revision = useShownRevision(
+    useAppSelector((state) => state.project.revision),
+    shown,
+  );
   const pending = useAppSelector((state) => state.project.pending);
   const editMode = useAppSelector((state) => state.settings.editMode);
   const [text, setText] = useState(tab.text);

@@ -43,17 +43,19 @@ function TabIcon({ tab }: { tab: WorkspaceTab }) {
 const TabContent = memo(function TabContent({
   tab,
   active,
+  shown,
 }: {
   tab: WorkspaceTab;
   active: boolean;
+  shown: boolean;
 }) {
   switch (tab.kind) {
     case 'query':
-      return <QueryTab tab={tab} active={active} />;
+      return <QueryTab tab={tab} active={active} shown={shown} />;
     case 'tools':
       return <ToolsTab />;
     default:
-      return <CollectionTab tab={tab} active={active} />;
+      return <CollectionTab tab={tab} active={active} shown={shown} />;
   }
 });
 
@@ -271,7 +273,11 @@ function GroupView({ group, index, groupCount, focused, dragging, onDragging }: 
               aria-labelledby={`tab-${tabId}`}
               hidden={group.activeTabId !== tabId}
             >
-              <TabContent tab={tabs[tabId]} active={focused && group.activeTabId === tabId} />
+              <TabContent
+                tab={tabs[tabId]}
+                active={focused && group.activeTabId === tabId}
+                shown={group.activeTabId === tabId}
+              />
             </div>
           ) : null,
         )}
