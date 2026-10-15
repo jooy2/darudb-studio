@@ -207,31 +207,35 @@ export default function SchemaTree({ onAddObject }: SchemaTreeProps) {
           onClick={() => void dispatch(loadCounts())}
         />
       </div>
-      <PlContextMenu size="sm" content={menu} className="sidebar__tree-frame">
-        <div
-          className="sidebar__tree"
-          onContextMenu={(event) => {
-            const element = (event.target as HTMLElement).closest<HTMLElement>('[data-collection]');
+      <div className="sidebar__tree-frame">
+        <PlContextMenu size="sm" content={menu}>
+          <div
+            className="sidebar__tree"
+            onContextMenu={(event) => {
+              const element = (event.target as HTMLElement).closest<HTMLElement>(
+                '[data-collection]',
+              );
 
-            setMenuCollection(element?.dataset.collection ?? null);
-          }}
-        >
-          <PlTree
-            size="sm"
-            density="compact"
-            items={items}
-            selection="single"
-            selected={activeCollection ? [`collection:${activeCollection}`] : []}
-            onItemClick={(node) => {
-              const [, collection] = node.id.split(':');
-
-              if (collection) {
-                dispatch(openCollection({ collection }));
-              }
+              setMenuCollection(element?.dataset.collection ?? null);
             }}
-          />
-        </div>
-      </PlContextMenu>
+          >
+            <PlTree
+              size="sm"
+              density="compact"
+              items={items}
+              selection="single"
+              selected={activeCollection ? [`collection:${activeCollection}`] : []}
+              onItemClick={(node) => {
+                const [, collection] = node.id.split(':');
+
+                if (collection) {
+                  dispatch(openCollection({ collection }));
+                }
+              }}
+            />
+          </div>
+        </PlContextMenu>
+      </div>
     </aside>
   );
 }

@@ -154,100 +154,102 @@ function GroupView({ group, index, groupCount, focused, dragging, onDragging }: 
       onFocusCapture={() => dispatch(focusGroup(group.id))}
       onMouseDownCapture={() => dispatch(focusGroup(group.id))}
     >
-      <PlContextMenu size="sm" content={menu} className="tab-strip-frame">
-        <div
-          className="tab-strip"
-          // Drops and the context menu land on the strip around the tabs
-          onContextMenu={(event) => {
-            const element = (event.target as HTMLElement).closest<HTMLElement>('[data-tab-id]');
+      <div className="tab-strip-frame">
+        <PlContextMenu size="sm" content={menu}>
+          <div
+            className="tab-strip"
+            // Drops and the context menu land on the strip around the tabs
+            onContextMenu={(event) => {
+              const element = (event.target as HTMLElement).closest<HTMLElement>('[data-tab-id]');
 
-            setMenuTab(element?.dataset.tabId ?? null);
-          }}
-          onDragOver={(event) => {
-            if (isTabDrag(event)) {
-              event.preventDefault();
-              setDropAt(dropIndex(event));
-            }
-          }}
-          onDragLeave={() => setDropAt(null)}
-          onDrop={(event) => {
-            const tabId = event.dataTransfer.getData(TAB_DRAG_TYPE);
+              setMenuTab(element?.dataset.tabId ?? null);
+            }}
+            onDragOver={(event) => {
+              if (isTabDrag(event)) {
+                event.preventDefault();
+                setDropAt(dropIndex(event));
+              }
+            }}
+            onDragLeave={() => setDropAt(null)}
+            onDrop={(event) => {
+              const tabId = event.dataTransfer.getData(TAB_DRAG_TYPE);
 
-            if (tabId) {
-              event.preventDefault();
-              dispatch(moveTab({ tabId, groupId: group.id, index: dropIndex(event) }));
-            }
-
-            setDropAt(null);
-          }}
-        >
-          <div className="tab-strip__tabs" role="tablist" aria-label={t('workspace.tabs')}>
-            {group.tabIds.map((tabId, at) => {
-              const tab = tabs[tabId];
-
-              if (!tab) {
-                return null;
+              if (tabId) {
+                event.preventDefault();
+                dispatch(moveTab({ tabId, groupId: group.id, index: dropIndex(event) }));
               }
 
-              const active = group.activeTabId === tabId;
-              const title = titleOf(tab);
+              setDropAt(null);
+            }}
+          >
+            <div className="tab-strip__tabs" role="tablist" aria-label={t('workspace.tabs')}>
+              {group.tabIds.map((tabId, at) => {
+                const tab = tabs[tabId];
 
-              return (
-                <div
-                  key={tabId}
-                  id={`tab-${tabId}`}
-                  className={[
-                    'tab',
-                    active ? 'tab--active' : '',
-                    dropAt === at ? 'tab--drop-before' : '',
-                    dragging === tabId ? 'tab--dragging' : '',
-                  ].join(' ')}
-                  data-tab-id={tabId}
-                  data-testid="tab"
-                  role="tab"
-                  aria-selected={active}
-                  aria-controls={`panel-${tabId}`}
-                  tabIndex={active ? 0 : -1}
-                  draggable
-                  title={title}
-                  onClick={() => dispatch(activateTab(tabId))}
-                  onKeyDown={(event) => handleTabKeyDown(event, tabId)}
-                  onAuxClick={(event) => {
-                    // A middle click closes a tab, as in a browser
-                    if (event.button === 1) {
-                      dispatch(closeTab(tabId));
-                    }
-                  }}
-                  onDragStart={(event) => {
-                    event.dataTransfer.setData(TAB_DRAG_TYPE, tabId);
-                    event.dataTransfer.effectAllowed = 'move';
-                    onDragging(tabId);
-                  }}
-                  onDragEnd={() => onDragging(null)}
-                >
-                  <TabIcon tab={tab} />
-                  <span className="tab__title">{title}</span>
-                  <button
-                    type="button"
-                    className="tab__close"
-                    aria-label={t('workspace.close', { title })}
-                    tabIndex={-1}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      dispatch(closeTab(tabId));
+                if (!tab) {
+                  return null;
+                }
+
+                const active = group.activeTabId === tabId;
+                const title = titleOf(tab);
+
+                return (
+                  <div
+                    key={tabId}
+                    id={`tab-${tabId}`}
+                    className={[
+                      'tab',
+                      active ? 'tab--active' : '',
+                      dropAt === at ? 'tab--drop-before' : '',
+                      dragging === tabId ? 'tab--dragging' : '',
+                    ].join(' ')}
+                    data-tab-id={tabId}
+                    data-testid="tab"
+                    role="tab"
+                    aria-selected={active}
+                    aria-controls={`panel-${tabId}`}
+                    tabIndex={active ? 0 : -1}
+                    draggable
+                    title={title}
+                    onClick={() => dispatch(activateTab(tabId))}
+                    onKeyDown={(event) => handleTabKeyDown(event, tabId)}
+                    onAuxClick={(event) => {
+                      // A middle click closes a tab, as in a browser
+                      if (event.button === 1) {
+                        dispatch(closeTab(tabId));
+                      }
                     }}
+                    onDragStart={(event) => {
+                      event.dataTransfer.setData(TAB_DRAG_TYPE, tabId);
+                      event.dataTransfer.effectAllowed = 'move';
+                      onDragging(tabId);
+                    }}
+                    onDragEnd={() => onDragging(null)}
                   >
-                    <X aria-hidden="true" />
-                  </button>
-                </div>
-              );
-            })}
+                    <TabIcon tab={tab} />
+                    <span className="tab__title">{title}</span>
+                    <button
+                      type="button"
+                      className="tab__close"
+                      aria-label={t('workspace.close', { title })}
+                      tabIndex={-1}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        dispatch(closeTab(tabId));
+                      }}
+                    >
+                      <X aria-hidden="true" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            <span
+              className={`tab-strip__end${dropAt === group.tabIds.length ? ' tab-strip__end--drop' : ''}`}
+            />
           </div>
-          <span
-            className={`tab-strip__end${dropAt === group.tabIds.length ? ' tab-strip__end--drop' : ''}`}
-          />
-        </div>
-      </PlContextMenu>
+        </PlContextMenu>
+      </div>
       <div className="tab-group__body">
         {group.tabIds.map((tabId) =>
           tabs[tabId] ? (

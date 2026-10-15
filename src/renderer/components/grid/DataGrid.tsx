@@ -789,211 +789,223 @@ export default function DataGrid({
   );
 
   return (
-    <PlContextMenu size="sm" content={menu} className="grid-frame">
-      <div
-        ref={scrollRef}
-        className="grid"
-        data-testid={testId}
-        role="grid"
-        aria-rowcount={rowCount + 1}
-        aria-colcount={columns.length + 1}
-        aria-multiselectable="true"
-        aria-label={collection.name}
-        // A grid is one stop of the Tab key; the arrows move inside it
-        tabIndex={0}
-        onKeyDown={handleKeyDown}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onDoubleClick={(event) => {
-          const { row, col } = cellAt(event.target);
-
-          if (row !== undefined && col !== undefined) {
-            startEditing({ row, col });
-          }
-        }}
-        onContextMenu={handleContextMenu}
-      >
+    // The frame is outside the menu: a class given to `PlContextMenu` goes to
+    // its popup, not to the element around the grid
+    <div className="grid-frame">
+      <PlContextMenu size="sm" content={menu}>
         <div
-          className="grid__canvas"
-          style={{ width: totalWidth, height: virtualizer.getTotalSize() }}
+          ref={scrollRef}
+          className="grid"
+          data-testid={testId}
+          role="grid"
+          aria-rowcount={rowCount + 1}
+          aria-colcount={columns.length + 1}
+          aria-multiselectable="true"
+          aria-label={collection.name}
+          // A grid is one stop of the Tab key; the arrows move inside it
+          tabIndex={0}
+          onKeyDown={handleKeyDown}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onDoubleClick={(event) => {
+            const { row, col } = cellAt(event.target);
+
+            if (row !== undefined && col !== undefined) {
+              startEditing({ row, col });
+            }
+          }}
+          onContextMenu={handleContextMenu}
         >
-          <div className="grid__header" role="row" aria-rowindex={1} style={{ width: totalWidth }}>
-            <div className="grid__corner" role="columnheader" style={{ width: GUTTER_WIDTH }}>
-              #
+          <div
+            className="grid__canvas"
+            style={{ width: totalWidth, height: virtualizer.getTotalSize() }}
+          >
+            <div
+              className="grid__header"
+              role="row"
+              aria-rowindex={1}
+              style={{ width: totalWidth }}
+            >
+              <div className="grid__corner" role="columnheader" style={{ width: GUTTER_WIDTH }}>
+                #
+              </div>
+              {spacer(leftPad, 'left')}
+              {shownColumns.map(({ column, col }) => {
+                const sorted = sort.findIndex((key) => key.field === column.name);
+                const sortKey = sort[sorted];
+
+                return (
+                  <div
+                    key={column.name}
+                    className="grid__head"
+                    role="columnheader"
+                    aria-colindex={col + 2}
+                    aria-sort={
+                      sortKey ? (sortKey.descending ? 'descending' : 'ascending') : undefined
+                    }
+                    title={`${column.name}: ${typeName(column.type)}${column.optional ? '?' : ''}`}
+                    style={{ width: widthOf(column) }}
+                  >
+                    <button
+                      type="button"
+                      className="grid__head-button"
+                      disabled={!column.sortable || !onSortChange}
+                      // Sorting is the mouse's and the Enter key's; the grid keeps the focus
+                      tabIndex={-1}
+                      onClick={(event) => handleSort(column, event.shiftKey)}
+                    >
+                      {column.isKey && <KeyRound className="grid__head-icon" aria-hidden="true" />}
+                      {!column.isKey && column.index && (
+                        <Zap
+                          className="grid__head-icon grid__head-icon--index"
+                          aria-hidden="true"
+                        />
+                      )}
+                      <span className="grid__head-name">{column.name}</span>
+                      <span className="grid__head-type">
+                        {typeName(column.type)}
+                        {column.optional ? '?' : ''}
+                      </span>
+                      {sortKey && (
+                        <span className="grid__sort">
+                          {sortKey.descending ? (
+                            <ArrowDown aria-hidden="true" />
+                          ) : (
+                            <ArrowUp aria-hidden="true" />
+                          )}
+                          {sort.length > 1 ? sorted + 1 : ''}
+                        </span>
+                      )}
+                    </button>
+                    <span
+                      className="grid__resize"
+                      aria-hidden="true"
+                      onPointerDown={(event) => startResize(event, column)}
+                      onClick={(event) => event.stopPropagation()}
+                      onDoubleClick={(event) => {
+                        event.stopPropagation();
+                        const { [column.name]: _reset, ...rest } = widths;
+
+                        setWidths(rest);
+                        onWidthsChange?.(rest);
+                      }}
+                    />
+                  </div>
+                );
+              })}
+              {spacer(rightPad, 'right')}
             </div>
-            {spacer(leftPad, 'left')}
-            {shownColumns.map(({ column, col }) => {
-              const sorted = sort.findIndex((key) => key.field === column.name);
-              const sortKey = sort[sorted];
+            {items.map((item) => {
+              const row = rowAt(item.index);
+              const isSelected = contains(selection, item.index);
 
               return (
                 <div
-                  key={column.name}
-                  className="grid__head"
-                  role="columnheader"
-                  aria-colindex={col + 2}
-                  aria-sort={
-                    sortKey ? (sortKey.descending ? 'descending' : 'ascending') : undefined
-                  }
-                  title={`${column.name}: ${typeName(column.type)}${column.optional ? '?' : ''}`}
-                  style={{ width: widthOf(column) }}
+                  key={item.key}
+                  ref={virtualizer.measureElement}
+                  data-index={item.index}
+                  data-row={item.index}
+                  className={[
+                    'grid__row',
+                    item.index % 2 === 1 ? 'grid__row--odd' : '',
+                    isSelected ? 'grid__row--selected' : '',
+                    row ? `grid__row--${row.state}` : 'grid__row--loading',
+                  ].join(' ')}
+                  role="row"
+                  aria-rowindex={item.index + 2}
+                  aria-selected={isSelected}
+                  style={{ width: totalWidth, transform: `translateY(${item.start}px)` }}
                 >
-                  <button
-                    type="button"
-                    className="grid__head-button"
-                    disabled={!column.sortable || !onSortChange}
-                    // Sorting is the mouse's and the Enter key's; the grid keeps the focus
-                    tabIndex={-1}
-                    onClick={(event) => handleSort(column, event.shiftKey)}
-                  >
-                    {column.isKey && <KeyRound className="grid__head-icon" aria-hidden="true" />}
-                    {!column.isKey && column.index && (
-                      <Zap className="grid__head-icon grid__head-icon--index" aria-hidden="true" />
-                    )}
-                    <span className="grid__head-name">{column.name}</span>
-                    <span className="grid__head-type">
-                      {typeName(column.type)}
-                      {column.optional ? '?' : ''}
-                    </span>
-                    {sortKey && (
-                      <span className="grid__sort">
-                        {sortKey.descending ? (
-                          <ArrowDown aria-hidden="true" />
-                        ) : (
-                          <ArrowUp aria-hidden="true" />
-                        )}
-                        {sort.length > 1 ? sorted + 1 : ''}
-                      </span>
-                    )}
-                  </button>
-                  <span
-                    className="grid__resize"
-                    aria-hidden="true"
-                    onPointerDown={(event) => startResize(event, column)}
-                    onClick={(event) => event.stopPropagation()}
-                    onDoubleClick={(event) => {
-                      event.stopPropagation();
-                      const { [column.name]: _reset, ...rest } = widths;
+                  <div className="grid__gutter" role="rowheader" style={{ width: GUTTER_WIDTH }}>
+                    {item.index + 1}
+                  </div>
+                  {spacer(leftPad, 'left')}
+                  {shownColumns.map(({ column, col }) => {
+                    const isActive = active?.row === item.index && active.col === col;
+                    const isEditing = editing?.row === item.index && editing.col === col;
+                    const value = row ? (row.values[column.name] ?? null) : undefined;
+                    const changed = row?.changed.has(column.name) ?? false;
 
-                      setWidths(rest);
-                      onWidthsChange?.(rest);
-                    }}
-                  />
+                    return (
+                      <div
+                        key={column.name}
+                        data-col={col}
+                        className={[
+                          'grid__cell',
+                          column.type.kind === 'int' || column.type.kind === 'float'
+                            ? 'grid__cell--number'
+                            : '',
+                          isActive ? 'grid__cell--active' : '',
+                          changed ? 'grid__cell--changed' : '',
+                          isEditing ? 'grid__cell--editing' : '',
+                        ].join(' ')}
+                        role="gridcell"
+                        aria-colindex={col + 2}
+                        aria-selected={isSelected}
+                        style={{ width: widthOf(column) }}
+                      >
+                        {isEditing && editing ? (
+                          <input
+                            className="grid__editor"
+                            data-testid="cell-editor"
+                            aria-label={column.name}
+                            aria-invalid={editing.error !== null}
+                            title={editing.error ?? undefined}
+                            // Opened by the user to type into, so it takes the focus
+                            // eslint-disable-next-line jsx-a11y/no-autofocus
+                            autoFocus
+                            value={editing.text}
+                            placeholder={column.optional ? 'null' : ''}
+                            onChange={(event) =>
+                              setEditing({ ...editing, text: event.target.value, error: null })
+                            }
+                            onMouseDown={(event) => event.stopPropagation()}
+                            onKeyDown={(event) => {
+                              event.stopPropagation();
+
+                              if (event.key === 'Enter' && commitEditing()) {
+                                focusGrid();
+                                event.preventDefault();
+                              } else if (event.key === 'Tab' && commitEditing()) {
+                                event.preventDefault();
+                                focusGrid();
+                                moveTo(item.index, col + (event.shiftKey ? -1 : 1), false);
+                              } else if (event.key === 'Escape') {
+                                setEditing(null);
+                                focusGrid();
+                              }
+                            }}
+                            onBlur={() => {
+                              // A value that does not read is dropped rather than kept half typed
+                              if (!commitEditing()) {
+                                setEditing(null);
+                              }
+                            }}
+                          />
+                        ) : value === undefined || !row ? (
+                          <span className="grid__placeholder" />
+                        ) : (
+                          <NestedValue
+                            value={value}
+                            type={column.type}
+                            open={open}
+                            // By the object rather than its place, which a delete or a sort changes
+                            path={`${identityOf(row)}:${column.name}`}
+                            onToggle={toggleOpen}
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+                  {spacer(rightPad, 'right')}
                 </div>
               );
             })}
-            {spacer(rightPad, 'right')}
           </div>
-          {items.map((item) => {
-            const row = rowAt(item.index);
-            const isSelected = contains(selection, item.index);
-
-            return (
-              <div
-                key={item.key}
-                ref={virtualizer.measureElement}
-                data-index={item.index}
-                data-row={item.index}
-                className={[
-                  'grid__row',
-                  item.index % 2 === 1 ? 'grid__row--odd' : '',
-                  isSelected ? 'grid__row--selected' : '',
-                  row ? `grid__row--${row.state}` : 'grid__row--loading',
-                ].join(' ')}
-                role="row"
-                aria-rowindex={item.index + 2}
-                aria-selected={isSelected}
-                style={{ width: totalWidth, transform: `translateY(${item.start}px)` }}
-              >
-                <div className="grid__gutter" role="rowheader" style={{ width: GUTTER_WIDTH }}>
-                  {item.index + 1}
-                </div>
-                {spacer(leftPad, 'left')}
-                {shownColumns.map(({ column, col }) => {
-                  const isActive = active?.row === item.index && active.col === col;
-                  const isEditing = editing?.row === item.index && editing.col === col;
-                  const value = row ? (row.values[column.name] ?? null) : undefined;
-                  const changed = row?.changed.has(column.name) ?? false;
-
-                  return (
-                    <div
-                      key={column.name}
-                      data-col={col}
-                      className={[
-                        'grid__cell',
-                        column.type.kind === 'int' || column.type.kind === 'float'
-                          ? 'grid__cell--number'
-                          : '',
-                        isActive ? 'grid__cell--active' : '',
-                        changed ? 'grid__cell--changed' : '',
-                        isEditing ? 'grid__cell--editing' : '',
-                      ].join(' ')}
-                      role="gridcell"
-                      aria-colindex={col + 2}
-                      aria-selected={isSelected}
-                      style={{ width: widthOf(column) }}
-                    >
-                      {isEditing && editing ? (
-                        <input
-                          className="grid__editor"
-                          data-testid="cell-editor"
-                          aria-label={column.name}
-                          aria-invalid={editing.error !== null}
-                          title={editing.error ?? undefined}
-                          // Opened by the user to type into, so it takes the focus
-                          // eslint-disable-next-line jsx-a11y/no-autofocus
-                          autoFocus
-                          value={editing.text}
-                          placeholder={column.optional ? 'null' : ''}
-                          onChange={(event) =>
-                            setEditing({ ...editing, text: event.target.value, error: null })
-                          }
-                          onMouseDown={(event) => event.stopPropagation()}
-                          onKeyDown={(event) => {
-                            event.stopPropagation();
-
-                            if (event.key === 'Enter' && commitEditing()) {
-                              focusGrid();
-                              event.preventDefault();
-                            } else if (event.key === 'Tab' && commitEditing()) {
-                              event.preventDefault();
-                              focusGrid();
-                              moveTo(item.index, col + (event.shiftKey ? -1 : 1), false);
-                            } else if (event.key === 'Escape') {
-                              setEditing(null);
-                              focusGrid();
-                            }
-                          }}
-                          onBlur={() => {
-                            // A value that does not read is dropped rather than kept half typed
-                            if (!commitEditing()) {
-                              setEditing(null);
-                            }
-                          }}
-                        />
-                      ) : value === undefined || !row ? (
-                        <span className="grid__placeholder" />
-                      ) : (
-                        <NestedValue
-                          value={value}
-                          type={column.type}
-                          open={open}
-                          // By the object rather than its place, which a delete or a sort changes
-                          path={`${identityOf(row)}:${column.name}`}
-                          onToggle={toggleOpen}
-                        />
-                      )}
-                    </div>
-                  );
-                })}
-                {spacer(rightPad, 'right')}
-              </div>
-            );
-          })}
+          {rowCount === 0 && <div className="grid__empty">{empty}</div>}
         </div>
-        {rowCount === 0 && <div className="grid__empty">{empty}</div>}
-      </div>
-    </PlContextMenu>
+      </PlContextMenu>
+    </div>
   );
 }
 

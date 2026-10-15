@@ -194,6 +194,46 @@ test('Rows are selected with the mouse and the keyboard', async ({ page, util })
   }
 });
 
+test('The grid scrolls itself and draws only the rows in view', async ({ page, util }) => {
+  try {
+    const grid = visibleGrid(page);
+    const drawn = () => grid.locator('[role="row"][data-row]').count();
+
+    // As tall as the tab leaves it, rather than as tall as its rows
+    expect(await grid.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(
+      true,
+    );
+    expect(await drawn()).toBeLessThan(100);
+
+    // The arrow keys move the active row past the bottom, and the grid follows it
+    await cell(page, 0, 'name').click();
+
+    for (let step = 0; step < 60; step += 1) {
+      await page.keyboard.press('ArrowDown');
+    }
+
+    await expect(cell(page, 60, 'name')).toHaveClass(/grid__cell--active/);
+    await expect(cell(page, 60, 'name')).toBeInViewport();
+    await expect(grid.getByRole('columnheader', { name: /^name/ })).toBeInViewport();
+    expect(await drawn()).toBeLessThan(100);
+
+    // The context menu lists its entries one under another
+    await cell(page, 60, 'name').click({ button: 'right' });
+
+    const first = await page.getByRole('menuitem', { name: 'Edit Object…' }).boundingBox();
+    const second = await page.getByRole('menuitem', { name: 'View Value…' }).boundingBox();
+
+    expect(second!.y).toBeGreaterThan(first!.y);
+    expect(second!.x).toBe(first!.x);
+    await page.keyboard.press('Escape');
+    await cell(page, 60, 'name').click();
+    await page.keyboard.press(`${MOD}+ArrowUp`);
+    await expect(cell(page, 0, 'name')).toBeInViewport();
+  } catch (error) {
+    throw await util.onTestError(error);
+  }
+});
+
 test('A cell is edited in place and written at once', async ({ page, util }) => {
   try {
     await cell(page, 0, 'name').dblclick();

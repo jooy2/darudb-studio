@@ -91,6 +91,14 @@
   flex: 1;
 }
 
+/* The element of the context menu around the tree, which fills the frame */
+.sidebar__tree-frame > div {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+}
+
 .sidebar__tree {
   min-width: 0;
   flex: 1;
@@ -401,6 +409,17 @@
 
 .grid-frame {
   display: flex;
+  min-height: 0;
+  flex: 1;
+}
+
+/*
+ * The element of the context menu around the grid, which fills the frame, so
+ * the grid is the one that scrolls and draws only the rows in view
+ * */
+.grid-frame > div {
+  display: flex;
+  min-width: 0;
   min-height: 0;
   flex: 1;
 }
