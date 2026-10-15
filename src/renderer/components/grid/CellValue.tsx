@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { bytesToHex, isBytes, isPlainObject, summarize } from '@/common/values';
@@ -8,7 +9,70 @@ import type { FieldType, Value } from '@/common/data';
  * and null each have their own, so a column reads at a glance. A list or an
  * embedded object shows a short summary, and opens in place, one level at a
  * time, as a list of its items or a table of its fields.
+ *
+ * A grid draws hundreds of these, so they take the words they show from
+ * `CellTexts`, made once for the grid, rather than each asking for them.
  * */
+
+/* The words the values show, in the window's language */
+export interface CellTexts {
+  expand: string;
+  collapse: string;
+  emptyString: string;
+  noBytes: string;
+  items: (count: number) => string;
+  fields: (count: number) => string;
+  bytes: (count: number) => string;
+}
+
+/* `make`, kept for each count it was asked for, since a grid asks for the same few again and again */
+const byCount = (make: (count: number) => string): ((count: number) => string) => {
+  const made = new Map<number, string>();
+
+  return (count) => {
+    let text = made.get(count);
+
+    if (text === undefined) {
+      text = make(count);
+      made.set(count, text);
+    }
+
+    return text;
+  };
+};
+
+/* The words of the values, the same object until the language changes */
+export const useCellTexts = (): CellTexts => {
+  const [t] = useTranslation();
+
+  return useMemo(
+    () => ({
+      expand: t('grid.expand'),
+      collapse: t('grid.collapse'),
+      emptyString: t('grid.empty-string'),
+      noBytes: t('grid.no-bytes'),
+      items: byCount((count) => t('grid.items', { count })),
+      fields: byCount((count) => t('grid.fields', { count })),
+      bytes: byCount((count) => t('grid.bytes', { count })),
+    }),
+    [t],
+  );
+};
+
+// The summaries of the lists and objects drawn so far, by the value. A value
+// read from the file is never changed in place, and an edit makes a new one.
+const summaries = new WeakMap<object, string>();
+
+const summaryOf = (value: object): string => {
+  let summary = summaries.get(value);
+
+  if (summary === undefined) {
+    summary = summarize(value as Value, 60);
+    summaries.set(value, summary);
+  }
+
+  return summary;
+};
 
 const elementType = (type: FieldType | null): FieldType | null =>
   type?.kind === 'list' ? type.element : null;
@@ -45,9 +109,14 @@ const toneOf = (value: Value, type: FieldType | null): string => {
   return 'value--string';
 };
 
+interface ScalarValueProps {
+  value: Value;
+  type: FieldType | null;
+  texts: CellTexts;
+}
+
 /* A value of one piece, on one line */
-export function ScalarValue({ value, type }: { value: Value; type: FieldType | null }) {
-  const [t] = useTranslation();
+export function ScalarValue({ value, type, texts }: ScalarValueProps) {
   const tone = toneOf(value, type);
 
   if (value === null) {
@@ -56,15 +125,15 @@ export function ScalarValue({ value, type }: { value: Value; type: FieldType | n
 
   if (isBytes(value)) {
     return (
-      <span className={`value ${tone}`} title={t('grid.bytes', { count: value.length })}>
-        {value.length === 0 ? t('grid.no-bytes') : bytesToHex(value.subarray(0, 24), true)}
+      <span className={`value ${tone}`} title={texts.bytes(value.length)}>
+        {value.length === 0 ? texts.noBytes : bytesToHex(value.subarray(0, 24), true)}
         {value.length > 24 ? ' …' : ''}
       </span>
     );
   }
 
   if (typeof value === 'string' && value === '') {
-    return <span className="value value--empty">{t('grid.empty-string')}</span>;
+    return <span className="value value--empty">{texts.emptyString}</span>;
   }
 
   return (
@@ -82,10 +151,11 @@ interface NestedValueProps {
   open: ReadonlySet<string>;
   path: string;
   onToggle: (path: string) => void;
+  texts: CellTexts;
 }
 
 /* The items of a list, or the fields of an object, under the summary that opens them */
-function NestedItems({ value, type, open, path, onToggle }: NestedValueProps) {
+function NestedItems({ value, type, open, path, onToggle, texts }: NestedValueProps) {
   const entries: [string, Value, FieldType | null][] = Array.isArray(value)
     ? value.map((item, index) => [String(index), item, elementType(type)])
     : Object.entries(value as Record<string, Value>).map(([name, item]) => [
@@ -106,6 +176,7 @@ function NestedItems({ value, type, open, path, onToggle }: NestedValueProps) {
               open={open}
               path={path ? `${path}.${name}` : name}
               onToggle={onToggle}
+              texts={texts}
             />
           </dd>
         </div>
@@ -115,18 +186,14 @@ function NestedItems({ value, type, open, path, onToggle }: NestedValueProps) {
 }
 
 /* A value of any shape: a scalar as it is, a list or an object with its toggle */
-export function NestedValue({ value, type, open, path, onToggle }: NestedValueProps) {
-  const [t] = useTranslation();
-
+export function NestedValue({ value, type, open, path, onToggle, texts }: NestedValueProps) {
   if (!Array.isArray(value) && !isPlainObject(value)) {
-    return <ScalarValue value={value} type={type} />;
+    return <ScalarValue value={value} type={type} texts={texts} />;
   }
 
   const expanded = open.has(path);
   const size = Array.isArray(value) ? value.length : Object.keys(value).length;
-  const label = Array.isArray(value)
-    ? t('grid.items', { count: size })
-    : t('grid.fields', { count: size });
+  const label = Array.isArray(value) ? texts.items(size) : texts.fields(size);
 
   return (
     <span className="nested-value">
@@ -134,7 +201,7 @@ export function NestedValue({ value, type, open, path, onToggle }: NestedValuePr
         type="button"
         className="nested-value__toggle"
         aria-expanded={expanded}
-        aria-label={expanded ? t('grid.collapse') : t('grid.expand')}
+        aria-label={expanded ? texts.collapse : texts.expand}
         disabled={size === 0}
         // The row's own handlers select and edit; this click only opens the value
         onMouseDown={(event) => event.stopPropagation()}
@@ -147,10 +214,17 @@ export function NestedValue({ value, type, open, path, onToggle }: NestedValuePr
         {expanded ? <ChevronDown aria-hidden="true" /> : <ChevronRight aria-hidden="true" />}
       </button>
       <span className="value value--nested" title={label}>
-        {Array.isArray(value) ? `[${size}]` : `{${size}}`} {expanded ? '' : summarize(value, 60)}
+        {Array.isArray(value) ? `[${size}]` : `{${size}}`} {expanded ? '' : summaryOf(value)}
       </span>
       {expanded && (
-        <NestedItems value={value} type={type} open={open} path={path} onToggle={onToggle} />
+        <NestedItems
+          value={value}
+          type={type}
+          open={open}
+          path={path}
+          onToggle={onToggle}
+          texts={texts}
+        />
       )}
     </span>
   );

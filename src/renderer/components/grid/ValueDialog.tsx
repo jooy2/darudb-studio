@@ -1,12 +1,20 @@
 import { useTranslation } from 'react-i18next';
 import { Copy } from 'lucide-react';
 import { PlButton, PlModal } from 'plass-ui';
-import { ScalarValue } from '@/renderer/components/grid/CellValue';
+import { ScalarValue, useCellTexts, type CellTexts } from '@/renderer/components/grid/CellValue';
 import { bytesToHex, isBytes, isPlainObject, toJson } from '@/common/values';
 import type { FieldType, Value } from '@/common/data';
 
 /* A value laid out whole: a list as numbered items, an object as a table of its fields */
-function ValueView({ value, type }: { value: Value; type: FieldType | null }) {
+function ValueView({
+  value,
+  type,
+  texts,
+}: {
+  value: Value;
+  type: FieldType | null;
+  texts: CellTexts;
+}) {
   if (Array.isArray(value)) {
     const element = type?.kind === 'list' ? type.element : null;
 
@@ -17,7 +25,7 @@ function ValueView({ value, type }: { value: Value; type: FieldType | null }) {
         {value.map((item, index) => (
           // Items have no identity of their own but their place
           <li key={index}>
-            <ValueView value={item} type={element} />
+            <ValueView value={item} type={element} texts={texts} />
           </li>
         ))}
       </ol>
@@ -37,6 +45,7 @@ function ValueView({ value, type }: { value: Value; type: FieldType | null }) {
                 <ValueView
                   value={item}
                   type={fields.find((field) => field.name === name)?.type ?? null}
+                  texts={texts}
                 />
               </td>
             </tr>
@@ -61,7 +70,7 @@ function ValueView({ value, type }: { value: Value; type: FieldType | null }) {
     return <pre className="value-text">{value}</pre>;
   }
 
-  return <ScalarValue value={value} type={type} />;
+  return <ScalarValue value={value} type={type} texts={texts} />;
 }
 
 interface ValueDialogProps {
@@ -74,6 +83,7 @@ interface ValueDialogProps {
 /* One value of an object, in a dialog with the room a long string or a nested value needs */
 export default function ValueDialog({ title, value, type, onClose }: ValueDialogProps) {
   const [t] = useTranslation();
+  const texts = useCellTexts();
 
   return (
     <PlModal
@@ -105,7 +115,7 @@ export default function ValueDialog({ title, value, type, onClose }: ValueDialog
       }
     >
       <div className="value-view">
-        <ValueView value={value} type={type} />
+        <ValueView value={value} type={type} texts={texts} />
       </div>
     </PlModal>
   );

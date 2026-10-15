@@ -711,6 +711,11 @@
   max-width: 100%;
   align-items: center;
   gap: 0.125rem;
+  /*
+   * At the top of the line rather than on its baseline, where the toggle would
+   * make the line, and the row, taller than the grid takes a row to be
+   * */
+  vertical-align: top;
 }
 
 .nested-value:has(.nested) {

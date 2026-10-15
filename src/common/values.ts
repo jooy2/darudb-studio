@@ -194,16 +194,29 @@ const jsonable = (value: Value): unknown => {
  * `value` as JSON, indented when `indent` is given. A `bigint` is written as a
  * number with every digit, which JSON allows and `parseJson` reads back exactly.
  * */
+// A word no value holds, made as the module loads, which the digits of a `bigint` replace
+// once the text is written, and the pattern that finds it, compiled once
+const BIGINT_MARKER = `bigint-${Math.random().toString(36).slice(2)}:`;
+const BIGINT_PATTERN = new RegExp(`"${BIGINT_MARKER}(-?\\d+)"`, 'g');
+
 export const toJson = (value: Value, indent?: number): string => {
-  // A word no value holds, new for each call, which the digits replace once the text is written
-  const marker = `bigint-${Math.random().toString(36).slice(2)}:`;
+  let hasBigint = false;
   const text = JSON.stringify(
     jsonable(value),
-    (_key, each: unknown) => (typeof each === 'bigint' ? `${marker}${each}` : each),
+    (_key, each: unknown) => {
+      if (typeof each !== 'bigint') {
+        return each;
+      }
+
+      hasBigint = true;
+
+      return `${BIGINT_MARKER}${each}`;
+    },
     indent,
   );
 
-  return text.replace(new RegExp(`"${marker}(-?\\d+)"`, 'g'), '$1');
+  // Most values hold no `bigint`, and their text is not searched
+  return hasBigint ? text.replace(BIGINT_PATTERN, '$1') : text;
 };
 
 type JsonReviver = (key: string, value: unknown, context?: { source?: string }) => unknown;

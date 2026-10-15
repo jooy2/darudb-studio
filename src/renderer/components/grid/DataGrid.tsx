@@ -13,7 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ArrowDown, ArrowUp, KeyRound, Zap } from 'lucide-react';
 import { PlContextMenu, PlMenuItem, PlMenuSeparator, PlMenuSubmenu } from 'plass-ui';
-import { NestedValue, ScalarValue } from '@/renderer/components/grid/CellValue';
+import { NestedValue, ScalarValue, useCellTexts } from '@/renderer/components/grid/CellValue';
 import {
   columnsOf,
   defaultWidth,
@@ -155,6 +155,7 @@ export default function DataGrid({
   testId = 'data-grid',
 }: DataGridProps) {
   const [t] = useTranslation();
+  const cellTexts = useCellTexts();
   const { platform } = useMenuModel();
   const scrollRef = useRef<HTMLDivElement>(null);
   const columns = useMemo(() => columnsOf(collection), [collection]);
@@ -992,6 +993,7 @@ export default function DataGrid({
                             // By the object rather than its place, which a delete or a sort changes
                             path={`${identityOf(row)}:${column.name}`}
                             onToggle={toggleOpen}
+                            texts={cellTexts}
                           />
                         )}
                       </div>
