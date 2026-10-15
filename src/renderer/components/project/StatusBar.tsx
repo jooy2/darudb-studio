@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Lock, LockOpen } from 'lucide-react';
 import { formatBytes, splitPath } from '@/renderer/format';
@@ -8,7 +9,7 @@ import { useAppSelector } from '@/renderer/store/hooks';
  * front has selected, the edits held for a submit, and what the last action
  * did. The message is a live region, so a screen reader hears it.
  * */
-export default function StatusBar() {
+function StatusBar() {
   const [t, i18n] = useTranslation();
   const database = useAppSelector((state) => state.project.session?.database);
   const selection = useAppSelector((state) => state.project.selection);
@@ -54,3 +55,6 @@ export default function StatusBar() {
     </footer>
   );
 }
+
+// It reads what it shows from the store, and its parent draws again for the tab in front
+export default memo(StatusBar);

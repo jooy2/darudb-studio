@@ -1,4 +1,4 @@
-import { useEffect, useState, type DragEvent, type KeyboardEvent } from 'react';
+import { memo, useEffect, useState, type DragEvent, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Search, Table2, Wrench, X } from 'lucide-react';
 import { PlContextMenu, PlEmpty, PlMenuItem, PlMenuSeparator, PlPane, PlPanes } from 'plass-ui';
@@ -36,7 +36,17 @@ function TabIcon({ tab }: { tab: WorkspaceTab }) {
   }
 }
 
-function TabContent({ tab, active }: { tab: WorkspaceTab; active: boolean }) {
+/*
+ * What a tab shows, drawn again only when the tab itself changes or comes to
+ * the front, so switching tabs leaves the ones behind as they are
+ * */
+const TabContent = memo(function TabContent({
+  tab,
+  active,
+}: {
+  tab: WorkspaceTab;
+  active: boolean;
+}) {
   switch (tab.kind) {
     case 'query':
       return <QueryTab tab={tab} active={active} />;
@@ -45,7 +55,7 @@ function TabContent({ tab, active }: { tab: WorkspaceTab; active: boolean }) {
     default:
       return <CollectionTab tab={tab} active={active} />;
   }
-}
+});
 
 interface GroupViewProps {
   group: TabGroup;
@@ -302,7 +312,7 @@ function GroupView({ group, index, groupCount, focused, dragging, onDragging }: 
  * to the right edge of a group. The groups share the width, and their
  * borders move.
  * */
-export default function Workspace() {
+function Workspace() {
   const [t] = useTranslation();
   const groups = useAppSelector((state) => state.project.groups);
   const focusedGroupId = useAppSelector((state) => state.project.focusedGroupId);
@@ -368,3 +378,6 @@ export default function Workspace() {
     </PlPanes>
   );
 }
+
+// Its parent draws again for the tab in front, which the groups read themselves
+export default memo(Workspace);

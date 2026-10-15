@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { memo, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Binary,
@@ -65,7 +65,7 @@ interface SchemaTreeProps {
  * A click on a collection, or on one of its fields, opens the collection in a
  * tab; a right click offers the rest.
  * */
-export default function SchemaTree({ onAddObject }: SchemaTreeProps) {
+function SchemaTree({ onAddObject }: SchemaTreeProps) {
   const [t, i18n] = useTranslation();
   const dispatch = useAppDispatch();
   const schema = useAppSelector((state) => state.project.session?.schema ?? null);
@@ -239,3 +239,6 @@ export default function SchemaTree({ onAddObject }: SchemaTreeProps) {
     </aside>
   );
 }
+
+// It reads what it shows from the store, and its parent draws again for the tab in front
+export default memo(SchemaTree);

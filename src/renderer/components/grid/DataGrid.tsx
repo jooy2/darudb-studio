@@ -11,7 +11,12 @@ import {
   type ReactNode,
 } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useVirtualizer } from '@tanstack/react-virtual';
+import {
+  observeElementRect,
+  useVirtualizer,
+  type Rect,
+  type Virtualizer,
+} from '@tanstack/react-virtual';
 import { ArrowDown, ArrowUp, KeyRound, Zap } from 'lucide-react';
 import { PlContextMenu, PlMenuItem, PlMenuSeparator, PlMenuSubmenu } from 'plass-ui';
 import { ScalarValue, useCellTexts } from '@/renderer/components/grid/CellValue';
@@ -106,6 +111,21 @@ const PAGE_ROWS = 20;
 const COPY_LIMIT = 5000;
 
 type Cell = { row: number; col: number };
+
+/*
+ * The size of the grid, as its scroller reports it, leaving out the size of
+ * nothing that a grid in a tab behind another has: such a grid keeps the rows
+ * and columns it drew, and shows them again at once when its tab is in front
+ * */
+const observeShownRect = (
+  instance: Virtualizer<HTMLDivElement, Element>,
+  onChange: (rect: Rect) => void,
+) =>
+  observeElementRect(instance, (rect) => {
+    if (rect.width > 0 || rect.height > 0) {
+      onChange(rect);
+    }
+  });
 
 const isMac = navigator.platform.toLowerCase().includes('mac');
 const modKey = (event: { metaKey: boolean; ctrlKey: boolean }): boolean =>
@@ -223,14 +243,16 @@ export default function DataGrid({
   const virtualizer = useVirtualizer({
     count: rowCount,
     getScrollElement: () => scrollRef.current,
+    observeElementRect: observeShownRect,
     estimateSize: () => ROW_HEIGHT,
     // A row's height is read from what the resize observer reports, never from
     // the row as it is attached, which would lay the grid out once more for
-    // each row coming into view. Until it reports, a row is as tall as before.
+    // each row coming into view. Until it reports, a row is as tall as before,
+    // and so is a row in a tab behind another, which reports no height at all.
     measureElement: (element, entry, instance) => {
       const box = entry?.borderBoxSize[0];
 
-      if (box) {
+      if (box && box.blockSize > 0) {
         return Math.round(box.blockSize);
       }
 
@@ -250,6 +272,7 @@ export default function DataGrid({
     horizontal: true,
     count: windowed ? columns.length : 0,
     getScrollElement: () => scrollRef.current,
+    observeElementRect: observeShownRect,
     estimateSize: (index) => widthOf(columns[index]),
     overscan: 3,
     paddingStart: GUTTER_WIDTH,
