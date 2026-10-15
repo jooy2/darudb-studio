@@ -26,7 +26,8 @@ import type { Project } from '@/common/projects';
 import { isProjectView } from '@/common/settings';
 
 // How long the loading screen stays at the least, so a window that is ready at
-// once still shows it rather than flashing it
+// once still shows it rather than flashing it. A window coming back to the list
+// from a project shows the list it read before at once instead.
 const MIN_LOADING_MS = 600;
 
 /*
@@ -44,7 +45,7 @@ export default function MainScreen() {
   const [preparingSample, setPreparingSample] = useState(false);
   // The project dialog: open on a project to edit, or on none to create one
   const [editing, setEditing] = useState<{ project?: Project } | null>(null);
-  const [shownLongEnough, setShownLongEnough] = useState(false);
+  const [shownLongEnough, setShownLongEnough] = useState(projects !== null);
 
   // The opener of the latest render, for the restore below, which runs once
   const openerRef = useRef(opener);
