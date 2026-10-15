@@ -278,10 +278,16 @@ export const rememberPassword = async (id: number, password: string | null): Pro
 
 /* Records that the project was opened, which orders the list */
 export const markOpened = async (id: number): Promise<void> => {
+  // Made durable with the next commit or as the app quits rather than waiting
+  // for the disk here, which each project open would: losing it to a crash
+  // only changes the order of the list
   await queueWrite((store) =>
-    store.writeAsync(async (txn) => {
-      await txn.collection('projects').update(id, { lastOpenedAt: Date.now() });
-    }),
+    store.writeAsync(
+      async (txn) => {
+        await txn.collection('projects').update(id, { lastOpenedAt: Date.now() });
+      },
+      { durability: 'deferred' },
+    ),
   );
 };
 
