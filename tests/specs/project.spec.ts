@@ -272,6 +272,30 @@ test('A cell is edited in place and written at once', async ({ page, util }) => 
   }
 });
 
+test('A cell edited far down the grid shows what was written', async ({ page, util }) => {
+  try {
+    // A row on a page after the first, which a write reads again too, though
+    // the grid stays where it is and asks for no rows of its own
+    const grid = visibleGrid(page);
+
+    await grid.evaluate((element) => {
+      element.scrollTop = 470 * 24;
+    });
+    await expect(cell(page, 475, 'age')).toHaveText('45');
+    await cell(page, 475, 'age').dblclick();
+    await page.getByTestId('cell-editor').fill('77');
+    await page.getByTestId('cell-editor').press('Enter');
+    await expect(cell(page, 475, 'age')).toHaveText('77');
+    expect((await readUsers(page, 'id == 476'))[0].age).toBe(77);
+    await grid.evaluate((element) => {
+      element.scrollTop = 0;
+    });
+    await expect(cell(page, 0, 'name')).toBeInViewport();
+  } catch (error) {
+    throw await util.onTestError(error);
+  }
+});
+
 test('Lists and embedded objects open in place and in a dialog', async ({ page, util }) => {
   try {
     await cell(page, 0, 'tags').getByRole('button', { name: 'Expand' }).click();

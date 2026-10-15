@@ -46,6 +46,8 @@ export default function usePagedRows(request: PagedRowsRequest | null): PagedRow
   const stalePages = useRef(new Map<number, Row[]>());
   const reading = useRef(new Set<number>());
   const generation = useRef(0);
+  // The rows the grid last asked for, which a new revision reads again
+  const shownRange = useRef<{ start: number; end: number } | null>(null);
 
   const collection = request?.collection ?? null;
   const filter = request?.filter ?? '';
@@ -121,12 +123,26 @@ export default function usePagedRows(request: PagedRowsRequest | null): PagedRow
     [query, queryKey],
   );
 
+  /* Reads the pages that hold rows `start` to `end`, the ones it lacks */
+  const readRange = useCallback(
+    (start: number, end: number): void => {
+      const first = Math.floor(Math.max(0, start) / PAGE_SIZE);
+      const last = Math.floor(Math.max(0, end) / PAGE_SIZE);
+
+      for (let page = first; page <= last; page += 1) {
+        void readPage(page);
+      }
+    },
+    [readPage],
+  );
+
   // A new filter or sort: nothing read before holds
   useEffect(() => {
     generation.current += 1;
     pages.current = new Map();
     stalePages.current = new Map();
     reading.current = new Set();
+    shownRange.current = null;
     // `readPage` sets state only once its read answers, never during the effect
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void readPage(0);
@@ -145,8 +161,14 @@ export default function usePagedRows(request: PagedRowsRequest | null): PagedRow
     stalePages.current = new Map([...stalePages.current, ...pages.current]);
     pages.current = new Map();
     reading.current = new Set();
+    // The first page, for how many objects there are now, and the rows in view,
+    // which the grid does not ask for again while it stays where it is
     void readPage(0);
-  }, [revision, readPage]);
+
+    if (shownRange.current) {
+      readRange(shownRange.current.start, shownRange.current.end);
+    }
+  }, [revision, readPage, readRange]);
 
   const rowAt = useCallback((index: number): Row | undefined => {
     const page = Math.floor(index / PAGE_SIZE);
@@ -157,14 +179,10 @@ export default function usePagedRows(request: PagedRowsRequest | null): PagedRow
 
   const load = useCallback(
     (start: number, end: number): void => {
-      const first = Math.floor(Math.max(0, start) / PAGE_SIZE);
-      const last = Math.floor(Math.max(0, end) / PAGE_SIZE);
-
-      for (let page = first; page <= last; page += 1) {
-        void readPage(page);
-      }
+      shownRange.current = { start, end };
+      readRange(start, end);
     },
-    [readPage],
+    [readRange],
   );
 
   return { total: current?.total ?? null, error: current?.error ?? null, rowAt, load };
