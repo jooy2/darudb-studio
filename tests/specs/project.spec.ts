@@ -4,7 +4,7 @@ import { join } from 'path';
 import type { Locator, Page } from 'playwright';
 import { mainChannels } from '../../src/common/ipc';
 import type { FileCheck } from '../../src/common/projects';
-import type { PageResult, Row } from '../../src/common/data';
+import type { PageResult, Row, WriteResult } from '../../src/common/data';
 import { makeSampleDatabase, makeWideDatabase } from '../databases';
 import { invokeMain, sendMain } from '../ipc';
 import { test, expect, beforeAll, afterAll, getApp } from '../fixtures';
@@ -291,6 +291,53 @@ test('A cell edited far down the grid shows what was written', async ({ page, ut
       element.scrollTop = 0;
     });
     await expect(cell(page, 0, 'name')).toBeInViewport();
+  } catch (error) {
+    throw await util.onTestError(error);
+  }
+});
+
+test('A batch of changes is written whole, or not at all', async ({ page, util }) => {
+  try {
+    const write = (changes: unknown[]) =>
+      invokeMain<WriteResult>(page, mainChannels.writeChanges, changes);
+    const nameOf = async (id: number) => (await readUsers(page, `id == ${id}`))[0].name;
+
+    // The second change takes the email of another object, and the batch stops there
+    expect(
+      await write([
+        { kind: 'update', collection: 'users', key: 20, values: { name: 'First' } },
+        {
+          kind: 'insert',
+          collection: 'users',
+          object: { name: 'Twin', email: 'user21@example.com' },
+        },
+        { kind: 'update', collection: 'users', key: 22, values: { name: 'Third' } },
+      ]),
+    ).toMatchObject({ status: 'error', index: 1 });
+    expect(await nameOf(20)).toBe('user 20');
+    expect(await nameOf(22)).toBe('user 22');
+    expect(await readUsers(page, 'name == "Twin"')).toHaveLength(0);
+
+    // So does an update of an object that is not there
+    expect(
+      await write([
+        { kind: 'update', collection: 'users', key: 20, values: { name: 'First' } },
+        { kind: 'update', collection: 'users', key: 999999, values: { name: 'Nobody' } },
+      ]),
+    ).toMatchObject({ status: 'error', code: 'NOT_FOUND', index: 1 });
+    expect(await nameOf(20)).toBe('user 20');
+
+    expect(
+      await write([
+        { kind: 'update', collection: 'users', key: 21, values: { name: 'Second' } },
+        { kind: 'update', collection: 'users', key: 20, values: { name: 'First' } },
+      ]),
+    ).toEqual({ status: 'ok', keys: [21, 20] });
+    expect([await nameOf(20), await nameOf(21)]).toEqual(['First', 'Second']);
+    await write([
+      { kind: 'update', collection: 'users', key: 20, values: { name: 'user 20' } },
+      { kind: 'update', collection: 'users', key: 21, values: { name: 'user 21' } },
+    ]);
   } catch (error) {
     throw await util.onTestError(error);
   }

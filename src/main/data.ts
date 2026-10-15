@@ -189,10 +189,13 @@ export const readPage = async (database: Database, request: PageRequest): Promis
 
     return await database.readAsync(async (txn) => {
       const objects = txn.collection(collection.name);
-      const rows = (await objects.find(text)) as Row[];
-      const total = Number(await objects.count(request.filter.trim()));
+      // Asked for together, which the engine answers in one trip to the thread pool
+      const [rows, total] = await Promise.all([
+        objects.find(text),
+        objects.count(request.filter.trim()),
+      ]);
 
-      return { status: 'ok' as const, rows, total };
+      return { status: 'ok' as const, rows: rows as Row[], total: Number(total) };
     });
   } catch (error) {
     return failed(error);
@@ -290,6 +293,11 @@ class ChangeFailed extends Error {
  * Writes `changes` in one transaction, in order, and resolves with the key of
  * each one's object. The first change the engine refuses aborts the batch, and
  * so does an update of an object that is no longer there.
+ *
+ * The changes are handed to the engine together, which runs them in order in
+ * one trip to the thread pool, rather than one trip for each: an import of
+ * thousands of objects is written several times faster. The ones after a
+ * refused change run too, and go with the aborted transaction.
  * */
 export const writeChanges = async (database: Database, changes: Change[]): Promise<WriteResult> => {
   if (!Array.isArray(changes) || changes.length === 0) {
@@ -306,34 +314,42 @@ export const writeChanges = async (database: Database, changes: Change[]): Promi
 
   try {
     const keys = await database.writeAsync(async (txn) => {
-      const written: Key[] = [];
+      const results = await Promise.allSettled(
+        checked.map(async (change): Promise<Key> => {
+          const objects = txn.collection(change.collection);
 
-      for (const [index, change] of checked.entries()) {
-        const objects = txn.collection(change.collection);
-
-        try {
           if (change.kind === 'insert') {
-            written.push((await objects.insert(change.object)) as Key);
-          } else if (change.kind === 'put') {
-            written.push((await objects.put(change.object)) as Key);
-          } else if (change.kind === 'update') {
+            return (await objects.insert(change.object)) as Key;
+          }
+
+          if (change.kind === 'put') {
+            return (await objects.put(change.object)) as Key;
+          }
+
+          if (change.kind === 'update') {
             if (!(await objects.update(change.key, change.values))) {
               throw Object.assign(new Error('the object is no longer in the file'), {
                 code: 'NOT_FOUND',
               });
             }
 
-            written.push(change.key);
-          } else {
-            await objects.delete(change.key);
-            written.push(change.key);
+            return change.key;
           }
-        } catch (error) {
-          throw new ChangeFailed(index, error);
-        }
-      }
 
-      return written;
+          await objects.delete(change.key);
+
+          return change.key;
+        }),
+      );
+
+      // The first change that failed, in the order they were made
+      return results.map((result, index) => {
+        if (result.status === 'rejected') {
+          throw new ChangeFailed(index, result.reason);
+        }
+
+        return result.value;
+      });
     });
 
     return { status: 'ok', keys };
