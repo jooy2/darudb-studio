@@ -10,7 +10,15 @@ DaruDB keeps an application's data in one local file. DaruDB Studio is the app f
 
 ![DaruDB Studio with the sample shop database open: the collections and the fields of products in the sidebar, and the products in a grid](.github/screenshots/collection-grid.png)
 
-> DaruDB Studio is in early development, and not released yet.
+## Download
+
+The installers are on the [Releases](https://github.com/jooy2/darudb-studio/releases) page.
+
+| System  | What to download                                                                |
+| ------- | ------------------------------------------------------------------------------- |
+| Windows | The installer (`.exe`), the portable app, a `.zip`, or the `.appx` package, x64 |
+| macOS   | The `.dmg` for Apple silicon, for Intel, or the universal one for both          |
+| Linux   | The `.deb`, `.rpm` or `.snap` package, x64                                      |
 
 ## What it does
 
