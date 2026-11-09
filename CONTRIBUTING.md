@@ -56,6 +56,8 @@ The screenshots in `.github/screenshots`, which `README.md` and the DaruDB docum
 
 Nothing runs it on its own, the tests and the workflows included. Run it when the screenshots should change, look at the images, and commit them. `npm run screenshots -- query-tab tools-tab` captures some of them alone, by the names of their files. Where `pngquant` and `oxipng` are installed, the images come out several times smaller.
 
+`.github/social-preview.png` is the image the repository's link shows on other sites. GitHub takes it only through the repository's settings, under **General**, so a new one is uploaded there by hand.
+
 ## Where the code goes
 
 - **The main process**, `src/main`, owns everything that touches the file system, including every database the app opens. A renderer is sandboxed and cannot load the native addon of `darudb`.
