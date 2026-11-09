@@ -6,7 +6,7 @@ export interface GridColumn {
   type: FieldType;
   optional: boolean;
   isKey: boolean;
-  /* Whether the field has an index, and whether that index is unique */
+  /* Whether the field has an index of its own, and whether that index is unique */
   index: 'unique' | 'plain' | null;
   /* Whether the engine can sort by it: a field of one value */
   sortable: boolean;
@@ -21,6 +21,8 @@ const DEFAULT_WIDTHS: Record<FieldType['kind'], number> = {
   float: 104,
   string: 180,
   bytes: 140,
+  // A date to the millisecond, as RFC 3339 writes it
+  date: 196,
   link: 120,
   list: 170,
   object: 190,
@@ -38,8 +40,12 @@ export const defaultWidth = (column: GridColumn): number =>
 
 /* The columns of `collection`: its key, then its fields in the file's order */
 export const columnsOf = (collection: SchemaCollection): GridColumn[] => {
+  // An index on several fields is not the index of any one of them: a unique
+  // one keeps their combination unique, and the schema tree lists it
   const indexOf = (name: string): GridColumn['index'] => {
-    const found = collection.indexes.find((index) => index.field === name);
+    const found = collection.indexes.find(
+      (index) => index.fields.length === 1 && index.fields[0] === name,
+    );
 
     if (!found) {
       return null;

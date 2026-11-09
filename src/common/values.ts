@@ -7,8 +7,8 @@ import type { FieldType, Key, SchemaCollection, SchemaField, Value } from './dat
  * and an import with the same functions, see `transfer.ts`.
  *
  * JSON alone cannot carry every DaruDB value, so the conversion is led by the
- * field's type: bytes are written as hex, an int too large for a number keeps
- * every digit, and a link is the linked object's key. Anything that does not
+ * field's type: bytes are written as hex, a date as RFC 3339 text, an int too
+ * large for a number keeps every digit, and a link is the linked object's key. Anything that does not
  * fit the type is refused with the path to the part that is wrong.
  * */
 
@@ -27,8 +27,14 @@ export type Parsed = { ok: true; value: Value } | { ok: false; error: ValueError
 
 export const isBytes = (value: unknown): value is Uint8Array => value instanceof Uint8Array;
 
+export const isDate = (value: unknown): value is Date => value instanceof Date;
+
 export const isPlainObject = (value: unknown): value is { [field: string]: Value } =>
-  typeof value === 'object' && value !== null && !Array.isArray(value) && !isBytes(value);
+  typeof value === 'object' &&
+  value !== null &&
+  !Array.isArray(value) &&
+  !isBytes(value) &&
+  !isDate(value);
 
 /* Bytes as pairs of hex digits, separated by spaces when `spaced` */
 export const bytesToHex = (bytes: Uint8Array, spaced = false): string =>
@@ -45,6 +51,66 @@ export const hexToBytes = (text: string): Uint8Array | null => {
   return Uint8Array.from({ length: digits.length / 2 }, (_, index) =>
     parseInt(digits.slice(index * 2, index * 2 + 2), 16),
   );
+};
+
+/*
+ * A date as RFC 3339 writes it, in UTC to the millisecond, which `parseDate`
+ * reads back as the same instant. A year past 9999 or before 0 takes the sign
+ * and the six digits of the extended form, as `toISOString` writes it.
+ * */
+export const dateText = (date: Date): string =>
+  Number.isNaN(date.getTime()) ? 'Invalid Date' : date.toISOString();
+
+// A day, or a day and a time with its offset from UTC, as RFC 3339 has them. The
+// year may also be the extended form that `dateText` writes past 9999.
+const DATE_PATTERN =
+  /^([+-]\d{6}|\d{4})-(\d{2})-(\d{2})(?:[Tt](\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?([Zz]|([+-])(\d{2}):(\d{2})))?$/;
+
+// The most milliseconds from 1970 a `Date` holds, either way
+const MAX_DATE_MS = 8.64e15;
+
+/*
+ * Text as a date: a day, `2026-10-30`, which is its midnight in UTC, or a time
+ * with its offset from UTC, `2026-10-30T12:00:00Z` or `2026-10-30T21:00:00+09:00`,
+ * as the query language's `DATE "…"` takes them. Digits past the millisecond
+ * are dropped, as the engine drops them when it gives a date. Returns `null`
+ * for a day the calendar does not have, or a time a `Date` cannot hold.
+ * */
+export const parseDate = (text: string): Date | null => {
+  const match = DATE_PATTERN.exec(text);
+
+  if (!match || match[1] === '-000000') {
+    return null;
+  }
+
+  const [year, month, day] = [match[1], match[2], match[3]].map(Number);
+  const [hour, minute, second] = [match[4], match[5], match[6]].map((part) => Number(part ?? 0));
+  const [offsetHours, offsetMinutes] = [match[10], match[11]].map((part) => Number(part ?? 0));
+
+  if (hour > 23 || minute > 59 || second > 59 || offsetHours > 23 || offsetMinutes > 59) {
+    return null;
+  }
+
+  const midnight = new Date(0);
+
+  // `setUTCFullYear` takes a year before 100 as it is, which `Date.UTC` does not
+  midnight.setUTCFullYear(year, month - 1, day);
+
+  // A day past the end of its month moves into the next one
+  if (
+    midnight.getUTCFullYear() !== year ||
+    midnight.getUTCMonth() !== month - 1 ||
+    midnight.getUTCDate() !== day
+  ) {
+    return null;
+  }
+
+  const offset = (match[9] === '-' ? -1 : 1) * (offsetHours * 60 + offsetMinutes);
+  const milliseconds = Number((match[7] ?? '').slice(0, 3).padEnd(3, '0'));
+  const time =
+    midnight.getTime() + ((hour * 60 + minute - offset) * 60 + second) * 1000 + milliseconds;
+
+  return Math.abs(time) <= MAX_DATE_MS ? new Date(time) : null;
 };
 
 /* The type a link's value has: the key of the collection it links to */
@@ -131,6 +197,18 @@ export const parseScalar = (
 
         return { ok: true, value: bytes };
       }
+      case 'date': {
+        const date = parseDate(trimmed);
+
+        if (!date) {
+          throw new ValueError(
+            path,
+            'a date is a day, such as 2026-10-30, or a time with its offset from UTC, such as 2026-10-30T12:00:00Z',
+          );
+        }
+
+        return { ok: true, value: date };
+      }
       case 'link':
         return parseScalar(
           text,
@@ -160,6 +238,10 @@ export const scalarText = (value: Value): string => {
     return bytesToHex(value, true);
   }
 
+  if (isDate(value)) {
+    return dateText(value);
+  }
+
   return String(value);
 };
 
@@ -168,13 +250,17 @@ export const isScalarType = (type: FieldType): boolean =>
   type.kind !== 'list' && type.kind !== 'object';
 
 /*
- * `value` as JSON text can hold it, for `type`: bytes as hex, a link as its
- * key, and a `bigint` kept as a `bigint`, which `stringify` below writes with
- * every digit.
+ * `value` as JSON text can hold it, for `type`: bytes as hex, a date as RFC
+ * 3339 text, a link as its key, and a `bigint` kept as a `bigint`, which
+ * `stringify` below writes with every digit.
  * */
 const jsonable = (value: Value): unknown => {
   if (isBytes(value)) {
     return bytesToHex(value);
+  }
+
+  if (isDate(value)) {
+    return dateText(value);
   }
 
   if (Array.isArray(value)) {
@@ -292,6 +378,20 @@ export const fromJsonable = (
 
       return bytes;
     }
+    case 'date': {
+      // A `Date` itself is what a field's default is, as the schema gives it
+      const date = isDate(data)
+        ? new Date(data.getTime())
+        : typeof data === 'string'
+          ? parseDate(data)
+          : null;
+
+      if (!date || Number.isNaN(date.getTime())) {
+        throw new ValueError(path, 'expected a date as text, such as 2026-10-30T12:00:00Z');
+      }
+
+      return date;
+    }
     case 'link':
       return fromJsonable(
         data,
@@ -374,6 +474,10 @@ export const sameValue = (a: Value, b: Value): boolean => {
     return a.length === b.length && a.every((byte, index) => byte === b[index]);
   }
 
+  if (isDate(a) && isDate(b)) {
+    return a.getTime() === b.getTime();
+  }
+
   if (Array.isArray(a) && Array.isArray(b)) {
     return a.length === b.length && a.every((item, index) => sameValue(item, b[index]));
   }
@@ -406,6 +510,8 @@ export const summarize = (value: Value, limit = 80): string => {
     text = 'null';
   } else if (isBytes(value)) {
     text = bytesToHex(value.subarray(0, 32), true) + (value.length > 32 ? ' …' : '');
+  } else if (isDate(value)) {
+    text = dateText(value);
   } else if (Array.isArray(value) || isPlainObject(value)) {
     text = toJson(value);
   } else {

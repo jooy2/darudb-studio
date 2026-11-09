@@ -65,7 +65,7 @@ const typeOf = (type: unknown): FieldType => {
     case 'object':
       return { kind: 'object', fields: (stored.fields ?? []).map(fieldOf) };
     default:
-      return { kind: stored.kind as 'bool' | 'int' | 'float' | 'string' | 'bytes' };
+      return { kind: stored.kind as 'bool' | 'int' | 'float' | 'string' | 'bytes' | 'date' };
   }
 };
 
@@ -95,7 +95,7 @@ export const schemaOf = (database: Database): DatabaseSchema | null => {
       key: collection.key,
       autoIncrement: collection.autoIncrement,
       fields: collection.fields.map(fieldOf),
-      indexes: collection.indexes.map(({ field, unique }) => ({ field, unique })),
+      indexes: collection.indexes.map(({ fields, unique }) => ({ fields: [...fields], unique })),
     })),
   };
 };
@@ -243,7 +243,8 @@ const isRow = (value: unknown): value is Row =>
   typeof value === 'object' &&
   value !== null &&
   !Array.isArray(value) &&
-  !(value instanceof Uint8Array);
+  !(value instanceof Uint8Array) &&
+  !(value instanceof Date);
 
 /* `change`, checked against what a change may be, before any of the batch is written */
 const checkChange = (database: Database, change: Change): Change => {

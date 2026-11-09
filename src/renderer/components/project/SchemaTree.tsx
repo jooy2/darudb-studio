@@ -4,6 +4,7 @@ import {
   Binary,
   Braces,
   Brackets,
+  CalendarClock,
   Hash,
   KeyRound,
   Link,
@@ -43,6 +44,8 @@ const iconOf = (type: FieldType): ReactNode => {
       return <Sigma />;
     case 'bytes':
       return <Binary />;
+    case 'date':
+      return <CalendarClock />;
     case 'link':
       return <Link />;
     case 'list':
@@ -62,6 +65,8 @@ interface SchemaTreeProps {
 /*
  * The schema the file holds: its collections, each with how many objects it
  * has, and under each, its fields with their types, its key and its indexes.
+ * An index on one field is marked on that field, an embedded one's included;
+ * an index on several fields follows the fields, under the names of its own.
  * A click on a collection, or on one of its fields, opens the collection in a
  * tab; a right click offers the rest.
  * */
@@ -87,7 +92,7 @@ function SchemaTree({ onAddObject }: SchemaTreeProps) {
       path: string,
     ): PlTreeNode => {
       const index = collection.indexes.find(
-        (each) => each.field === field.name && path === field.name,
+        (each) => each.fields.length === 1 && each.fields[0] === path,
       );
       const isKey = path === collection.key;
 
@@ -156,6 +161,24 @@ function SchemaTree({ onAddObject }: SchemaTreeProps) {
               ]
             : []),
           ...collection.fields.map((field) => fieldNode(collection, field, field.name)),
+          ...collection.indexes
+            .filter((index) => index.fields.length > 1)
+            .map((index): PlTreeNode => ({
+              id: `index:${collection.name}:${JSON.stringify(index.fields)}`,
+              icon: <Zap />,
+              label: (
+                <span
+                  className="tree-field"
+                  data-collection={collection.name}
+                  data-testid="tree-index"
+                >
+                  <span className="tree-field__name">{index.fields.join(', ')}</span>
+                  <span className="tree-field__type">
+                    {index.unique ? t('sidebar.unique-index') : t('sidebar.index')}
+                  </span>
+                </span>
+              ),
+            })),
         ],
       };
     });

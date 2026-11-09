@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { bytesToHex, isBytes, isPlainObject, summarize } from '@/common/values';
+import { bytesToHex, dateText, isBytes, isDate, isPlainObject, summarize } from '@/common/values';
 import type { FieldType, Value } from '@/common/data';
 
 /*
@@ -9,6 +9,10 @@ import type { FieldType, Value } from '@/common/data';
  * and null each have their own, so a column reads at a glance. A list or an
  * embedded object shows a short summary, and opens in place, one level at a
  * time, as a list of its items or a table of its fields.
+ *
+ * A date is written in UTC as RFC 3339 has it, the way it is typed back and
+ * the way a query names it, and its tooltip gives the same time in the
+ * system's time zone.
  *
  * A grid draws hundreds of these, so they take the words they show from
  * `CellTexts`, made once for the grid, rather than each asking for them.
@@ -23,6 +27,8 @@ export interface CellTexts {
   items: (count: number) => string;
   fields: (count: number) => string;
   bytes: (count: number) => string;
+  /* A date in the system's time zone, in the window's language */
+  localDate: (date: Date) => string;
 }
 
 /* `make`, kept for each count it was asked for, since a grid asks for the same few again and again */
@@ -43,10 +49,13 @@ const byCount = (make: (count: number) => string): ((count: number) => string) =
 
 /* The words of the values, the same object until the language changes */
 export const useCellTexts = (): CellTexts => {
-  const [t] = useTranslation();
+  const [t, i18n] = useTranslation();
+  const language = i18n.resolvedLanguage ?? 'en';
 
-  return useMemo(
-    () => ({
+  return useMemo(() => {
+    const local = new Intl.DateTimeFormat(language, { dateStyle: 'medium', timeStyle: 'long' });
+
+    return {
       expand: t('grid.expand'),
       collapse: t('grid.collapse'),
       emptyString: t('grid.empty-string'),
@@ -54,9 +63,9 @@ export const useCellTexts = (): CellTexts => {
       items: byCount((count) => t('grid.items', { count })),
       fields: byCount((count) => t('grid.fields', { count })),
       bytes: byCount((count) => t('grid.bytes', { count })),
-    }),
-    [t],
-  );
+      localDate: (date) => (Number.isNaN(date.getTime()) ? '' : local.format(date)),
+    };
+  }, [t, language]);
 };
 
 // The summaries of the lists and objects drawn so far, by the value. A value
@@ -102,6 +111,10 @@ const toneOf = (value: Value, type: FieldType | null): string => {
     return 'value--bytes';
   }
 
+  if (isDate(value)) {
+    return 'value--date';
+  }
+
   if (Array.isArray(value) || isPlainObject(value)) {
     return 'value--nested';
   }
@@ -128,6 +141,14 @@ export function ScalarValue({ value, type, texts }: ScalarValueProps) {
       <span className={`value ${tone}`} title={texts.bytes(value.length)}>
         {value.length === 0 ? texts.noBytes : bytesToHex(value.subarray(0, 24), true)}
         {value.length > 24 ? ' …' : ''}
+      </span>
+    );
+  }
+
+  if (isDate(value)) {
+    return (
+      <span className={`value ${tone}`} title={texts.localDate(value)}>
+        {dateText(value)}
       </span>
     );
   }

@@ -13,6 +13,7 @@
   --value-bytes: #a14a06;
   --value-link: #0f766e;
   --value-nested: #4d7c0f;
+  --value-date: #be185d;
 }
 
 :root[data-theme='dark'] {
@@ -21,6 +22,7 @@
   --value-bytes: #f0b46c;
   --value-link: #5eead4;
   --value-nested: #a3d468;
+  --value-date: #f9a8d4;
 }
 
 .project-app {
@@ -694,6 +696,11 @@
 
 .value--link {
   color: var(--value-link);
+}
+
+.value--date {
+  color: var(--value-date);
+  font-variant-numeric: tabular-nums;
 }
 
 .value--nested {

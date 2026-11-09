@@ -4,7 +4,7 @@
  *
  * Values cross the IPC boundary by structured clone, which keeps what a
  * DaruDB value can be: a `bigint` for an int too large for a number, a
- * `Uint8Array` for bytes, and nested lists and objects.
+ * `Uint8Array` for bytes, a `Date` for a date, and nested lists and objects.
  *
  * See `src/common/ipc.ts` for what may live in this folder.
  * */
@@ -14,7 +14,7 @@ import type { ImportProblem, TransferFormat } from './transfer';
 
 /* A field's type, as the file's schema records it */
 export type FieldType =
-  | { kind: 'bool' | 'int' | 'float' | 'string' | 'bytes' }
+  | { kind: 'bool' | 'int' | 'float' | 'string' | 'bytes' | 'date' }
   | { kind: 'link'; collection: string }
   | { kind: 'list'; element: FieldType }
   | { kind: 'object'; fields: SchemaField[] };
@@ -30,8 +30,13 @@ export interface SchemaField {
   default?: Value;
 }
 
+/*
+ * An index of a collection: every field it is on, in order, each a name or a
+ * dotted path into an embedded object. A unique index on several fields keeps
+ * their combination unique, not each of them.
+ * */
 export interface SchemaIndex {
-  field: string;
+  fields: string[];
   unique: boolean;
 }
 
@@ -51,9 +56,20 @@ export interface DatabaseSchema {
   collections: SchemaCollection[];
 }
 
-/* A value of a field */
+/*
+ * A value of a field. A date is a `Date`, which holds milliseconds: the engine
+ * keeps microseconds, and gives a date with fewer of them, rounded down.
+ * */
 export type Value =
-  null | boolean | number | bigint | string | Uint8Array | Value[] | { [field: string]: Value };
+  | null
+  | boolean
+  | number
+  | bigint
+  | string
+  | Uint8Array
+  | Date
+  | Value[]
+  | { [field: string]: Value };
 
 /* An object of a collection, by field name, its key included */
 export type Row = Record<string, Value>;

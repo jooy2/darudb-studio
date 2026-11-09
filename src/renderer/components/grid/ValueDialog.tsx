@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Copy } from 'lucide-react';
 import { PlButton, PlModal } from 'plass-ui';
 import { ScalarValue, useCellTexts, type CellTexts } from '@/renderer/components/grid/CellValue';
-import { bytesToHex, isBytes, isPlainObject, toJson } from '@/common/values';
+import { bytesToHex, dateText, isBytes, isDate, isPlainObject, toJson } from '@/common/values';
 import type { FieldType, Value } from '@/common/data';
 
 /* A value laid out whole: a list as numbered items, an object as a table of its fields */
@@ -104,7 +104,11 @@ export default function ValueDialog({ title, value, type, onClose }: ValueDialog
             startIcon={<Copy />}
             onClick={() =>
               void navigator.clipboard.writeText(
-                typeof value === 'string' ? value : toJson(value, 2),
+                typeof value === 'string'
+                  ? value
+                  : isDate(value)
+                    ? dateText(value)
+                    : toJson(value, 2),
               )
             }
           >

@@ -7,15 +7,16 @@ import {
   isScalarType,
   parseJson,
   parseScalar,
+  scalarText,
   toJson,
   ValueError,
 } from './values';
 
 /*
  * A collection's objects as the files an export writes and an import reads:
- * JSON, an array of objects with the conventions of `values.ts`, bytes as hex
- * and every digit of a large int kept; and CSV, a column for each field, with
- * a list or an embedded object as JSON in its cell.
+ * JSON, an array of objects with the conventions of `values.ts`, bytes as hex,
+ * dates as RFC 3339 text and every digit of a large int kept; and CSV, a
+ * column for each field, with a list or an embedded object as JSON in its cell.
  *
  * An import is checked whole, record by record, against the collection's
  * schema before anything is written, so a file with one bad record writes
@@ -55,7 +56,10 @@ export const transferColumns = (collection: SchemaCollection): TransferColumn[] 
   return [key, ...fields.filter((column) => column.name !== collection.key)];
 };
 
-/* A value as one CSV field: a scalar as it is typed, bytes as hex, a list or an object as JSON */
+/*
+ * A value as one CSV field: a scalar as it is typed, bytes as hex without
+ * spaces, a date as RFC 3339 text, a list or an object as JSON
+ * */
 const csvValue = (value: Value, type: FieldType): string => {
   if (value === null) {
     return '';
@@ -65,7 +69,7 @@ const csvValue = (value: Value, type: FieldType): string => {
     return bytesToHex(value);
   }
 
-  return isScalarType(type) ? String(value) : toJson(value);
+  return isScalarType(type) ? scalarText(value) : toJson(value);
 };
 
 export const csvHeader = (columns: readonly TransferColumn[]): string =>

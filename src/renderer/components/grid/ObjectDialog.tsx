@@ -348,7 +348,9 @@ export default function ObjectDialog({
               ? t('object-dialog.json-hint')
               : column.type.kind === 'bytes'
                 ? t('object-dialog.bytes-hint')
-                : undefined
+                : column.type.kind === 'date'
+                  ? t('object-dialog.date-hint')
+                  : undefined
         }
         error={errors[column.name]}
         invalid={errors[column.name] !== undefined}

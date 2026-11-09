@@ -144,3 +144,52 @@ export const makeWideDatabase = (dir: string, name: string, fields: number): str
 
   return path;
 };
+
+/*
+ * A file of events with dates in each place a field holds them: on its own,
+ * optional, in a list and in an embedded object. Besides an index on one
+ * field, the collection has one on an embedded field and two on two fields,
+ * one of them unique.
+ */
+export const makeEventsDatabase = (dir: string, name: string): string => {
+  const path = join(dir, name);
+  const db = Database.open(path, {
+    schema: schema(1, {
+      events: collection(
+        {
+          title: t.string(),
+          at: t.date().index(),
+          until: t.date().optional(),
+          reminders: t.list(t.date()).default([]),
+          place: t.string().default(''),
+          schedule: t.object({ starts: t.date(), note: t.string().optional() }).optional(),
+        },
+        {
+          indexes: [
+            { fields: ['schedule.starts'] },
+            { fields: ['place', 'at'] },
+            { fields: ['title', 'place'], unique: true },
+          ],
+        },
+      ),
+    }),
+  });
+
+  db.write((txn) => {
+    txn.collection('events').insertMany([
+      {
+        title: 'launch',
+        at: new Date('2026-01-02T03:04:05.678Z'),
+        until: new Date('2026-01-02T05:00:00Z'),
+        reminders: [new Date('2026-01-01T09:00:00Z')],
+        place: 'hall',
+        schedule: { starts: new Date('2026-01-02T03:00:00Z') },
+      },
+      { title: 'review', at: new Date('2026-06-01T00:00:00Z'), place: 'room 2' },
+      { title: 'retro', at: new Date('2025-12-24T18:30:00Z') },
+    ]);
+  });
+  db.close();
+
+  return path;
+};
