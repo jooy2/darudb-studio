@@ -8,6 +8,8 @@
 
 DaruDB keeps an application's data in one local file. DaruDB Studio is the app for looking inside that file: open it, read its collections and objects, and change them, without writing a program to do it. It runs on Windows, macOS and Linux, and reads the same file whichever language wrote it.
 
+![DaruDB Studio with the sample shop database open: the collections and the fields of products in the sidebar, and the products in a grid](.github/screenshots/collection-grid.png)
+
 > DaruDB Studio is in early development, and not released yet.
 
 ## What it does
