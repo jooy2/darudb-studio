@@ -7,6 +7,9 @@ import ObjectDialog from '@/renderer/components/grid/ObjectDialog';
 import ImportProblemsDialog from '@/renderer/components/project/ImportProblemsDialog';
 import ProjectToolbar, { useDiscard } from '@/renderer/components/project/ProjectToolbar';
 import SchemaDialog from '@/renderer/components/project/SchemaDialog';
+import SchemaEditDialog, {
+  type SchemaEditRequest,
+} from '@/renderer/components/project/SchemaEditDialog';
 import SchemaTree from '@/renderer/components/project/SchemaTree';
 import StatusBar from '@/renderer/components/project/StatusBar';
 import useEditTexts from '@/renderer/components/project/useEditTexts';
@@ -77,6 +80,7 @@ export default function ProjectScreen() {
   const [adding, setAdding] = useState<string | null>(null);
   // The schema shown in its dialog: the whole of it, or one collection
   const [schemaShown, setSchemaShown] = useState<{ only: string | null } | null>(null);
+  const [schemaEdit, setSchemaEdit] = useState<SchemaEditRequest | null>(null);
   const transfer = useTransfer();
 
   useEffect(() => {
@@ -198,6 +202,7 @@ export default function ProjectScreen() {
     'import-insert': () => importFromMenu('insert'),
     'import-put': () => importFromMenu('put'),
     'show-schema': () => setSchemaShown({ only: null }),
+    'new-collection': () => setSchemaEdit({ kind: 'add-collection' }),
     submit,
     discard: () => void discard(),
     check: () => runToolFromMenu('check'),
@@ -234,7 +239,11 @@ export default function ProjectScreen() {
           onResizeEnd={([sidebar]) => dispatch(sidebarResized(sidebar))}
         >
           <PlPane defaultSize={sidebarSize ?? '240px'} minSize="160px" maxSize="480px">
-            <SchemaTree onAddObject={setAdding} onViewSchema={(only) => setSchemaShown({ only })} />
+            <SchemaTree
+              onAddObject={setAdding}
+              onViewSchema={(only) => setSchemaShown({ only })}
+              onEditSchema={setSchemaEdit}
+            />
           </PlPane>
           <PlPane>
             <Workspace />
@@ -255,6 +264,14 @@ export default function ProjectScreen() {
           schema={schema}
           only={schemaShown.only}
           onClose={() => setSchemaShown(null)}
+        />
+      )}
+      {schemaEdit && schema && (
+        <SchemaEditDialog
+          schema={schema}
+          request={schemaEdit}
+          onClose={() => setSchemaEdit(null)}
+          onLost={() => navigate('/')}
         />
       )}
       {transfer.refused && (

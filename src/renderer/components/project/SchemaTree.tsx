@@ -9,6 +9,7 @@ import {
   Hash,
   KeyRound,
   Link,
+  Plus,
   RefreshCw,
   Sigma,
   Table2,
@@ -25,6 +26,7 @@ import {
   PlTree,
   type PlTreeNode,
 } from 'plass-ui';
+import type { SchemaEditRequest } from '@/renderer/components/project/SchemaEditDialog';
 import { typeName } from '@/common/values';
 import {
   loadCounts,
@@ -63,6 +65,8 @@ interface SchemaTreeProps {
   onAddObject: (collection: string) => void;
   /* Opens the schema of one collection, or of the whole file for `null` */
   onViewSchema: (collection: string | null) => void;
+  /* Asks for a change of the schema, see `SchemaEditDialog` */
+  onEditSchema: (request: SchemaEditRequest) => void;
 }
 
 /*
@@ -71,9 +75,10 @@ interface SchemaTreeProps {
  * An index on one field is marked on that field, an embedded one's included;
  * an index on several fields follows the fields, under the names of its own.
  * A click on a collection, or on one of its fields, opens the collection in a
- * tab; a right click offers the rest.
+ * tab; a right click offers the rest, the changes of the schema among them:
+ * a collection added, renamed or deleted, or a field of one of its own.
  * */
-function SchemaTree({ onAddObject, onViewSchema }: SchemaTreeProps) {
+function SchemaTree({ onAddObject, onViewSchema, onEditSchema }: SchemaTreeProps) {
   const [t, i18n] = useTranslation();
   const dispatch = useAppDispatch();
   const schema = useAppSelector((state) => state.project.session?.schema ?? null);
@@ -85,7 +90,9 @@ function SchemaTree({ onAddObject, onViewSchema }: SchemaTreeProps) {
 
     return tab?.kind === 'collection' ? tab.collection : null;
   });
+  // What the context menu is for: a collection, and a field of its own when one was clicked
   const [menuCollection, setMenuCollection] = useState<string | null>(null);
+  const [menuField, setMenuField] = useState<string | null>(null);
   const language = i18n.resolvedLanguage ?? 'en';
 
   const items = useMemo((): PlTreeNode[] => {
@@ -103,7 +110,12 @@ function SchemaTree({ onAddObject, onViewSchema }: SchemaTreeProps) {
         id: `field:${collection.name}:${path}`,
         icon: isKey ? <KeyRound /> : iconOf(field.type),
         label: (
-          <span className="tree-field" data-collection={collection.name}>
+          <span
+            className="tree-field"
+            data-collection={collection.name}
+            // A field of the collection's own, which a change of the schema can name
+            data-field={path === field.name ? field.name : undefined}
+          >
             <span className="tree-field__name">{field.name}</span>
             <span className="tree-field__type">
               {typeName(field.type)}
@@ -198,6 +210,31 @@ function SchemaTree({ onAddObject, onViewSchema }: SchemaTreeProps) {
     );
   }
 
+  const menuSchema = schema.collections.find((collection) => collection.name === menuCollection);
+  const fieldMenu =
+    menuCollection && menuField ? (
+      <>
+        <PlMenuSeparator />
+        <PlMenuItem
+          onClick={() =>
+            onEditSchema({ kind: 'rename-field', collection: menuCollection, field: menuField })
+          }
+        >
+          {t('schema-edit.rename-field')}
+        </PlMenuItem>
+        <PlMenuItem
+          color="danger"
+          // The key of a collection with one of its own stays
+          disabled={menuSchema?.autoIncrement === false && menuSchema.key === menuField}
+          onClick={() =>
+            onEditSchema({ kind: 'delete-field', collection: menuCollection, field: menuField })
+          }
+        >
+          {t('schema-edit.delete-field')}
+        </PlMenuItem>
+      </>
+    ) : null;
+
   const menu = menuCollection ? (
     <>
       <PlMenuItem onClick={() => dispatch(openCollection({ collection: menuCollection }))}>
@@ -216,11 +253,31 @@ function SchemaTree({ onAddObject, onViewSchema }: SchemaTreeProps) {
       <PlMenuItem onClick={() => onViewSchema(menuCollection)}>
         {t('sidebar.view-schema')}
       </PlMenuItem>
+      {fieldMenu}
+      <PlMenuSeparator />
+      <PlMenuItem onClick={() => onEditSchema({ kind: 'add-field', collection: menuCollection })}>
+        {t('schema-edit.add-field')}
+      </PlMenuItem>
+      <PlMenuItem
+        onClick={() => onEditSchema({ kind: 'rename-collection', collection: menuCollection })}
+      >
+        {t('schema-edit.rename-collection')}
+      </PlMenuItem>
+      <PlMenuItem
+        color="danger"
+        onClick={() => onEditSchema({ kind: 'delete-collection', collection: menuCollection })}
+      >
+        {t('schema-edit.delete-collection')}
+      </PlMenuItem>
     </>
   ) : (
     <>
       <PlMenuItem onClick={() => void dispatch(loadCounts())}>{t('sidebar.refresh')}</PlMenuItem>
       <PlMenuItem onClick={() => onViewSchema(null)}>{t('sidebar.view-schema')}</PlMenuItem>
+      <PlMenuSeparator />
+      <PlMenuItem onClick={() => onEditSchema({ kind: 'add-collection' })}>
+        {t('schema-edit.new-collection')}
+      </PlMenuItem>
     </>
   );
 
@@ -231,6 +288,14 @@ function SchemaTree({ onAddObject, onViewSchema }: SchemaTreeProps) {
         <span className="sidebar__version">
           {t('sidebar.schema-version', { version: schema.version })}
         </span>
+        <PlIconButton
+          data-testid="btn-new-collection"
+          size="xs"
+          variant="ghost"
+          label={t('schema-edit.new-collection')}
+          icon={<Plus />}
+          onClick={() => onEditSchema({ kind: 'add-collection' })}
+        />
         <PlIconButton
           data-testid="btn-view-schema"
           size="xs"
@@ -257,6 +322,7 @@ function SchemaTree({ onAddObject, onViewSchema }: SchemaTreeProps) {
               );
 
               setMenuCollection(element?.dataset.collection ?? null);
+              setMenuField(element?.dataset.field ?? null);
             }}
           >
             <PlTree

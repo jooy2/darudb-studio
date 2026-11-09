@@ -15,6 +15,7 @@ import { reportWindowState, takeRestore } from './workspace';
 import { changePassword, rescueOpenProject, rescueProject } from './tools';
 import { exportObjects, exportSchema, importObjects } from './transfer';
 import { createSampleProject } from './sample';
+import { changeSchema } from './schemaChanges';
 import WindowManager from './WindowManager';
 import AppMenu from './AppMenu';
 import { getSettings, updateSettings, validSettingChanges } from './settings';
@@ -383,6 +384,12 @@ export default class IPCs {
             String(title),
           )
         : noProject;
+    });
+
+    handle(mainChannels.changeSchema, (event, change) => {
+      const window = BrowserWindow.fromWebContents(event.sender);
+
+      return window ? changeSchema(window, change) : noProject;
     });
 
     handle(mainChannels.changePassword, (event, password) => {

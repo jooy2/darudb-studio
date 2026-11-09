@@ -11,7 +11,7 @@ import type {
 } from './projects';
 import type { AppCommand, MenuEntry, MenuPlatform } from './menu';
 import type { WindowState } from './workspace';
-import type { SchemaFormat } from './schema';
+import type { SchemaChange, SchemaFormat } from './schema';
 import type {
   BackupReport,
   Change,
@@ -26,6 +26,7 @@ import type {
   QueryRequest,
   QueryResult,
   RescueReport,
+  SchemaChangeResult,
   SchemaReport,
   ToolResult,
   TransferReport,
@@ -91,6 +92,7 @@ export const mainChannels = {
   exportObjects: 'msgExportObjects',
   importObjects: 'msgImportObjects',
   exportSchema: 'msgExportSchema',
+  changeSchema: 'msgChangeSchema',
 } as const;
 
 /*
@@ -231,6 +233,11 @@ export interface MainChannelSignatures {
     only: string | null,
     title: string,
   ) => ToolResult<SchemaReport>;
+  /*
+   * Changes the schema of the file, one version up, which a program that
+   * declares the version before can no longer open it with
+   * */
+  [mainChannels.changeSchema]: (change: SchemaChange) => SchemaChangeResult;
 }
 
 export interface RendererChannelSignatures {

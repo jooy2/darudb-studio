@@ -23,6 +23,7 @@ import type {
   ToolResult,
 } from '@/common/data';
 import type { Session } from '@/common/projects';
+import type { SchemaChange } from '@/common/schema';
 import type { TabKind, WorkspaceLayout } from '@/common/workspace';
 
 /*
@@ -314,6 +315,49 @@ export const projectSlice = createSlice({
     sessionUpdated: (state, action: PayloadAction<Session>) => {
       state.session = action.payload;
     },
+    /*
+     * The schema changed: the tabs follow a collection or a field that was
+     * renamed, a collection tab of a collection that went closes, and a query
+     * tab of one keeps its text with no collection chosen. A sort by a field
+     * that went is dropped, and every grid reads again.
+     * */
+    schemaChanged: (state, action: PayloadAction<{ session: Session; change: SchemaChange }>) => {
+      const { session, change } = action.payload;
+
+      state.session = session;
+      state.revision += 1;
+
+      for (const tab of Object.values(state.tabs)) {
+        if (change.kind === 'rename-collection' && tab.collection === change.collection) {
+          tab.collection = change.name;
+        } else if (change.kind === 'delete-collection' && tab.collection === change.collection) {
+          if (tab.kind === 'collection') {
+            detach(state, tab.id);
+            delete state.tabs[tab.id];
+          } else {
+            tab.collection = null;
+          }
+        } else if (
+          (change.kind === 'rename-field' || change.kind === 'delete-field') &&
+          tab.collection === change.collection
+        ) {
+          const renamed = change.kind === 'rename-field' ? change.name : null;
+          const width = tab.widths[change.field];
+
+          tab.sort = tab.sort.flatMap((key) =>
+            key.field !== change.field ? [key] : renamed ? [{ ...key, field: renamed }] : [],
+          );
+
+          if (width !== undefined) {
+            delete tab.widths[change.field];
+
+            if (renamed) {
+              tab.widths[renamed] = width;
+            }
+          }
+        }
+      }
+    },
     countsLoaded: (state, action: PayloadAction<Record<string, number>>) => {
       state.counts = action.payload;
     },
@@ -514,6 +558,7 @@ export const {
   sidebarResized,
   groupsResized,
   sessionUpdated,
+  schemaChanged,
   countsLoaded,
   openCollection,
   openQuery,
@@ -804,3 +849,52 @@ export const runTool =
   };
 
 export default projectSlice.reducer;
+
+/* What changing the schema says, in the window's language */
+export interface SchemaChangeTexts {
+  backupTitle: string;
+  done: (version: number) => string;
+  failed: (message: string) => string;
+}
+
+/*
+ * Changes the schema, after a backup when `backUp` asks for one, and resolves
+ * with `null` once it is changed, or with what stopped it. A backup the user
+ * cancels changes nothing. `lost` is set when the file did not open again,
+ * which leaves the window without its project.
+ * */
+export const changeSchema =
+  (
+    change: SchemaChange,
+    backUp: boolean,
+    texts: SchemaChangeTexts,
+  ): AppThunk<Promise<{ message: string; lost: boolean } | null>> =>
+  async (dispatch) => {
+    if (backUp) {
+      const backup = await window.mainApi.invoke(mainChannels.backupDatabase, texts.backupTitle);
+
+      if (backup.status === 'cancelled') {
+        return { message: '', lost: false };
+      }
+
+      if (backup.status === 'error') {
+        return { message: backup.message, lost: false };
+      }
+    }
+
+    const result = await window.mainApi.invoke(mainChannels.changeSchema, change);
+
+    if (result.status !== 'ok') {
+      dispatch(statusChanged({ text: texts.failed(result.message), tone: 'danger' }));
+
+      return { message: result.message, lost: result.code === 'NOT_REOPENED' };
+    }
+
+    dispatch(schemaChanged({ session: result.session, change }));
+    dispatch(
+      statusChanged({ text: texts.done(result.session.schema?.version ?? 0), tone: 'success' }),
+    );
+    await dispatch(loadCounts());
+
+    return null;
+  };

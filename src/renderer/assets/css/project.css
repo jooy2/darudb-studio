@@ -176,15 +176,21 @@
 }
 
 .sidebar__title {
+  min-width: 0;
+  overflow: hidden;
   color: var(--plass-muted-fg);
   font-weight: 600;
   letter-spacing: 0.06em;
+  text-overflow: ellipsis;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .sidebar__version {
+  flex: none;
   margin-left: auto;
   color: var(--plass-muted-fg);
+  white-space: nowrap;
 }
 
 .sidebar__tree-frame {
@@ -1259,4 +1265,36 @@
 
 .schema-dialog__code {
   width: 100%;
+}
+
+/* A change of the schema, asked for in its dialog */
+
+.schema-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.schema-edit__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.schema-edit__label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.schema-edit__pair {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+}
+
+.schema-edit__note {
+  margin: 0;
+  color: var(--plass-muted-fg);
+  font-size: 0.8125rem;
 }

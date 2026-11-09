@@ -9,7 +9,7 @@
  * See `src/common/ipc.ts` for what may live in this folder.
  * */
 
-import type { Project } from './projects';
+import type { Project, Session } from './projects';
 import type { ImportProblem, TransferFormat } from './transfer';
 
 /* A field's type, as the file's schema records it */
@@ -202,6 +202,9 @@ export interface ExportRequest {
 export const importModes = ['insert', 'put'] as const;
 
 export type ImportMode = (typeof importModes)[number];
+
+/* What a change of the schema ended in: the session with the new schema, or why not */
+export type SchemaChangeResult = Outcome<{ session: Session }>;
 
 /* Where the schema was written */
 export interface SchemaReport {

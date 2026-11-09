@@ -57,6 +57,7 @@ export const appCommands = [
   'import-insert',
   'import-put',
   'show-schema',
+  'new-collection',
   'check',
   'compact',
   'backup',
@@ -290,6 +291,12 @@ export const buildMenu = (platform: MenuPlatform, development: boolean): MenuEnt
         id: 'database.schema',
         label: 'menu.schema',
         command: 'show-schema',
+        needsProject: true,
+      },
+      {
+        id: 'database.new-collection',
+        label: 'menu.new-collection',
+        command: 'new-collection',
         needsProject: true,
       },
       // What the tab in front shows goes out, and an import goes into its collection
