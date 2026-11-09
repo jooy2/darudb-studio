@@ -6,10 +6,11 @@ import LocaleProvider from '@/renderer/components/base/LocaleProvider';
 import SettingsProvider from '@/renderer/components/base/SettingsProvider';
 import ThemeProvider from '@/renderer/components/base/ThemeProvider';
 import { MenuModelContext } from '@/renderer/components/menu/MenuModelContext';
+import AboutDialog from '@/renderer/components/settings/AboutDialog';
 import NoticesDialog from '@/renderer/components/settings/NoticesDialog';
 import SettingsDialog from '@/renderer/components/settings/SettingsDialog';
 import useMenuCommands from '@/renderer/hooks/useMenuCommands';
-import { setNoticesOpen, setSettingsOpen } from '@/renderer/store/slices/appScreenSlice';
+import { setAboutOpen, setSettingsOpen } from '@/renderer/store/slices/appScreenSlice';
 import { useAppDispatch } from '@/renderer/store/hooks';
 import type { MenuModel } from '@/common/ipc';
 
@@ -23,7 +24,7 @@ function Screens() {
 
   useMenuCommands({
     settings: () => dispatch(setSettingsOpen(true)),
-    'show-notices': () => dispatch(setNoticesOpen(true)),
+    'show-about': () => dispatch(setAboutOpen(true)),
   });
 
   return (
@@ -38,6 +39,7 @@ function Screens() {
         </Routes>
       </HashRouter>
       <SettingsDialog />
+      <AboutDialog />
       <NoticesDialog />
     </>
   );

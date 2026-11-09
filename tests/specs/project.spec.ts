@@ -8,6 +8,7 @@ import type { PageResult, Row, WriteResult } from '../../src/common/data';
 import { makeSampleDatabase, makeWideDatabase } from '../databases';
 import { invokeMain, sendMain } from '../ipc';
 import { test, expect, beforeAll, afterAll, getApp } from '../fixtures';
+import { askToCloseProject, closeProject } from '../actions';
 
 test.beforeAll(beforeAll);
 test.afterAll(afterAll);
@@ -77,11 +78,6 @@ const openSample = async (page: Page, name: string, users = 500): Promise<string
 const openUsers = async (page: Page): Promise<void> => {
   await page.getByTestId('tree-collection').filter({ hasText: 'users' }).click();
   await expect(visibleGrid(page)).toHaveAttribute('aria-label', 'users');
-};
-
-const closeProject = async (page: Page): Promise<void> => {
-  await page.getByTestId('btn-close-project').click();
-  await expect(page.getByTestId('project-list')).toBeVisible();
 };
 
 const setEditMode = async (page: Page, mode: 'At once' | 'When submitted'): Promise<void> => {
@@ -624,7 +620,7 @@ test('A collection wider than the window draws the columns in view', async ({ pa
     const path = makeWideDatabase(files, 'wide.darudb', 300);
 
     await invokeMain(page, mainChannels.saveProject, { name: 'Wide', filePath: path });
-    await page.getByTestId('btn-close-project').click();
+    await askToCloseProject(page);
     await page
       .getByTestId('project-item')
       .filter({ hasText: 'Wide' })
@@ -644,7 +640,7 @@ test('A collection wider than the window draws the columns in view', async ({ pa
     await expect(grid.locator('[data-row="0"] [data-col="300"]')).toHaveText('299');
     await expect(grid.getByRole('columnheader', { name: /^f299/ })).toBeVisible();
     expect(await drawn()).toBeLessThan(40);
-    await page.getByTestId('btn-close-project').click();
+    await askToCloseProject(page);
     await page
       .getByTestId('project-item')
       .filter({ hasText: 'Shop' })
@@ -699,17 +695,56 @@ test('Closing a project with held edits asks first', async ({ page, util }) => {
 
     expect(await refusesUnload()).toBe(true);
 
-    await page.getByTestId('btn-close-project').click();
+    await askToCloseProject(page);
     await page.getByRole('alertdialog').getByRole('button', { name: 'Cancel' }).click();
     await expect(page.getByTestId('project-screen')).toBeVisible();
 
-    await page.getByTestId('btn-close-project').click();
+    await askToCloseProject(page);
     await page.getByRole('alertdialog').getByRole('button', { name: 'Discard' }).click();
     await expect(page.getByTestId('project-list')).toBeVisible();
     expect(await refusesUnload()).toBe(false);
     await setEditMode(page, 'At once');
     await closeProject(page).catch(() => undefined);
   } catch (error) {
+    throw await util.onTestError(error);
+  }
+});
+
+test('A window zoomed in keeps the menus and the buttons of the bar in reach', async ({
+  page,
+  util,
+}) => {
+  // A window is never narrower than 880 pixels, but zoomed in, its page is
+  const zoom = (factor: number) =>
+    getApp().evaluate(({ BrowserWindow }, wanted) => {
+      BrowserWindow.getAllWindows()
+        .find((each) => each.webContents.getURL().includes('#/project/'))
+        ?.webContents.setZoomFactor(wanted);
+    }, factor);
+
+  try {
+    await openSample(page, 'Narrow', 20);
+    await zoom(1.6);
+
+    // The menus fold behind one button, whatever the settings say
+    await expect(page.getByTestId('app-menu-bar')).toBeHidden();
+    await expect(page.getByTestId('app-menu-button')).toBeVisible();
+
+    // The buttons keep their icons and their names, and the last of them stays on screen
+    const add = page.getByRole('button', { name: 'Add Object' });
+
+    await expect(add).toBeVisible();
+    expect((await add.boundingBox())!.width).toBeLessThan(40);
+    await expect(page.getByTestId('toolbar-project')).toBeVisible();
+    await expect(page.getByTestId('btn-tools')).toBeInViewport();
+    await util.captureScreenshot(page, 'project-narrow');
+
+    await zoom(1);
+    await expect(page.getByTestId('app-menu-bar')).toBeVisible();
+    await expect(add).toContainText('Add Object');
+    await closeProject(page);
+  } catch (error) {
+    await zoom(1);
     throw await util.onTestError(error);
   }
 });

@@ -65,9 +65,6 @@ const runRole = (role: MenuRole, window: BrowserWindow | null): void => {
   const contents: WebContents | undefined = window?.webContents;
 
   switch (role) {
-    case 'about':
-      app.showAboutPanel();
-      return;
     case 'hide':
       app.hide();
       return;
@@ -247,11 +244,6 @@ export default class AppMenu {
   static initialize(): void {
     AppMenu.#menus = buildMenu(platform, isDevEnv);
 
-    app.setAboutPanelOptions({
-      applicationName: APP_NAME,
-      applicationVersion: app.getVersion(),
-      copyright: `© ${new Date().getFullYear()} CDGet`,
-    });
     app.on('browser-window-focus', () => AppMenu.refresh());
     app.on('browser-window-created', (_event, window) => {
       const contentsId = window.webContents.id;

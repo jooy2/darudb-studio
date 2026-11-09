@@ -1,5 +1,5 @@
 import { createWriteStream, type WriteStream } from 'fs';
-import { readFile, rename, rm, stat } from 'fs/promises';
+import { readFile, rename, rm, stat, writeFile } from 'fs/promises';
 import { once } from 'events';
 import { basename, dirname, extname, join } from 'path';
 import { app, BrowserWindow, dialog } from 'electron';
@@ -12,10 +12,17 @@ import {
   type ImportResult,
   type Key,
   type Row,
+  type SchemaReport,
   type ToolResult,
   type TransferReport,
 } from '@/common/data';
 import { CSV_START } from '@/common/csv';
+import {
+  schemaFormats,
+  schemaToJson,
+  schemaToTypeScript,
+  type SchemaFormat,
+} from '@/common/schema';
 import {
   csvHeader,
   csvRow,
@@ -287,6 +294,54 @@ export const importObjects = async (
     }
 
     return { status: 'ok', report: { path, count: rows.length } };
+  } catch (error) {
+    return failed(error);
+  }
+};
+
+/*
+ * Writes the file's schema, or the one collection `only` names, as TypeScript
+ * or JSON to a file the user picks in the save dialog, titled `title`.
+ * */
+export const exportSchema = async (
+  database: Database,
+  window: BrowserWindow | null,
+  format: SchemaFormat,
+  only: string | null,
+  title: string,
+): Promise<ToolResult<SchemaReport>> => {
+  try {
+    if (!schemaFormats.includes(format)) {
+      throw new InvalidRequest(`a schema is written as one of ${schemaFormats.join(', ')}`);
+    }
+
+    const schema = schemaOf(database);
+
+    if (!schema) {
+      throw new InvalidRequest('the file holds no schema');
+    }
+
+    const name = only === null ? 'schema' : collectionOf(database, only).name;
+    const text =
+      format === 'ts'
+        ? schemaToTypeScript(schema, only ?? undefined)
+        : schemaToJson(schema, only ?? undefined);
+    const options = {
+      title,
+      defaultPath: join(app.getPath('documents'), `${name}.${format}`),
+      filters: [{ name: format === 'ts' ? 'TypeScript' : 'JSON', extensions: [format] }],
+    };
+    const chosen = window
+      ? await dialog.showSaveDialog(window, options)
+      : await dialog.showSaveDialog(options);
+
+    if (chosen.canceled || !chosen.filePath) {
+      return { status: 'cancelled' };
+    }
+
+    await writeFile(chosen.filePath, text, 'utf8');
+
+    return { status: 'ok', report: { path: chosen.filePath } };
   } catch (error) {
     return failed(error);
   }

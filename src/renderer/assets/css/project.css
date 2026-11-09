@@ -14,6 +14,10 @@
   --value-link: #0f766e;
   --value-nested: #4d7c0f;
   --value-date: #be185d;
+
+  /* The table: white, apart from the page, with its header and row numbers a shade off */
+  --grid-bg: #ffffff;
+  --grid-head-bg: #faf6ef;
 }
 
 :root[data-theme='dark'] {
@@ -23,6 +27,8 @@
   --value-link: #5eead4;
   --value-nested: #a3d468;
   --value-date: #f9a8d4;
+  --grid-bg: var(--plass-surface);
+  --grid-head-bg: #2a221b;
 }
 
 .project-app {
@@ -41,18 +47,112 @@
   flex: 1;
 }
 
+/*
+ * The project's bar: its name, its buttons, and the held changes. It is a
+ * container, so a narrow window takes the words off its buttons below, and
+ * the row scrolls rather than cutting off what does not fit.
+ * */
 .project-toolbar {
   flex: none;
-  padding-top: 0.125rem;
-  padding-bottom: 0.125rem;
+  container-type: inline-size;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
 }
 
+.project-toolbar__main {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 0.5rem;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.project-toolbar__project {
+  display: inline-flex;
+  min-width: 2.5rem;
+  max-width: 16rem;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.1875rem 0.625rem;
+  border-radius: 0.375rem;
+  background: var(--plass-primary-soft);
+  color: var(--plass-primary-accent);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.project-toolbar__project svg {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex: none;
+}
+
+.project-toolbar__project-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-toolbar__buttons {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.125rem;
+}
+
+/* The held changes, as a group of their own beside the other buttons */
 .project-toolbar__changes {
   display: inline-flex;
+  flex: none;
+  align-items: center;
   gap: 0.25rem;
-  margin-left: 0.5rem;
-  padding-left: 0.5rem;
-  border-left: 1px solid var(--plass-divider);
+  padding: 0.1875rem;
+  border: 1px solid var(--plass-glass-line);
+  border-radius: 0.5rem;
+  background: var(--plass-glass);
+}
+
+.project-toolbar__changes--held {
+  border-color: var(--plass-primary-line);
+  background: var(--plass-primary-soft);
+}
+
+.project-toolbar__submit {
+  padding-inline: 0.625rem;
+}
+
+/*
+ * Too narrow for the words, as a window zoomed in is, or one at its narrowest
+ * that also holds changes: the buttons keep their icons, and their names for a
+ * screen reader, while the button that submits keeps its count.
+ * */
+@container (max-width: 980px) {
+  .project-toolbar__main:has(.project-toolbar__changes--held) .project-toolbar__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+@container (max-width: 760px) {
+  .project-toolbar__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .project-toolbar__project {
+    max-width: 9rem;
+  }
 }
 
 /* The schema */
@@ -431,6 +531,7 @@
   min-width: 0;
   flex: 1;
   overflow: auto;
+  background: var(--grid-bg);
   font-size: 0.78rem;
   outline: none;
 }
@@ -450,7 +551,7 @@
   display: flex;
   height: 1.875rem;
   border-bottom: 1px solid var(--plass-divider);
-  background: var(--plass-bg-from);
+  background: var(--grid-head-bg);
 }
 
 .grid__corner,
@@ -463,7 +564,7 @@
   justify-content: flex-end;
   padding-right: 0.5rem;
   border-right: 1px solid var(--plass-divider);
-  background: var(--plass-bg-from);
+  background: var(--grid-head-bg);
   box-sizing: border-box;
   color: var(--plass-muted-fg);
   font-size: 0.6875rem;
@@ -589,7 +690,7 @@
 
 .grid__row--selected .grid__gutter {
   background:
-    linear-gradient(var(--plass-primary-soft), var(--plass-primary-soft)), var(--plass-bg-from);
+    linear-gradient(var(--plass-primary-soft), var(--plass-primary-soft)), var(--grid-head-bg);
   color: var(--plass-primary-accent);
   font-weight: 600;
 }
@@ -648,7 +749,7 @@
   box-sizing: border-box;
   padding: 0.25rem 0.5rem;
   border: 0;
-  background: var(--plass-bg-from);
+  background: var(--grid-bg);
   color: inherit;
   font: inherit;
   outline: 2px solid var(--plass-primary-accent);
@@ -1145,4 +1246,17 @@
 /* What the columns a wide grid leaves out take up */
 .grid__spacer {
   flex: none;
+}
+
+/* The schema, written out */
+
+.schema-dialog {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.schema-dialog__code {
+  width: 100%;
 }

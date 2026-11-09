@@ -816,7 +816,7 @@ export default function DataGrid({
       {menuColumn && menuRow && (
         <PlMenuItem
           disabled={!canEditCell({ row: menuCell.row!, col: menuCell.col! })}
-          shortcut="↩"
+          shortcut={shortcut('Enter')}
           onClick={() => startEditing({ row: menuCell.row!, col: menuCell.col! })}
         >
           {t('grid.edit-cell')}
@@ -865,7 +865,7 @@ export default function DataGrid({
               key={format}
               onClick={() => onExportRows(selectedRows(COPY_LIMIT), format, selected === rowCount)}
             >
-              {t(`toolbar.export-${format}`)}
+              {t(`menu.export-${format}`)}
             </PlMenuItem>
           ))}
         </PlMenuSubmenu>
@@ -876,7 +876,7 @@ export default function DataGrid({
           <PlMenuItem
             color="danger"
             disabled={selected === 0}
-            shortcut="⌫"
+            shortcut={shortcut('Delete')}
             onClick={() => onDeleteRows(selectedRows().filter((row) => row.state !== 'deleted'))}
           >
             {t('grid.delete', { count: selected })}

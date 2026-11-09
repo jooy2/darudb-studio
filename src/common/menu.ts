@@ -17,7 +17,6 @@
 
 /* What an entry can ask Electron to do, as its menu roles name it */
 export type MenuRole =
-  | 'about'
   | 'services'
   | 'hide'
   | 'hideOthers'
@@ -53,6 +52,11 @@ export const appCommands = [
   'close-project',
   'refresh',
   'new-query',
+  'export-csv',
+  'export-json',
+  'import-insert',
+  'import-put',
+  'show-schema',
   'check',
   'compact',
   'backup',
@@ -60,7 +64,7 @@ export const appCommands = [
   'discard',
   'open-website',
   'open-repository',
-  'show-notices',
+  'show-about',
 ] as const;
 
 export type AppCommand = (typeof appCommands)[number];
@@ -106,7 +110,8 @@ export const buildMenu = (platform: MenuPlatform, development: boolean): MenuEnt
     menus.push({
       id: 'app',
       submenu: [
-        { id: 'app.about', label: 'menu.about', role: 'about' },
+        // The app's own dialog rather than the system's panel, see `AboutDialog`
+        { id: 'app.about', label: 'menu.about', command: 'show-about' },
         separator('app.separator-about'),
         { id: 'app.settings', label: 'menu.settings', command: 'settings', accelerator: 'Cmd+,' },
         separator('app.separator-settings'),
@@ -280,6 +285,50 @@ export const buildMenu = (platform: MenuPlatform, development: boolean): MenuEnt
         accelerator: 'CmdOrCtrl+T',
         needsProject: true,
       },
+      separator('database.separator-transfer'),
+      {
+        id: 'database.schema',
+        label: 'menu.schema',
+        command: 'show-schema',
+        needsProject: true,
+      },
+      // What the tab in front shows goes out, and an import goes into its collection
+      {
+        id: 'database.export',
+        label: 'menu.export',
+        submenu: [
+          {
+            id: 'database.export-csv',
+            label: 'menu.export-csv',
+            command: 'export-csv',
+            needsProject: true,
+          },
+          {
+            id: 'database.export-json',
+            label: 'menu.export-json',
+            command: 'export-json',
+            needsProject: true,
+          },
+        ],
+      },
+      {
+        id: 'database.import',
+        label: 'menu.import',
+        submenu: [
+          {
+            id: 'database.import-insert',
+            label: 'menu.import-insert',
+            command: 'import-insert',
+            needsProject: true,
+          },
+          {
+            id: 'database.import-put',
+            label: 'menu.import-put',
+            command: 'import-put',
+            needsProject: true,
+          },
+        ],
+      },
       separator('database.separator-changes'),
       {
         id: 'database.submit',
@@ -338,13 +387,11 @@ export const buildMenu = (platform: MenuPlatform, development: boolean): MenuEnt
     submenu: [
       { id: 'help.website', label: 'menu.website', command: 'open-website' },
       { id: 'help.repository', label: 'menu.repository', command: 'open-repository' },
-      separator('help.separator-notices'),
-      { id: 'help.notices', label: 'menu.notices', command: 'show-notices' },
       ...(mac
         ? []
         : [
             separator('help.separator-about'),
-            { id: 'help.about', label: 'menu.about', role: 'about' } as const,
+            { id: 'help.about', label: 'menu.about', command: 'show-about' } as const,
           ]),
     ],
   });
@@ -383,7 +430,8 @@ export const drawnMenu = (menus: readonly MenuEntry[]): MenuEntry[] => {
 
 /*
  * `accelerator` as a menu shows it on `platform`: `⇧⌘N` on macOS, `Ctrl+Shift+N`
- * elsewhere.
+ * elsewhere. A key alone is named too: `↵` for Enter and `⌫` for Delete on
+ * macOS, their names elsewhere.
  * */
 export const acceleratorLabel = (accelerator: string, platform: MenuPlatform): string => {
   const keys = accelerator.split('+').map((key) => (key === '' ? '+' : key));
@@ -399,6 +447,10 @@ export const acceleratorLabel = (accelerator: string, platform: MenuPlatform): s
         Option: '⌥',
         Shift: '⇧',
         Plus: '+',
+        Enter: '↵',
+        Return: '↵',
+        Backspace: '⌫',
+        Delete: '⌫',
       }
     : {
         CmdOrCtrl: 'Ctrl',
@@ -407,6 +459,7 @@ export const acceleratorLabel = (accelerator: string, platform: MenuPlatform): s
         Control: 'Ctrl',
         Option: 'Alt',
         Plus: '+',
+        Return: 'Enter',
       };
   const shown = keys.map((key) => names[key] ?? key);
 

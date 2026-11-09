@@ -11,7 +11,6 @@ import {
   type CompactReport,
   type CountsResult,
   type DatabaseSchema,
-  type FieldType,
   type Key,
   type PageRequest,
   type PageResult,
@@ -19,11 +18,10 @@ import {
   type QueryResult,
   type Row,
   type SchemaCollection,
-  type SchemaField,
   type ToolResult,
-  type Value,
   type WriteResult,
 } from '@/common/data';
+import { schemaFromStored } from '@/common/schema';
 import { errorOf } from './files';
 
 /*
@@ -48,57 +46,9 @@ export class InvalidRequest extends Error {
 
 const failed = (error: unknown) => ({ status: 'error' as const, ...errorOf(error) });
 
-/* The schema's types as plain data, which crosses to a window by structured clone */
-const typeOf = (type: unknown): FieldType => {
-  const stored = type as {
-    kind: string;
-    collection?: string;
-    element?: unknown;
-    fields?: unknown[];
-  };
-
-  switch (stored.kind) {
-    case 'link':
-      return { kind: 'link', collection: String(stored.collection) };
-    case 'list':
-      return { kind: 'list', element: typeOf(stored.element) };
-    case 'object':
-      return { kind: 'object', fields: (stored.fields ?? []).map(fieldOf) };
-    default:
-      return { kind: stored.kind as 'bool' | 'int' | 'float' | 'string' | 'bytes' | 'date' };
-  }
-};
-
-const fieldOf = (field: unknown): SchemaField => {
-  const stored = field as { name: string; type: unknown; optional: boolean; default?: unknown };
-
-  return {
-    name: stored.name,
-    type: typeOf(stored.type),
-    optional: stored.optional,
-    ...('default' in stored ? { default: stored.default as Value } : {}),
-  };
-};
-
 /* The schema the file holds, or `null` for a file that holds none */
-export const schemaOf = (database: Database): DatabaseSchema | null => {
-  const stored = database.storedSchema;
-
-  if (!stored) {
-    return null;
-  }
-
-  return {
-    version: stored.version,
-    collections: stored.collections.map((collection) => ({
-      name: collection.name,
-      key: collection.key,
-      autoIncrement: collection.autoIncrement,
-      fields: collection.fields.map(fieldOf),
-      indexes: collection.indexes.map(({ fields, unique }) => ({ fields: [...fields], unique })),
-    })),
-  };
-};
+export const schemaOf = (database: Database): DatabaseSchema | null =>
+  schemaFromStored(database.storedSchema);
 
 export const collectionOf = (database: Database, name: unknown): SchemaCollection => {
   const collection = schemaOf(database)?.collections.find((each) => each.name === name);

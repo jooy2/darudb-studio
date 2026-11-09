@@ -26,6 +26,8 @@ export interface SchemaField {
   type: FieldType;
   /* Whether the field may be null */
   optional: boolean;
+  /* For a link: whether deleting the object it names deletes the object holding it */
+  cascade?: boolean;
   /* The value a required field takes when an object leaves it out, if it has one */
   default?: Value;
 }
@@ -200,6 +202,11 @@ export interface ExportRequest {
 export const importModes = ['insert', 'put'] as const;
 
 export type ImportMode = (typeof importModes)[number];
+
+/* Where the schema was written */
+export interface SchemaReport {
+  path: string;
+}
 
 /* What an export wrote or an import read: the file, and how many objects */
 export interface TransferReport {

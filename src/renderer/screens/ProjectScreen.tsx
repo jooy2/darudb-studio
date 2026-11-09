@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { PlButton, PlPane, PlPanes } from 'plass-ui';
+import { PlPane, PlPanes } from 'plass-ui';
 import AppHeader from '@/renderer/components/AppHeader';
 import ObjectDialog from '@/renderer/components/grid/ObjectDialog';
+import ImportProblemsDialog from '@/renderer/components/project/ImportProblemsDialog';
 import ProjectToolbar, { useDiscard } from '@/renderer/components/project/ProjectToolbar';
+import SchemaDialog from '@/renderer/components/project/SchemaDialog';
 import SchemaTree from '@/renderer/components/project/SchemaTree';
 import StatusBar from '@/renderer/components/project/StatusBar';
 import useEditTexts from '@/renderer/components/project/useEditTexts';
 import useToolTexts from '@/renderer/components/project/useToolTexts';
+import useTransfer from '@/renderer/components/project/useTransfer';
 import Workspace from '@/renderer/components/project/Workspace';
 import useMenuCommands from '@/renderer/hooks/useMenuCommands';
 import LoadingScreen from '@/renderer/screens/LoadingScreen';
@@ -23,6 +26,7 @@ import {
   selectLayout,
   sessionClosed,
   sessionLoaded,
+  statusChanged,
   submitPending,
   type Tool,
   type WorkspaceTab,
@@ -31,6 +35,8 @@ import { useAppDispatch, useAppSelector } from '@/renderer/store/hooks';
 import { APP_NAME } from '@/renderer/constants';
 import { mainChannels } from '@/common/ipc';
 import { isWorkspaceLayout } from '@/common/workspace';
+import type { ExportSource, ImportMode } from '@/common/data';
+import type { TransferFormat } from '@/common/transfer';
 
 /* The steps of opening the project screen, as its loading screen counts them */
 type Step = 'session' | 'counts' | 'ready';
@@ -69,6 +75,9 @@ export default function ProjectScreen() {
   const restoredLayout = useRef((location.state as { layout?: unknown } | null)?.layout);
   const [step, setStep] = useState<Step>('session');
   const [adding, setAdding] = useState<string | null>(null);
+  // The schema shown in its dialog: the whole of it, or one collection
+  const [schemaShown, setSchemaShown] = useState<{ only: string | null } | null>(null);
+  const transfer = useTransfer();
 
   useEffect(() => {
     let current = true;
@@ -152,10 +161,43 @@ export default function ProjectScreen() {
     void dispatch(submitPending(texts.submit(pending.length), texts.failed));
   };
 
+  /*
+   * Exports what the tab in front shows: a collection tab its view, a query
+   * tab what its query finds. A tab of neither says so in the status bar.
+   * */
+  const exportFromMenu = (format: TransferFormat): void => {
+    const source: ExportSource | null =
+      activeTab?.kind === 'collection'
+        ? { kind: 'view', filter: activeTab.filter, sort: activeTab.sort }
+        : activeTab?.kind === 'query' && activeTab.text.trim() !== ''
+          ? { kind: 'query', text: activeTab.text }
+          : null;
+
+    if (!activeCollection || !source) {
+      dispatch(statusChanged({ text: t('status.export-needs-tab'), tone: 'info' }));
+    } else if (!transfer.busy) {
+      void transfer.exportObjects(activeCollection, format, source);
+    }
+  };
+
+  /* Imports into the collection of the collection tab in front */
+  const importFromMenu = (mode: ImportMode): void => {
+    if (activeTab?.kind !== 'collection' || !activeCollection) {
+      dispatch(statusChanged({ text: t('status.import-needs-tab'), tone: 'info' }));
+    } else if (!transfer.busy) {
+      void transfer.importObjects(activeCollection, mode);
+    }
+  };
+
   useMenuCommands({
     'close-project': () => void close(),
     refresh: () => void dispatch(refreshProject()),
     'new-query': () => dispatch(openQuery({ collection: activeCollection })),
+    'export-csv': () => exportFromMenu('csv'),
+    'export-json': () => exportFromMenu('json'),
+    'import-insert': () => importFromMenu('insert'),
+    'import-put': () => importFromMenu('put'),
+    'show-schema': () => setSchemaShown({ only: null }),
     submit,
     discard: () => void discard(),
     check: () => runToolFromMenu('check'),
@@ -177,21 +219,12 @@ export default function ProjectScreen() {
 
   return (
     <div className="app project-app">
-      <AppHeader
-        title={project.name}
-        showsProject
-        actions={
-          <PlButton
-            data-testid="btn-close-project"
-            size="sm"
-            variant="ghost"
-            onClick={() => void close()}
-          >
-            {t('project.close')}
-          </PlButton>
-        }
+      <AppHeader showsProject />
+      <ProjectToolbar
+        projectName={project.name}
+        collection={activeCollection}
+        onAddObject={setAdding}
       />
-      <ProjectToolbar tab={activeTab} onAddObject={setAdding} />
       <main className="project-screen" data-testid="project-screen">
         <PlPanes
           className="project-panes"
@@ -201,7 +234,7 @@ export default function ProjectScreen() {
           onResizeEnd={([sidebar]) => dispatch(sidebarResized(sidebar))}
         >
           <PlPane defaultSize={sidebarSize ?? '240px'} minSize="160px" maxSize="480px">
-            <SchemaTree onAddObject={setAdding} />
+            <SchemaTree onAddObject={setAdding} onViewSchema={(only) => setSchemaShown({ only })} />
           </PlPane>
           <PlPane>
             <Workspace />
@@ -216,6 +249,16 @@ export default function ProjectScreen() {
           onClose={() => setAdding(null)}
           onSubmit={(values) => dispatch(insertObject(addingTo.name, values, texts.insert))}
         />
+      )}
+      {schemaShown && schema && (
+        <SchemaDialog
+          schema={schema}
+          only={schemaShown.only}
+          onClose={() => setSchemaShown(null)}
+        />
+      )}
+      {transfer.refused && (
+        <ImportProblemsDialog refused={transfer.refused} onClose={transfer.dismissRefused} />
       )}
     </div>
   );

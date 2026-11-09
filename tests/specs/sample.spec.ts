@@ -3,6 +3,7 @@ import { join } from 'path';
 import { Database } from 'darudb';
 import type { Page } from 'playwright';
 import { test, expect, beforeAll, afterAll, getUserDataPath, relaunchApp } from '../fixtures';
+import { closeProject } from '../actions';
 
 test.beforeAll(beforeAll);
 test.afterAll(afterAll);
@@ -15,11 +16,6 @@ const sampleFiles = (): string[] =>
 const openSample = async (page: Page): Promise<void> => {
   await page.getByTestId('btn-open-sample').click();
   await expect(page.getByTestId('project-screen')).toBeVisible();
-};
-
-const closeProject = async (page: Page): Promise<void> => {
-  await page.getByTestId('btn-close-project').click();
-  await expect(page.getByTestId('project-list')).toBeVisible();
 };
 
 test('The sample opens at once, on a file of its own in the app folder', async ({ page, util }) => {
@@ -54,7 +50,21 @@ test('The sample opens at once, on a file of its own in the app folder', async (
         expect(typeof txn.collection('orders').find('status == "delivered"')[0].paymentId).toBe(
           'bigint',
         );
+        // Dates, an optional one among them, and an index on two fields
+        const [delivered] = txn.collection('orders').find('status == "delivered"');
+
+        expect(delivered.placedAt).toBeInstanceOf(Date);
+        expect((delivered.shippedAt as Date).getTime()).toBeGreaterThan(
+          (delivered.placedAt as Date).getTime(),
+        );
+        expect(txn.collection('orders').find('status == "pending"')[0].shippedAt).toBeNull();
       });
+
+      expect(
+        database.storedSchema?.collections
+          .find((collection) => collection.name === 'orders')
+          ?.indexes.some((index) => index.fields.join() === 'status,placedAt'),
+      ).toBe(true);
     } finally {
       database.close();
     }

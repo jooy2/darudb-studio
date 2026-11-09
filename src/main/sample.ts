@@ -48,7 +48,7 @@ const sampleSchema = schema(1, {
     weightGrams: t.int().optional(),
     // The product's color as three bytes, red, green and blue
     color: t.bytes().optional(),
-    addedAt: t.int().index(),
+    addedAt: t.date().index(),
   }),
   customers: collection({
     email: t.string().unique(),
@@ -63,27 +63,32 @@ const sampleSchema = schema(1, {
       country: t.string(),
     }),
     phone: t.string().optional(),
-    joinedAt: t.int().index(),
+    joinedAt: t.date().index(),
   }),
-  orders: collection({
-    customer: t.link('customers').index(),
-    products: t.list(t.link('products')),
-    itemCount: t.int(),
-    total: t.float().index(),
-    status: t.string().index(),
-    // As a payment service numbers its payments, past what a double holds exactly
-    paymentId: t.bigint().optional(),
-    shipping: t
-      .object({
-        method: t.string(),
-        cost: t.float(),
-        trackingCode: t.string().optional(),
-      })
-      .optional(),
-    gift: t.bool().default(false),
-    note: t.string().optional(),
-    placedAt: t.int().index(),
-  }),
+  orders: collection(
+    {
+      customer: t.link('customers').index(),
+      products: t.list(t.link('products')),
+      itemCount: t.int(),
+      total: t.float().index(),
+      status: t.string().index(),
+      // As a payment service numbers its payments, past what a double holds exactly
+      paymentId: t.bigint().optional(),
+      shipping: t
+        .object({
+          method: t.string(),
+          cost: t.float(),
+          trackingCode: t.string().optional(),
+        })
+        .optional(),
+      gift: t.bool().default(false),
+      note: t.string().optional(),
+      placedAt: t.date().index(),
+      shippedAt: t.date().optional(),
+    },
+    // The orders of one status, newest first, as a shop's back office lists them
+    { indexes: [{ fields: ['status', 'placedAt'] }] },
+  ),
   reviews: collection({
     product: t.link('products').index(),
     customer: t.link('customers').index(),
@@ -91,7 +96,7 @@ const sampleSchema = schema(1, {
     title: t.string(),
     body: t.string().optional(),
     helpful: t.int().default(0),
-    createdAt: t.int().index(),
+    createdAt: t.date().index(),
   }),
 });
 
@@ -346,7 +351,7 @@ export const writeSampleDatabase = async (path: string): Promise<void> => {
         color: chance(0.4)
           ? null
           : new Uint8Array([integer(0, 255), integer(0, 255), integer(0, 255)]),
-        addedAt: OPENED_AT + integer(0, 300) * DAY,
+        addedAt: new Date(OPENED_AT + integer(0, 300) * DAY),
       }));
       const productKeys = await txn.collection('products').insertMany(products);
       const prices = new Map(productKeys.map((key, at) => [key, products[at].price]));
@@ -369,7 +374,7 @@ export const writeSampleDatabase = async (path: string): Promise<void> => {
             country,
           },
           phone: chance(0.35) ? null : `555-01${pad(integer(0, 99), 2)}`,
-          joinedAt: OPENED_AT + integer(0, 500) * DAY + integer(0, DAY - 1),
+          joinedAt: new Date(OPENED_AT + integer(0, 500) * DAY + integer(0, DAY - 1)),
         };
       });
       const customerKeys = await txn.collection('customers').insertMany(customers);
@@ -381,6 +386,8 @@ export const writeSampleDatabase = async (path: string): Promise<void> => {
           const status = pick(STATUSES);
           const paid = status !== 'pending' && status !== 'cancelled';
           const shipping = pick(SHIPPING);
+          const placedAt = OPENED_AT + integer(30, 640) * DAY + integer(0, DAY - 1);
+          const shipped = status === 'shipped' || status === 'delivered';
 
           return {
             customer: pick(customerKeys),
@@ -406,7 +413,8 @@ export const writeSampleDatabase = async (path: string): Promise<void> => {
               : null,
             gift: chance(0.12),
             note: chance(0.15) ? pick(NOTES) : null,
-            placedAt: OPENED_AT + integer(30, 640) * DAY + integer(0, DAY - 1),
+            placedAt: new Date(placedAt),
+            shippedAt: shipped ? new Date(placedAt + integer(1, 5) * DAY) : null,
           };
         }),
       );
@@ -422,7 +430,7 @@ export const writeSampleDatabase = async (path: string): Promise<void> => {
             title: pick(REVIEW_TITLES[rating]),
             body: chance(0.3) ? null : pick(REVIEW_BODIES),
             helpful: chance(0.5) ? 0 : integer(1, 60),
-            createdAt: OPENED_AT + integer(40, 650) * DAY + integer(0, DAY - 1),
+            createdAt: new Date(OPENED_AT + integer(40, 650) * DAY + integer(0, DAY - 1)),
           };
         }),
       );

@@ -43,6 +43,17 @@ for (const { platform, development } of builds) {
     expect(ids).toEqual(expect.arrayContaining(['window.new-window', 'window.close']));
     expect(ids.includes('app.about')).toBe(platform === 'mac');
     expect(ids.includes('help.about')).toBe(platform !== 'mac');
+    // The app's own About dialog, never the system's panel
+    expect(entries.find((entry) => entry.id.endsWith('.about'))?.command).toBe('show-about');
+    // Exporting and importing are in the Database menu, as the toolbar has no buttons for them
+    expect(ids).toEqual(
+      expect.arrayContaining([
+        'database.export-csv',
+        'database.export-json',
+        'database.import-insert',
+        'database.import-put',
+      ]),
+    );
   });
 }
 
@@ -101,4 +112,9 @@ test('Shortcuts are written the way each platform writes them', () => {
   expect(acceleratorLabel('CmdOrCtrl+Plus', 'other')).toBe('Ctrl++');
   expect(acceleratorLabel('Cmd+Alt+H', 'mac')).toBe('⌘⌥H');
   expect(acceleratorLabel('F5', 'other')).toBe('F5');
+  // A key alone, as a context menu shows the keys of its entries
+  expect(acceleratorLabel('Enter', 'mac')).toBe('↵');
+  expect(acceleratorLabel('Enter', 'other')).toBe('Enter');
+  expect(acceleratorLabel('Delete', 'mac')).toBe('⌫');
+  expect(acceleratorLabel('Delete', 'other')).toBe('Delete');
 });

@@ -11,6 +11,7 @@ import { SYSTEM_DARK_THEME_QUERY } from '@/renderer/constants';
 export interface AppScreenState {
   systemDarkTheme: boolean;
   settingsOpen: boolean;
+  aboutOpen: boolean;
   noticesOpen: boolean;
 }
 
@@ -21,6 +22,7 @@ export interface AppScreenState {
 export const createAppScreenState = (): AppScreenState => ({
   systemDarkTheme: window.matchMedia(SYSTEM_DARK_THEME_QUERY).matches,
   settingsOpen: false,
+  aboutOpen: false,
   noticesOpen: false,
 });
 
@@ -30,6 +32,7 @@ export const appScreenSlice = createSlice({
   initialState: {
     systemDarkTheme: false,
     settingsOpen: false,
+    aboutOpen: false,
     noticesOpen: false,
   } as AppScreenState,
   reducers: {
@@ -39,13 +42,17 @@ export const appScreenSlice = createSlice({
     setSettingsOpen: (state, action: PayloadAction<boolean>) => {
       state.settingsOpen = action.payload;
     },
+    setAboutOpen: (state, action: PayloadAction<boolean>) => {
+      state.aboutOpen = action.payload;
+    },
     setNoticesOpen: (state, action: PayloadAction<boolean>) => {
       state.noticesOpen = action.payload;
     },
   },
 });
 
-export const { setSystemDarkTheme, setSettingsOpen, setNoticesOpen } = appScreenSlice.actions;
+export const { setSystemDarkTheme, setSettingsOpen, setAboutOpen, setNoticesOpen } =
+  appScreenSlice.actions;
 
 /* Whether the window is dark: the user's choice, or the system's without one */
 export const selectDarkTheme = (state: RootState): boolean =>

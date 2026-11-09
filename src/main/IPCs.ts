@@ -1,5 +1,6 @@
-import { readFile } from 'fs/promises';
+import { readFile, stat } from 'fs/promises';
 import { BrowserWindow, IpcMainEvent, IpcMainInvokeEvent, ipcMain } from 'electron';
+import { engineVersion, FORMAT_VERSION } from 'darudb';
 import {
   mainChannels,
   rendererChannels,
@@ -12,7 +13,7 @@ import { refreshTitleBars } from './appearance';
 import { noticesFile } from './constants';
 import { reportWindowState, takeRestore } from './workspace';
 import { changePassword, rescueOpenProject, rescueProject } from './tools';
-import { exportObjects, importObjects } from './transfer';
+import { exportObjects, exportSchema, importObjects } from './transfer';
 import { createSampleProject } from './sample';
 import WindowManager from './WindowManager';
 import AppMenu from './AppMenu';
@@ -227,6 +228,20 @@ export default class IPCs {
 
     handle(mainChannels.requestNotices, () => readFile(noticesFile, 'utf8').catch(() => null));
 
+    handle(mainChannels.requestAbout, async () => ({
+      engine: engineVersion(),
+      formatVersion: FORMAT_VERSION,
+      electron: process.versions.electron,
+      chromium: process.versions.chrome,
+      node: process.versions.node,
+      platform: process.platform,
+      arch: process.arch,
+      hasNotices: await stat(noticesFile).then(
+        (found) => found.size > 0,
+        () => false,
+      ),
+    }));
+
     on(mainChannels.reportWindowState, (event, state) => {
       reportWindowState(BrowserWindow.fromWebContents(event.sender), state);
     });
@@ -351,6 +366,20 @@ export default class IPCs {
             BrowserWindow.fromWebContents(event.sender),
             collection,
             mode,
+            String(title),
+          )
+        : noProject;
+    });
+
+    handle(mainChannels.exportSchema, (event, format, only, title) => {
+      const database = databaseOf(event);
+
+      return database
+        ? exportSchema(
+            database,
+            BrowserWindow.fromWebContents(event.sender),
+            format,
+            typeof only === 'string' ? only : null,
             String(title),
           )
         : noProject;

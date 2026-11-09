@@ -17,6 +17,66 @@
 @import './screens.css';
 @import './project.css';
 
+/*
+ * The colors of DaruDB, from its logo: the tan of the scroll and the dark
+ * brown of its outline, in place of the blue Plass UI comes with. Each theme
+ * names every token it changes, since Plass gives the dark one a selector of
+ * higher specificity than `:root`. The dark block is written twice: once for
+ * the theme the app chose, and once for the moment before it chose one, while
+ * the system's scheme is all there is. The first color of the background is
+ * also in `src/common/theme.ts`.
+ * */
+:root,
+:root[data-theme='light'] {
+  --plass-bg-from: #f7f1e8;
+  --plass-bg-to: #ede3d3;
+  --plass-fg: #2b2118;
+  --plass-muted-fg: #6e6152;
+  --plass-surface: #fffdf9;
+  --plass-divider: rgb(97 57 36 / 0.14);
+  --plass-stripe: rgb(97 57 36 / 0.035);
+  --plass-primary-accent: #7a4a2a;
+  --plass-primary-solid: #8a5634;
+  --plass-primary-solid-to: #613924;
+  --plass-secondary-accent: #5c5046;
+  --plass-secondary-solid: #7a6c5f;
+  --plass-secondary-solid-to: #63574c;
+}
+
+:root:not(.light)[data-theme='dark'] {
+  --plass-bg-from: #1d1712;
+  --plass-bg-to: #120e0a;
+  --plass-fg: #f1e9de;
+  --plass-muted-fg: #b5a692;
+  --plass-surface: #221b15;
+  --plass-divider: rgb(255 240 220 / 0.1);
+  --plass-stripe: rgb(255 240 220 / 0.03);
+  --plass-primary-accent: #e2c294;
+  --plass-primary-solid: #9a6a40;
+  --plass-primary-solid-to: #7a4a2a;
+  --plass-secondary-accent: #c2b4a2;
+  --plass-secondary-solid: #6f6357;
+  --plass-secondary-solid-to: #5b5047;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light):not([data-theme='light']) {
+    --plass-bg-from: #1d1712;
+    --plass-bg-to: #120e0a;
+    --plass-fg: #f1e9de;
+    --plass-muted-fg: #b5a692;
+    --plass-surface: #221b15;
+    --plass-divider: rgb(255 240 220 / 0.1);
+    --plass-stripe: rgb(255 240 220 / 0.03);
+    --plass-primary-accent: #e2c294;
+    --plass-primary-solid: #9a6a40;
+    --plass-primary-solid-to: #7a4a2a;
+    --plass-secondary-accent: #c2b4a2;
+    --plass-secondary-solid: #6f6357;
+    --plass-secondary-solid-to: #5b5047;
+  }
+}
+
 :root {
   /* Native widgets and scrollbars follow the theme the app settled on */
   color-scheme: light dark;

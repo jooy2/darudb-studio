@@ -8,6 +8,7 @@ import type { AppSettings } from '../../src/common/settings';
 import { makeNotADatabase, makeSampleDatabase } from '../databases';
 import { invokeMain, sendMain } from '../ipc';
 import { test, expect, beforeAll, afterAll, getApp, getUserDataPath } from '../fixtures';
+import { closeProject } from '../actions';
 
 test.beforeAll(beforeAll);
 test.afterAll(afterAll);
@@ -63,10 +64,7 @@ const createProject = async (
 /* Brings the tools tab forward, which lists what is known of the file */
 const showFacts = (target: Page) => target.getByTestId('btn-tools').click();
 
-const backToList = async (target: Page): Promise<void> => {
-  await target.getByTestId('btn-close-project').click();
-  await expect(target.getByTestId('project-list')).toBeVisible();
-};
+const backToList = (target: Page): Promise<void> => closeProject(target);
 
 test('A window starts on the loading screen, then shows the projects', async ({ page, util }) => {
   try {

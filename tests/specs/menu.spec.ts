@@ -1,6 +1,7 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import type { Page } from 'playwright';
+import pkg from '../../package.json' with { type: 'json' };
 import { mainChannels } from '../../src/common/ipc';
 import { languageOf } from '../../src/common/locales';
 import { translate } from '../../src/common/translations';
@@ -143,7 +144,7 @@ test('The native menu speaks the language the user picked', async ({ page, util 
   }
 });
 
-test('The build writes the third-party notices, and the Help menu shows them', async ({
+test('The About dialog names the versions, and shows the notices the build wrote', async ({
   page,
   util,
 }) => {
@@ -158,8 +159,21 @@ test('The build writes the third-party notices, and the Help menu shows them', a
     expect(notices).toMatch(/^darudb \d+\.\d+\.\d+\nLicense: MIT/m);
     expect(notices).not.toMatch(/^darudb-studio /m);
 
-    await page.getByTestId('app-menu-bar').getByRole('menuitem', { name: 'Help' }).click();
-    await page.getByRole('menuitem', { name: 'Third-Party Licenses' }).click();
+    // The app's own dialog, from the app menu of macOS or the Help menu elsewhere
+    await page
+      .getByTestId('app-menu-bar')
+      .getByRole('menuitem', { name: process.platform === 'darwin' ? 'DaruDB Studio' : 'Help' })
+      .click();
+    await page.getByRole('menuitem', { name: 'About DaruDB Studio' }).click();
+
+    const about = page.getByTestId('about-dialog');
+
+    await expect(about.getByTestId('about-version')).toHaveText(`Version ${pkg.version}`);
+    await expect(about.getByTestId('about-details')).toContainText(/DaruDB \d+\.\d+\.\d+/);
+    await expect(about.getByTestId('about-details')).toContainText('Electron');
+    await util.captureScreenshot(page, 'about');
+
+    await about.getByTestId('btn-notices').click();
 
     const dialog = page.getByTestId('notices-dialog');
 
@@ -167,6 +181,8 @@ test('The build writes the third-party notices, and the Help menu shows them', a
     await util.captureScreenshot(page, 'notices');
     await page.keyboard.press('Escape');
     await expect(dialog).toBeHidden();
+    await page.keyboard.press('Escape');
+    await expect(about).toBeHidden();
   } catch (error) {
     throw await util.onTestError(error);
   }

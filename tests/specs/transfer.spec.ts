@@ -8,6 +8,7 @@ import { parseCsv } from '../../src/common/csv';
 import { makeSampleDatabase } from '../databases';
 import { invokeMain } from '../ipc';
 import { test, expect, beforeAll, afterAll, getApp } from '../fixtures';
+import { runMenuEntry } from '../actions';
 
 test.beforeAll(beforeAll);
 test.afterAll(afterAll);
@@ -50,11 +51,6 @@ const users = async (page: Page, filter = ''): Promise<Row[]> => {
   return result.rows;
 };
 
-const toolbarMenu = async (page: Page, button: string, item: RegExp): Promise<void> => {
-  await page.getByTestId(button).click();
-  await page.getByRole('menuitem', { name: item }).click();
-};
-
 const count = (page: Page) => page.getByTestId('object-count').filter({ visible: true });
 
 test('A collection exports what its tab shows, as CSV and as JSON', async ({ page, util }) => {
@@ -75,7 +71,7 @@ test('A collection exports what its tab shows, as CSV and as JSON', async ({ pag
     const csv = join(files, 'users.csv');
 
     await saveTo(csv);
-    await toolbarMenu(page, 'btn-export', /As CSV/);
+    await runMenuEntry(page, 'database.export-csv');
     await expect(page.getByTestId('status-message')).toHaveText(`Exported 10 objects to ${csv}.`);
 
     const [header, ...lines] = parseCsv(readFileSync(csv, 'utf8'));
@@ -97,7 +93,7 @@ test('A collection exports what its tab shows, as CSV and as JSON', async ({ pag
     const json = join(files, 'users.json');
 
     await saveTo(json);
-    await toolbarMenu(page, 'btn-export', /As JSON/);
+    await runMenuEntry(page, 'database.export-json');
     // The message of this export, not the one before, which says the same count
     await expect(page.getByTestId('status-message')).toHaveText(`Exported 10 objects to ${json}.`);
     expect(JSON.parse(readFileSync(json, 'utf8'))).toHaveLength(10);
@@ -134,7 +130,7 @@ test('An import writes every record, or none when one does not fit', async ({ pa
 
     writeFileSync(bad, JSON.stringify([{ name: 'Fine' }, { name: 'Wrong', age: 'old' }]));
     await openFrom(bad);
-    await toolbarMenu(page, 'btn-import', /^Add the Objects/);
+    await runMenuEntry(page, 'database.import-insert');
 
     const problems = page.getByTestId('import-problems');
 
@@ -148,7 +144,7 @@ test('An import writes every record, or none when one does not fit', async ({ pa
 
     writeFileSync(good, 'name,age,tags\r\nNew one,41,"[""x""]"\r\nNew two,,\r\n');
     await openFrom(good);
-    await toolbarMenu(page, 'btn-import', /^Add the Objects/);
+    await runMenuEntry(page, 'database.import-insert');
     await expect(page.getByTestId('status-message')).toHaveText(`Imported 2 objects from ${good}.`);
     await expect(count(page)).toHaveText('32 objects');
     expect(await users(page, 'name == "New one"')).toEqual([
@@ -160,7 +156,7 @@ test('An import writes every record, or none when one does not fit', async ({ pa
 
     writeFileSync(replace, JSON.stringify([{ id: 1, name: 'Replaced', age: 99 }]));
     await openFrom(replace);
-    await toolbarMenu(page, 'btn-import', /^Add or Replace by Key/);
+    await runMenuEntry(page, 'database.import-put');
     await expect(page.getByTestId('status-message')).toContainText('Imported 1 object');
     expect(await users(page, 'id == 1')).toEqual([
       expect.objectContaining({ name: 'Replaced', age: 99 }),

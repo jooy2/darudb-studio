@@ -13,8 +13,8 @@ export interface RefusedImport {
 }
 
 /*
- * Exporting objects to a file and importing them from one, as the toolbar
- * and a grid's context menu ask: the request to the main process, and what
+ * Exporting objects to a file and importing them from one, as the Database
+ * menu and a grid's context menu ask: the request to the main process, and what
  * the status bar says after. An import that refused records of its file
  * leaves them in `refused`, for a dialog to list.
  * */

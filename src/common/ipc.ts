@@ -11,6 +11,7 @@ import type {
 } from './projects';
 import type { AppCommand, MenuEntry, MenuPlatform } from './menu';
 import type { WindowState } from './workspace';
+import type { SchemaFormat } from './schema';
 import type {
   BackupReport,
   Change,
@@ -25,6 +26,7 @@ import type {
   QueryRequest,
   QueryResult,
   RescueReport,
+  SchemaReport,
   ToolResult,
   TransferReport,
   WriteResult,
@@ -72,6 +74,7 @@ export const mainChannels = {
   closeProject: 'msgCloseProject',
   requestSession: 'msgRequestSession',
   requestNotices: 'msgRequestNotices',
+  requestAbout: 'msgRequestAbout',
   reportWindowState: 'msgReportWindowState',
   takeWindowRestore: 'msgTakeWindowRestore',
   countObjects: 'msgCountObjects',
@@ -87,6 +90,7 @@ export const mainChannels = {
   openProjectWindow: 'msgOpenProjectWindow',
   exportObjects: 'msgExportObjects',
   importObjects: 'msgImportObjects',
+  exportSchema: 'msgExportSchema',
 } as const;
 
 /*
@@ -97,6 +101,20 @@ export const rendererChannels = {
   projectsChanged: 'msgProjectsChanged',
   menuCommand: 'msgMenuCommand',
 } as const;
+
+/* What the About dialog says of the app and of what it runs on */
+export interface AboutInfo {
+  /* The version of the DaruDB engine, and the newest file format version it writes */
+  engine: string;
+  formatVersion: number;
+  electron: string;
+  chromium: string;
+  node: string;
+  platform: string;
+  arch: string;
+  /* Whether the build wrote the third-party notices, which a development run has not */
+  hasNotices: boolean;
+}
 
 /* What a window draws its menu bar from: the entries, and how to show their accelerators */
 export interface MenuModel {
@@ -160,6 +178,7 @@ export interface MainChannelSignatures {
   [mainChannels.requestSession]: () => Session | null;
   /* The third-party notices the build wrote, or `null` for a build that has none */
   [mainChannels.requestNotices]: () => string | null;
+  [mainChannels.requestAbout]: () => AboutInfo;
   /* What the window shows now, which the next launch opens again when the settings ask */
   [mainChannels.reportWindowState]: (state: WindowState) => void;
   /* What the window is to open as the app restores its last windows, once; `null` otherwise */
@@ -203,6 +222,15 @@ export interface MainChannelSignatures {
     mode: ImportMode,
     title: string,
   ) => ImportResult;
+  /*
+   * Writes the schema, or the one collection `only` names, as TypeScript or
+   * JSON to a file the save dialog, titled `title`, asks for
+   * */
+  [mainChannels.exportSchema]: (
+    format: SchemaFormat,
+    only: string | null,
+    title: string,
+  ) => ToolResult<SchemaReport>;
 }
 
 export interface RendererChannelSignatures {

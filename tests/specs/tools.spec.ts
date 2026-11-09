@@ -7,6 +7,7 @@ import type { FileCheck, Project } from '../../src/common/projects';
 import { makeDamagedDatabase, makeSampleDatabase } from '../databases';
 import { invokeMain } from '../ipc';
 import { test, expect, beforeAll, afterAll, getApp } from '../fixtures';
+import { closeProject } from '../actions';
 
 test.beforeAll(beforeAll);
 test.afterAll(afterAll);
@@ -36,11 +37,6 @@ const openProject = async (page: Page, name: string): Promise<void> => {
     .filter({ hasText: name })
     .getByTestId('btn-open-project')
     .click();
-};
-
-const closeProject = async (page: Page): Promise<void> => {
-  await page.getByTestId('btn-close-project').click();
-  await expect(page.getByTestId('project-list')).toBeVisible();
 };
 
 test('A file too damaged to open is rescued into a new project', async ({ page, util }) => {

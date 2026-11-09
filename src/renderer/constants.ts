@@ -12,3 +12,6 @@ export const SYSTEM_DARK_THEME_QUERY = '(prefers-color-scheme: dark)';
 // A product name, so it is the same in every language and kept out of the
 // translation files
 export const APP_NAME = 'DaruDB Studio';
+
+// Who holds the copyright the About dialog names, as `package.json` gives the author
+export const COPYRIGHT_HOLDER = 'CDGet';

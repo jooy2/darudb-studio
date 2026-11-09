@@ -7,6 +7,7 @@ import pkg from '../../package.json' with { type: 'json' };
 import { mainChannels } from '../../src/common/ipc';
 import type { AppSettings } from '../../src/common/settings';
 import { invokeMain } from '../ipc';
+import { chooseTheme } from '../actions';
 import {
   test,
   expect,
@@ -49,8 +50,8 @@ test('Document element check', async ({ page, util }) => {
       'Confirm main logo is visible',
     ).toBeVisible();
     await expect(
-      page.getByTestId('btn-change-theme').first(),
-      'Confirm change theme is visible',
+      page.getByTestId('btn-settings').first(),
+      'Confirm the settings button is visible',
     ).toBeVisible();
     await expect(
       page.getByTestId('app-version'),
@@ -121,7 +122,7 @@ test('Theme and language reach every window', async ({ page, util }) => {
     // process passes the choice on
     const themeBefore = await getTheme(page);
 
-    await page.getByTestId('btn-change-theme').click();
+    await chooseTheme(page, themeBefore === 'dark' ? 'light' : 'dark');
     await expect.poll(() => getTheme(page)).not.toBe(themeBefore);
     await expect
       .poll(() => getTheme(childWindow), {
@@ -155,9 +156,7 @@ test('Theme and language are kept in the settings file between launches', async 
   try {
     // Set from here rather than inherited from the test above, so the test
     // holds on its own
-    if ((await getTheme(page)) !== 'dark') {
-      await page.getByTestId('btn-change-theme').click();
-    }
+    await chooseTheme(page, 'dark');
 
     await expect.poll(() => getTheme(page)).toBe('dark');
     await selectLanguage(page, '日本語');
@@ -200,7 +199,7 @@ test('A settings file that cannot be read is left alone', async ({ util }) => {
     expect(await getTheme(relaunchedPage)).toBe('light');
 
     // A choice made now is kept for this run only, and the file is not replaced
-    await relaunchedPage.getByTestId('btn-change-theme').click();
+    await chooseTheme(relaunchedPage, 'dark');
     await expect.poll(() => getTheme(relaunchedPage)).toBe('dark');
     expect(
       readFileSync(settingsFilePath, 'utf8'),

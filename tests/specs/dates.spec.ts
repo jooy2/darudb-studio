@@ -8,6 +8,7 @@ import { parseCsv } from '../../src/common/csv';
 import { makeEventsDatabase } from '../databases';
 import { invokeMain } from '../ipc';
 import { test, expect, beforeAll, afterAll, getApp } from '../fixtures';
+import { runMenuEntry } from '../actions';
 
 /*
  * A file whose fields hold dates, and whose collection has indexes on more
@@ -67,11 +68,6 @@ const openFrom = (path: string) =>
       filePaths: [picked],
     })) as unknown as typeof dialog.showOpenDialog;
   }, path);
-
-const toolbarMenu = async (page: Page, button: string, item: RegExp): Promise<void> => {
-  await page.getByTestId(button).click();
-  await page.getByRole('menuitem', { name: item }).click();
-};
 
 test('The schema tree shows the dates and every index', async ({ page, util }) => {
   try {
@@ -240,7 +236,7 @@ test('Dates go out to CSV and JSON as RFC 3339 text, and come back in', async ({
     const csv = join(files, 'events.csv');
 
     await saveTo(csv);
-    await toolbarMenu(page, 'btn-export', /As CSV/);
+    await runMenuEntry(page, 'database.export-csv');
     await expect(page.getByTestId('status-message')).toHaveText(`Exported 4 objects to ${csv}.`);
 
     const [header, first] = parseCsv(readFileSync(csv, 'utf8'));
@@ -259,7 +255,7 @@ test('Dates go out to CSV and JSON as RFC 3339 text, and come back in', async ({
     const json = join(files, 'events.json');
 
     await saveTo(json);
-    await toolbarMenu(page, 'btn-export', /As JSON/);
+    await runMenuEntry(page, 'database.export-json');
     await expect(page.getByTestId('status-message')).toHaveText(`Exported 4 objects to ${json}.`);
     expect(JSON.parse(readFileSync(json, 'utf8'))[0]).toMatchObject({
       at: '2026-01-02T03:04:05.678Z',
@@ -272,7 +268,7 @@ test('Dates go out to CSV and JSON as RFC 3339 text, and come back in', async ({
 
     writeFileSync(bad, JSON.stringify([{ title: 'vague', at: '2026-07-01T12:00:00' }]));
     await openFrom(bad);
-    await toolbarMenu(page, 'btn-import', /^Add the Objects/);
+    await runMenuEntry(page, 'database.import-insert');
     await expect(page.getByTestId('import-problems')).toContainText('at: expected a date');
     await page.keyboard.press('Escape');
 
@@ -285,7 +281,7 @@ test('Dates go out to CSV and JSON as RFC 3339 text, and come back in', async ({
       ]),
     );
     await openFrom(good);
-    await toolbarMenu(page, 'btn-import', /^Add the Objects/);
+    await runMenuEntry(page, 'database.import-insert');
     await expect(page.getByTestId('status-message')).toHaveText(`Imported 1 object from ${good}.`);
     expect(await readEvents(page, 'title == "imported"')).toEqual([
       expect.objectContaining({
@@ -294,6 +290,47 @@ test('Dates go out to CSV and JSON as RFC 3339 text, and come back in', async ({
       }),
     ]);
     await expect(count(page)).toHaveText('5 objects');
+  } catch (error) {
+    throw await util.onTestError(error);
+  }
+});
+
+test('The schema shows as TypeScript or JSON, and saves to a file', async ({ page, util }) => {
+  try {
+    await page.getByTestId('btn-view-schema').click();
+
+    const dialog = page.getByTestId('schema-dialog');
+
+    await expect(dialog).toContainText('Schema');
+    await expect(dialog.getByTestId('schema-text')).toContainText(
+      'export const databaseSchema = schema(1, {',
+    );
+    await expect(dialog.getByTestId('schema-text')).toContainText('at: t.date().index(),');
+    await expect(dialog.getByTestId('schema-text')).toContainText(
+      "{ fields: ['title', 'place'], unique: true }",
+    );
+    await util.captureScreenshot(page, 'schema-dialog');
+
+    await dialog.getByText('JSON', { exact: true }).click();
+    await expect(dialog.getByTestId('schema-text')).toContainText('"kind": "date"');
+
+    const saved = join(files, 'events.schema.json');
+
+    await saveTo(saved);
+    await dialog.getByTestId('btn-save-schema').click();
+    await expect(dialog).toBeHidden();
+    await expect(page.getByTestId('status-message')).toHaveText(`Saved the schema to ${saved}.`);
+    expect(JSON.parse(readFileSync(saved, 'utf8'))).toMatchObject({ version: 1 });
+
+    // One collection, from its menu in the tree
+    await page.getByTestId('tree-collection').click({ button: 'right' });
+    await page.getByRole('menuitem', { name: 'View Schema' }).click();
+    await expect(dialog).toContainText('Schema of events');
+    await expect(dialog.getByTestId('schema-text')).toContainText(
+      'export const events = collection(',
+    );
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
   } catch (error) {
     throw await util.onTestError(error);
   }

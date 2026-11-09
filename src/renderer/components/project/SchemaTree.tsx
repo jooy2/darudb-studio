@@ -5,6 +5,7 @@ import {
   Braces,
   Brackets,
   CalendarClock,
+  FileCode,
   Hash,
   KeyRound,
   Link,
@@ -60,6 +61,8 @@ const iconOf = (type: FieldType): ReactNode => {
 interface SchemaTreeProps {
   /* Opens the dialog that adds an object to a collection */
   onAddObject: (collection: string) => void;
+  /* Opens the schema of one collection, or of the whole file for `null` */
+  onViewSchema: (collection: string | null) => void;
 }
 
 /*
@@ -70,7 +73,7 @@ interface SchemaTreeProps {
  * A click on a collection, or on one of its fields, opens the collection in a
  * tab; a right click offers the rest.
  * */
-function SchemaTree({ onAddObject }: SchemaTreeProps) {
+function SchemaTree({ onAddObject, onViewSchema }: SchemaTreeProps) {
   const [t, i18n] = useTranslation();
   const dispatch = useAppDispatch();
   const schema = useAppSelector((state) => state.project.session?.schema ?? null);
@@ -210,9 +213,15 @@ function SchemaTree({ onAddObject }: SchemaTreeProps) {
       </PlMenuItem>
       <PlMenuSeparator />
       <PlMenuItem onClick={() => onAddObject(menuCollection)}>{t('sidebar.add-object')}</PlMenuItem>
+      <PlMenuItem onClick={() => onViewSchema(menuCollection)}>
+        {t('sidebar.view-schema')}
+      </PlMenuItem>
     </>
   ) : (
-    <PlMenuItem onClick={() => void dispatch(loadCounts())}>{t('sidebar.refresh')}</PlMenuItem>
+    <>
+      <PlMenuItem onClick={() => void dispatch(loadCounts())}>{t('sidebar.refresh')}</PlMenuItem>
+      <PlMenuItem onClick={() => onViewSchema(null)}>{t('sidebar.view-schema')}</PlMenuItem>
+    </>
   );
 
   return (
@@ -222,6 +231,14 @@ function SchemaTree({ onAddObject }: SchemaTreeProps) {
         <span className="sidebar__version">
           {t('sidebar.schema-version', { version: schema.version })}
         </span>
+        <PlIconButton
+          data-testid="btn-view-schema"
+          size="xs"
+          variant="ghost"
+          label={t('sidebar.view-schema')}
+          icon={<FileCode />}
+          onClick={() => onViewSchema(null)}
+        />
         <PlIconButton
           size="xs"
           variant="ghost"
