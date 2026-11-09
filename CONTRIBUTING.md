@@ -50,6 +50,12 @@ The macOS app is signed and notarized when the environment holds the credentials
 | `APPLE_APP_SPECIFIC_PASSWORD` | An app-specific password of that Apple ID |
 | `APPLE_TEAM_ID` | The team ID of the developer account |
 
+## Screenshots
+
+The screenshots in `.github/screenshots`, which `README.md` and the DaruDB documentation show, come from `npm run screenshots`. It builds the app and captures it in English, off the screen as the tests run it, on the sample database and two small files it makes in `/tmp/darudb-demo`, or `darudb-demo` in the public folder on Windows, which it deletes afterwards. The project list and the tools tab show that folder, so no path of your own ends up in an image.
+
+Nothing runs it on its own, the tests and the workflows included. Run it when the screenshots should change, look at the images, and commit them. `npm run screenshots -- query-tab tools-tab` captures some of them alone, by the names of their files. Where `pngquant` and `oxipng` are installed, the images come out several times smaller.
+
 ## Where the code goes
 
 - **The main process**, `src/main`, owns everything that touches the file system, including every database the app opens. A renderer is sandboxed and cannot load the native addon of `darudb`.

@@ -57,14 +57,15 @@ npm install
 npm run dev
 ```
 
-| Command             | What it does                                                       |
-| ------------------- | ------------------------------------------------------------------ |
-| `npm run dev`       | Starts the app with hot reloading                                  |
-| `npm test`          | Builds the app and runs the end-to-end tests                       |
-| `npm run lint`      | Checks the code with ESLint                                        |
-| `npm run format`    | Checks the formatting with Prettier                                |
-| `npm run build`     | Packages the app for the current platform into `release/<version>` |
-| `npm run build:dir` | Packages the app without an installer, which is faster to check    |
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Starts the app with hot reloading |
+| `npm test` | Builds the app and runs the end-to-end tests |
+| `npm run lint` | Checks the code with ESLint |
+| `npm run format` | Checks the formatting with Prettier |
+| `npm run build` | Packages the app for the current platform into `release/<version>` |
+| `npm run build:dir` | Packages the app without an installer, which is faster to check |
+| `npm run screenshots` | Captures the screenshots in `.github/screenshots` again, when they should change |
 
 The tests keep every window off the screen and the app out of the macOS Dock, so they can run while you work. Each run uses a user data folder of its own and removes it afterwards.
 
