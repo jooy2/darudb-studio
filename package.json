@@ -45,19 +45,19 @@
     "screenshots": "npm run build:pre && node buildAssets/screenshots/capture.mjs"
   },
   "dependencies": {
-    "darudb": "^1.5.0"
+    "darudb": "^1.6.0"
   },
   "devDependencies": {
     "@electron/devtron": "^2.1.1",
     "@eslint/js": "^9.39.5",
-    "@playwright/test": "^1.65.0",
+    "@playwright/test": "^1.65.1",
     "@reduxjs/toolkit": "^2.14.0",
     "@tanstack/react-virtual": "^3.14.26",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react-swc": "^4.3.3",
     "dotenv": "^18.0.10",
-    "electron": "^45.2.3",
+    "electron": "^45.3.2",
     "electron-builder": "^26.18.0",
     "electron-extension-installer": "^2.0.3",
     "eslint": "^9.39.5",
@@ -68,21 +68,21 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.14.0",
-    "i18next": "^27.0.1",
+    "i18next": "^27.1.2",
     "i18next-browser-languagedetector": "^8.3.0",
     "jiti": "^2.7.0",
-    "lucide-react": "^1.70.0",
+    "lucide-react": "^1.73.0",
     "plass-ui": "^1.9.0",
-    "playwright": "^1.65.0",
-    "prettier": "^3.9.10",
+    "playwright": "^1.65.1",
+    "prettier": "^3.10.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-i18next": "^18.0.1",
     "react-redux": "^9.3.1",
     "react-router-dom": "^7.18.5",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.72.1",
-    "vite": "^8.3.6",
+    "typescript-eslint": "^8.72.2",
+    "vite": "^8.3.8",
     "vite-plugin-electron": "^1.2.0"
   }
 }
