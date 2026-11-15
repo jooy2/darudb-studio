@@ -60,6 +60,11 @@ const builderOf = (type: FieldType, fallback?: unknown): Builder => {
 /*
  * The field, in the order a program writes its calls: the key first, since
  * only a type a key can be has `primaryKey`, and an index last.
+ *
+ * A field with a default is declared without `optional`, which darudb refuses
+ * beside a default since 1.6. A file written before may hold a field with
+ * both, which never read as null, so it reads the same; the schema the change
+ * stores records the field as required.
  * */
 const fieldOf = (field: SchemaField, marks: FieldMarks): Builder => {
   let built = builderOf(field.type, field.default);
@@ -68,7 +73,7 @@ const fieldOf = (field: SchemaField, marks: FieldMarks): Builder => {
     built = built.primaryKey();
   }
 
-  if (field.optional) {
+  if (field.optional && field.default === undefined) {
     built = built.optional();
   }
 

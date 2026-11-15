@@ -167,6 +167,38 @@ test('A field is added, renamed with its indexes, and deleted with them', () => 
   db.close();
 });
 
+test('A field that may be null and has a default is declared with its default alone', () => {
+  // As a file written before darudb 1.6 holds it, which 1.6 refuses to declare with both
+  const held = {
+    version: 1,
+    collections: [
+      {
+        name: 'items',
+        key: 'id',
+        autoIncrement: true,
+        fields: [{ name: 'size', type: { kind: 'int' as const }, optional: true, default: 3 }],
+        indexes: [],
+      },
+    ],
+  };
+  const path = join(files, `changes-${(made += 1)}.darudb`);
+  const db = Database.open(path, { schema: declareSchema(held) });
+
+  expect(db.storedSchema?.collections[0].fields).toEqual([
+    expect.objectContaining({ name: 'size', optional: false, default: 3 }),
+  ]);
+  db.close();
+
+  // A new field cannot have both
+  expect(() =>
+    planSchemaChange(held, {
+      kind: 'add-field',
+      collection: 'items',
+      field: { name: 'n', type: { kind: 'int' }, optional: true, default: 1, index: 'none' },
+    }),
+  ).toThrow('a field that may be null has no default');
+});
+
 test('A change that does not fit is refused before the file is touched', () => {
   const path = makeFile();
   const db = Database.open(path);

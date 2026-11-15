@@ -105,6 +105,9 @@ test('A field is added with a default, and renamed with the tabs that show it', 
     await collectionNode(page, 'users').click();
     await fromMenu(page, collectionNode(page, 'users'), 'Add Field…');
     await dialog(page).getByTestId('schema-edit-name').fill('nickname');
+
+    // A field that may be null has no default, so the form asks for one only once it may not
+    await expect(dialog(page).getByTestId('schema-edit-default')).toHaveCount(0);
     await dialog(page).getByTestId('schema-edit-optional').click();
 
     // The objects already there need a value of a field that may not be null

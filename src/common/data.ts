@@ -28,7 +28,11 @@ export interface SchemaField {
   optional: boolean;
   /* For a link: whether deleting the object it names deletes the object holding it */
   cascade?: boolean;
-  /* The value a required field takes when an object leaves it out, if it has one */
+  /*
+   * The value a field takes when an object leaves it out, if it has one. A
+   * file written before darudb 1.6 may hold a field that is optional and has
+   * a default, which reads as the default where it was null.
+   * */
   default?: Value;
 }
 

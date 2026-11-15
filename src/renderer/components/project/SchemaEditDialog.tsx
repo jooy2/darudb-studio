@@ -171,7 +171,7 @@ export default function SchemaEditDialog({
         if (kind === 'list') {
           // A list that may not be null starts empty
           value = optional ? undefined : [];
-        } else if (fallback.trim() !== '') {
+        } else if (!optional && fallback.trim() !== '') {
           const parsed = parseScalar(fallback, fieldType, false, schema.collections);
 
           if (parsed.ok) {
@@ -391,22 +391,24 @@ export default function SchemaEditDialog({
             />
             {isScalarType(fieldType) && (
               <>
-                <PlTextField
-                  data-testid="schema-edit-default"
-                  fullWidth
-                  size="sm"
-                  label={t('schema-edit.default')}
-                  value={fallback}
-                  placeholder={optional ? 'null' : undefined}
-                  description={errors.default ? undefined : t('schema-edit.default-hint')}
-                  error={errors.default}
-                  invalid={errors.default !== undefined}
-                  spellCheck={false}
-                  onChange={(event) => {
-                    setFallback(event.target.value);
-                    cleared('default');
-                  }}
-                />
+                {/* A field that may be null has no default: darudb refuses one beside it */}
+                {!optional && (
+                  <PlTextField
+                    data-testid="schema-edit-default"
+                    fullWidth
+                    size="sm"
+                    label={t('schema-edit.default')}
+                    value={fallback}
+                    description={errors.default ? undefined : t('schema-edit.default-hint')}
+                    error={errors.default}
+                    invalid={errors.default !== undefined}
+                    spellCheck={false}
+                    onChange={(event) => {
+                      setFallback(event.target.value);
+                      cleared('default');
+                    }}
+                  />
+                )}
                 <div className="schema-edit__row">
                   <span className="schema-edit__label">{t('schema-edit.index')}</span>
                   <PlSegmentedButton

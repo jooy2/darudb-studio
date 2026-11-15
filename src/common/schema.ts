@@ -166,11 +166,15 @@ const builderOf = (type: FieldType, indent: string): string => {
 /*
  * The calls after a field's builder. The key comes first, since only a type
  * a key can be has `primaryKey`, and an index last, as every builder has it.
+ * A field with a default is declared without `optional`, which darudb refuses
+ * beside a default since 1.6: a field a file holds with both never read as
+ * null, so the declaration reads the same, though the file then records the
+ * field as required.
  * */
 const modifiersOf = (field: SchemaField, marks: FieldMarks): string =>
   [
     marks.primaryKey ? '.primaryKey()' : '',
-    field.optional ? '.optional()' : '',
+    field.optional && field.default === undefined ? '.optional()' : '',
     field.default === undefined ? '' : `.default(${literal(field.default)})`,
     field.cascade ? '.cascade()' : '',
     marks.index ? `.${marks.index}()` : '',
@@ -518,6 +522,12 @@ export const planSchemaChange = (
         const target = field.type.kind === 'link' ? field.type : field.type.element;
 
         collectionNamed((target as { collection: string }).collection);
+      }
+
+      // darudb refuses a field that may be null and has a default: it would
+      // never read as null, since a null written to it reads as the default
+      if (field.optional === true && field.default !== undefined) {
+        return fail('a field that may be null has no default');
       }
 
       const indexed = field.index !== 'none' && field.type.kind !== 'list';

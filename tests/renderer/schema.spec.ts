@@ -5,6 +5,7 @@ import { expect, test } from '@playwright/test';
 import { collection, Database, schema, t } from 'darudb';
 import { schemaFromStored, schemaToJson, schemaToTypeScript } from '../../src/common/schema';
 import { parseJson } from '../../src/common/values';
+import type { DatabaseSchema } from '../../src/common/data';
 
 /*
  * A file's schema written out as the code a program declares it with. The
@@ -83,6 +84,28 @@ test('The TypeScript of a schema declares the same schema again', () => {
   );
 
   expect(storedWith('again.darudb', run(code))).toEqual(read);
+});
+
+test('A field that may be null and has a default is written with its default alone', () => {
+  // As a file written before darudb 1.6 holds it, which 1.6 can no longer declare
+  const held: DatabaseSchema = {
+    version: 1,
+    collections: [
+      {
+        name: 'items',
+        key: 'id',
+        autoIncrement: true,
+        fields: [{ name: 'size', type: { kind: 'int' }, optional: true, default: 3 }],
+        indexes: [],
+      },
+    ],
+  };
+  const code = schemaToTypeScript(held);
+
+  expect(code).toContain('size: t.int().default(3),');
+  expect(storedWith('held.darudb', run(code))?.collections[0].fields).toEqual([
+    { name: 'size', type: { kind: 'int' }, optional: false, default: 3 },
+  ]);
 });
 
 test('One collection is written as a declaration of its own', () => {
