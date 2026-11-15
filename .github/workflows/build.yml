@@ -48,10 +48,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install snapcraft
-        if: runner.os == 'Linux'
-        run: sudo snap install snapcraft --classic
-
       # The signing secrets are empty until they are set in the repository's
       # settings, and the installers are then built unsigned
       - name: Build the installers
@@ -68,7 +64,7 @@ jobs:
       - name: Check the packed apps (macOS)
         if: runner.os == 'macOS'
         run: |
-          for folder in release/*/mac-arm64 release/*/mac-universal; do
+          for folder in release/*/mac-arm64 release/*/mac; do
             "$folder/DaruDB Studio.app/Contents/MacOS/DaruDB Studio" --self-check
           done
 
@@ -93,9 +89,6 @@ jobs:
           path: |
             release/*/*.dmg
             release/*/*.exe
-            release/*/*.zip
-            release/*/*.appx
-            release/*/*.snap
             release/*/*.deb
             release/*/*.rpm
           if-no-files-found: error

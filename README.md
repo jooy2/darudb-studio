@@ -14,11 +14,11 @@ DaruDB keeps an application's data in one local file. DaruDB Studio is the app f
 
 The installers are on the [Releases](https://github.com/jooy2/darudb-studio/releases) page.
 
-| System  | What to download                                                                |
-| ------- | ------------------------------------------------------------------------------- |
-| Windows | The installer (`.exe`), the portable app, a `.zip`, or the `.appx` package, x64 |
-| macOS   | The `.dmg` for Apple silicon, for Intel, or the universal one for both          |
-| Linux   | The `.deb`, `.rpm` or `.snap` package, x64                                      |
+| System  | What to download                                                                    |
+| ------- | ----------------------------------------------------------------------------------- |
+| Windows | The installer (`.exe`), x64. It is not signed, so Windows asks before it first runs |
+| macOS   | The `.dmg` for Apple silicon (`arm64`) or for Intel (`x64`), signed and notarized   |
+| Linux   | The `.deb` or `.rpm` package, x64                                                   |
 
 ## What it does
 

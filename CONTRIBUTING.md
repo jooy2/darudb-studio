@@ -50,6 +50,8 @@ The macOS app is signed and notarized when the environment holds the credentials
 | `APPLE_APP_SPECIFIC_PASSWORD` | An app-specific password of that Apple ID |
 | `APPLE_TEAM_ID` | The team ID of the developer account |
 
+On a Mac whose login keychain holds the Developer ID Application certificate, the installers are signed and notarized there instead. Keep the notarization credentials in the keychain once with `xcrun notarytool store-credentials <profile> --apple-id <Apple ID> --team-id <team ID>`, which asks for the app-specific password, then build with `CSC_NAME` set to the certificate's name without its `Developer ID Application:` prefix and `APPLE_KEYCHAIN_PROFILE` set to that profile. The same Mac also makes the Windows installer and the Linux packages, unsigned, with `npm run build:win` and `npm run build:linux`; the `.rpm` needs `rpmbuild`, from the `rpm` package of Homebrew.
+
 ## Screenshots
 
 The screenshots in `.github/screenshots`, which `README.md` and the DaruDB documentation show, come from `npm run screenshots`. It builds the app and captures it in English, off the screen as the tests run it, on the sample database and two small files it makes in `/tmp/darudb-demo`, or `darudb-demo` in the public folder on Windows, which it deletes afterwards. The project list and the tools tab show that folder, so no path of your own ends up in an image.

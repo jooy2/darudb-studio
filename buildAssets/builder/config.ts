@@ -6,14 +6,20 @@ import { ensureNativeBinary, otherBinaries } from './nativeBinaries';
 
 dotenv.config();
 
+const isSet = (name: string): boolean => Boolean(process.env[name]);
+
 // Whether the environment holds what signing and notarizing for macOS take.
-// The values are read by electron-builder itself; this only checks they are set.
-const signsMac = Boolean(process.env.CSC_LINK);
+// The values are read by electron-builder itself; this only checks they are
+// set. The certificate is a `.p12` file in `CSC_LINK`, or one in the login
+// keychain that `CSC_NAME` names. Notarizing takes an Apple ID with an
+// app-specific password, a profile `xcrun notarytool store-credentials` keeps
+// in the keychain, or an App Store Connect API key.
+const signsMac = isSet('CSC_LINK') || isSet('CSC_NAME');
 const notarizesMac =
   signsMac &&
-  ['APPLE_ID', 'APPLE_APP_SPECIFIC_PASSWORD', 'APPLE_TEAM_ID'].every((name) =>
-    Boolean(process.env[name]),
-  );
+  (['APPLE_ID', 'APPLE_APP_SPECIFIC_PASSWORD', 'APPLE_TEAM_ID'].every(isSet) ||
+    isSet('APPLE_KEYCHAIN_PROFILE') ||
+    ['APPLE_API_KEY', 'APPLE_API_KEY_ID', 'APPLE_API_ISSUER'].every(isSet));
 
 const config: Configuration = {
   productName: packageJson.productName,
@@ -68,13 +74,10 @@ const config: Configuration = {
   ],
   mac: {
     files: otherBinaries('darwin'),
-    // Each darudb binary is for one architecture, and both are in both builds
-    // a universal app is merged from, so the merge keeps them as they are
-    x64ArchFiles: 'Contents/Resources/app.asar.unpacked/node_modules/@darudb/darudb-darwin-*/*.node',
     bundleVersion: '1.0',
     hardenedRuntime: true,
     gatekeeperAssess: false,
-    // Signed with the Developer ID certificate in `CSC_LINK` when there is one,
+    // Signed with the Developer ID certificate `CSC_LINK` or `CSC_NAME` gives,
     // and notarized when Apple's credentials are there too, see CONTRIBUTING.md.
     // Without them the app is built unsigned, which macOS opens only after the
     // user allows it.
@@ -85,7 +88,7 @@ const config: Configuration = {
     target: [
       {
         target: 'dmg',
-        arch: ['x64', 'arm64', 'universal']
+        arch: ['x64', 'arm64']
       }
     ]
   },
@@ -108,28 +111,14 @@ const config: Configuration = {
   win: {
     files: otherBinaries('win32'),
     icon: './buildAssets/installer/icon.ico',
+    // Built without a code signing certificate, so Windows warns before the
+    // installer first runs
     target: [
-      {
-        target: 'appx',
-        arch: 'x64'
-      },
-      {
-        target: 'zip',
-        arch: 'x64'
-      },
-      {
-        target: 'portable',
-        arch: 'x64'
-      },
       {
         target: 'nsis',
         arch: 'x64'
       }
     ]
-  },
-  appx: {
-    // A Store app's id takes letters and digits only
-    applicationId: 'DaruDBStudio',
   },
   portable: {
     artifactName: '${productName} ${version}_${arch} Portable.${ext}'
@@ -143,10 +132,6 @@ const config: Configuration = {
     icon: 'buildAssets/installer/icon.png',
     category: 'Utility',
     target: [
-      {
-        target: 'snap',
-        arch: 'x64'
-      },
       {
         target: 'deb',
         arch: 'x64'

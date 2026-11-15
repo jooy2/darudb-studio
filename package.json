@@ -2,7 +2,7 @@
   "name": "darudb-studio",
   "productName": "DaruDB Studio",
   "appId": "com.cdget.darudb-studio",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "A desktop app to open, browse and edit DaruDB database files.",
   "homepage": "https://github.com/jooy2/darudb-studio",
   "author": "CDGet <jooy2.contact@gmail.com>",
