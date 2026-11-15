@@ -55,37 +55,45 @@ export default function useTransfer() {
     }
   };
 
+  /*
+   * The import is over once the main process answers, so the next one may
+   * start while the grids and counts are read again. Held until that reading
+   * was done, an import asked for after the status bar said the last one was
+   * finished was dropped without a word.
+   * */
   const importObjects = async (collection: string, mode: ImportMode): Promise<void> => {
     setBusy(true);
 
+    let result;
+
     try {
-      const result = await window.mainApi.invoke(
+      result = await window.mainApi.invoke(
         mainChannels.importObjects,
         collection,
         mode,
         t('toolbar.import-title'),
       );
-
-      if (result.status === 'ok') {
-        dispatch(
-          statusChanged({
-            text: t('status.imported', { count: result.report.count, path: result.report.path }),
-            tone: 'success',
-          }),
-        );
-        await dispatch(refreshProject());
-      } else if (result.status === 'invalid') {
-        setRefused({ path: result.path, problems: result.problems });
-      } else if (result.status === 'error') {
-        dispatch(
-          statusChanged({
-            text: t('status.import-failed', { message: result.message }),
-            tone: 'danger',
-          }),
-        );
-      }
     } finally {
       setBusy(false);
+    }
+
+    if (result.status === 'ok') {
+      dispatch(
+        statusChanged({
+          text: t('status.imported', { count: result.report.count, path: result.report.path }),
+          tone: 'success',
+        }),
+      );
+      await dispatch(refreshProject());
+    } else if (result.status === 'invalid') {
+      setRefused({ path: result.path, problems: result.problems });
+    } else if (result.status === 'error') {
+      dispatch(
+        statusChanged({
+          text: t('status.import-failed', { message: result.message }),
+          tone: 'danger',
+        }),
+      );
     }
   };
 
