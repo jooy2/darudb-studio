@@ -30,7 +30,7 @@ The app needs Node.js 22.12 or later. Install the dependencies once with `npm in
 | `npm run format` | Prettier. `npm run format:fix` rewrites the files it flags      |
 | `npm test`       | Builds the app, then runs the end-to-end tests in `tests/specs` |
 
-The end-to-end tests start the built app with Playwright and keep every window off the screen, so a run does not take the screen or the focus from you. `DARUDB_STUDIO_HIDDEN=1` is what hides the windows and `DARUDB_STUDIO_USER_DATA` gives the run a user data folder of its own; `tests/fixtures.ts` sets both. The app reads them only when it is not packaged. On Linux without a display, `npm run test:linux` runs the same tests under Xvfb.
+The end-to-end tests start the built app with Playwright and keep every window off the screen, so a run does not take the screen or the focus from you. `DARUDB_STUDIO_HIDDEN=1` is what hides the windows, `DARUDB_STUDIO_USER_DATA` gives the run a user data folder of its own, and `DARUDB_STUDIO_LOG_IPC=1` has the main process write when each call from a window starts and how long it took, by its channel alone; `tests/fixtures.ts` sets all three. A test that fails leaves in `tests/results`, beside its screenshot, a `trace.zip` of what it did in the window, which `npx playwright show-trace` opens, and a `main-process.log` of what the main process wrote while it ran, so a test that waited on a call shows which one never answered. The `app-test` workflow keeps that folder as an artifact of a failed run. The app reads them only when it is not packaged. On Linux without a display, `npm run test:linux` runs the same tests under Xvfb.
 
 ## Building the installers
 

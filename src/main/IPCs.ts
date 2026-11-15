@@ -10,7 +10,7 @@ import {
 } from '@/common/ipc';
 import { openExternalLink } from './security';
 import { refreshTitleBars } from './appearance';
-import { noticesFile } from './constants';
+import { logsIpc, noticesFile } from './constants';
 import { reportWindowState, takeRestore } from './workspace';
 import { changePassword, rescueOpenProject, rescueProject } from './tools';
 import { exportObjects, exportSchema, importObjects } from './transfer';
@@ -69,8 +69,39 @@ const handle = <Channel extends MainChannel>(
     ...args: MainChannelArgs<Channel>
   ) => MainChannelResult<Channel> | Promise<MainChannelResult<Channel>>,
 ): void => {
-  ipcMain.handle(channel, handler);
+  ipcMain.handle(channel, logsIpc ? logged(channel, handler) : handler);
 };
+
+let callsLogged = 0;
+
+/*
+ * `handler`, writing when each call starts and how long it took, under a
+ * number that pairs the two lines; see `logsIpc` in `./constants`. Only the
+ * channel is written, never the arguments or the answer.
+ * */
+const logged =
+  <Args extends unknown[], Result>(
+    channel: string,
+    handler: (event: IpcMainInvokeEvent, ...args: Args) => Result | Promise<Result>,
+  ) =>
+  async (event: IpcMainInvokeEvent, ...args: Args): Promise<Result> => {
+    const call = (callsLogged += 1);
+    const started = performance.now();
+    const elapsed = () => `${Math.round(performance.now() - started)} ms`;
+
+    console.log(`[ipc] ${new Date().toISOString()} #${call} ${channel} started`);
+
+    try {
+      const result = await handler(event, ...args);
+
+      console.log(`[ipc] ${new Date().toISOString()} #${call} ${channel} answered in ${elapsed()}`);
+
+      return result;
+    } catch (error) {
+      console.log(`[ipc] ${new Date().toISOString()} #${call} ${channel} threw in ${elapsed()}`);
+      throw error;
+    }
+  };
 
 /*
  * IPC Communications

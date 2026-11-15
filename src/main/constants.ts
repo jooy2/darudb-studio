@@ -26,9 +26,14 @@ export const devServerUrl = process.env.VITE_DEV_SERVER_URL || debug.env.VITE_DE
  * whoever started it. Playwright drives the hidden windows all the same.
  * `DARUDB_STUDIO_USER_DATA` moves the user data folder, the settings file
  * included, so a run starts from a folder of its own.
+ * `DARUDB_STUDIO_LOG_IPC=1` writes to the standard output when each call from
+ * a window starts and how long it took, by its channel alone, so that a test
+ * that waits on one tells which call never answered. The arguments are left
+ * out: some of them are passwords.
  * */
 export const isHiddenRun = !app.isPackaged && process.env.DARUDB_STUDIO_HIDDEN === '1';
 export const userDataOverride = app.isPackaged ? undefined : process.env.DARUDB_STUDIO_USER_DATA;
+export const logsIpc = !app.isPackaged && process.env.DARUDB_STUDIO_LOG_IPC === '1';
 
 const currentDirName = dirname(fileURLToPath(import.meta.url));
 

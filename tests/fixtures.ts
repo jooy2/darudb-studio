@@ -1,6 +1,6 @@
 import * as base from '@playwright/test';
 import { _electron as electron, Page, ElectronApplication } from 'playwright';
-import { mkdtempSync, rmSync } from 'fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import pkg from '../package.json' with { type: 'json' };
@@ -11,6 +11,33 @@ const { main } = pkg;
 let appElectron: ElectronApplication;
 let page: Page;
 let userDataPath: string;
+
+/*
+ * What the main process wrote since the app started, a line each, for the
+ * report of a test that failed. `DARUDB_STUDIO_LOG_IPC` has it write every call
+ * from a window too, so a test that waited on one shows which never answered.
+ * The oldest lines go once there are more than `KEPT_LINES`.
+ * */
+const KEPT_LINES = 5000;
+let mainOutput: string[] = [];
+let mainLinesDropped = 0;
+
+const keepOutput = (chunk: Buffer): void => {
+  mainOutput.push(
+    ...chunk
+      .toString('utf8')
+      .split(/\r?\n/)
+      .filter((line) => line !== ''),
+  );
+
+  if (mainOutput.length > KEPT_LINES) {
+    mainLinesDropped += mainOutput.length - KEPT_LINES;
+    mainOutput = mainOutput.slice(-KEPT_LINES);
+  }
+};
+
+/* How many lines the main process has written in all, the ones dropped included */
+const mainLinesWritten = (): number => mainLinesDropped + mainOutput.length;
 
 const cwd = process.cwd();
 const isCiProcess = process.env.CI === 'true';
@@ -44,8 +71,13 @@ const launchApp = async (): Promise<void> => {
       NODE_ENV: 'production',
       DARUDB_STUDIO_HIDDEN: '1',
       DARUDB_STUDIO_USER_DATA: userDataPath,
+      DARUDB_STUDIO_LOG_IPC: '1',
     },
   });
+  appElectron.process().stdout?.on('data', keepOutput);
+  appElectron.process().stderr?.on('data', keepOutput);
+  // Each test records a chunk of its own, kept only when it fails; see `test` below
+  await appElectron.context().tracing.start({ snapshots: true, screenshots: false });
   page = await appElectron.firstWindow();
 
   await page.waitForLoadState('load');
@@ -122,6 +154,7 @@ export const getUserDataPath = (): string => userDataPath;
 
 type Fixtures = {
   util: TestUtil;
+  diagnostics: void;
 };
 
 export const test = base.test.extend<Fixtures>({
@@ -134,6 +167,43 @@ export const test = base.test.extend<Fixtures>({
     // eslint-disable-next-line react-hooks/rules-of-hooks
     await use(new TestUtil(page, testInfo, testScreenshotPath));
   },
+  /*
+   * Every test that fails leaves, beside its screenshot, the trace of what it
+   * did in the window, which `npx playwright show-trace` opens, and what the
+   * main process wrote while it ran. The tests of a file share one app, so a
+   * test that relaunches it keeps the trace of the new app alone.
+   * */
+  diagnostics: [
+    // eslint-disable-next-line no-empty-pattern
+    async ({}, use, testInfo) => {
+      const firstLine = mainLinesWritten();
+      const context = appElectron.context();
+
+      await context.tracing.startChunk({ title: testInfo.title });
+
+      await use();
+
+      const failed = testInfo.status !== testInfo.expectedStatus;
+
+      try {
+        // The app this test relaunched has a trace of its own, started at its launch
+        await appElectron
+          .context()
+          .tracing.stopChunk(failed ? { path: testInfo.outputPath('trace.zip') } : undefined);
+      } catch {
+        // The app was closed with its trace
+      }
+
+      if (failed) {
+        const lines = mainOutput.slice(Math.max(0, firstLine - mainLinesDropped));
+        const path = testInfo.outputPath('main-process.log');
+
+        writeFileSync(path, `${lines.join('\n')}\n`);
+        await testInfo.attach('main-process', { path, contentType: 'text/plain' });
+      }
+    },
+    { auto: true },
+  ],
 });
 
 export const { expect } = base;
