@@ -43,7 +43,7 @@ interface StoredSchema {
     key: string;
     autoIncrement: boolean;
     fields: StoredField[];
-    indexes: { fields: readonly string[]; unique: boolean }[];
+    indexes: { fields: readonly string[]; unique: boolean; text?: boolean }[];
   }[];
 }
 
@@ -83,7 +83,11 @@ export const schemaFromStored = (stored: unknown): DatabaseSchema | null => {
       key: collection.key,
       autoIncrement: collection.autoIncrement,
       fields: collection.fields.map(fieldOf),
-      indexes: collection.indexes.map(({ fields, unique }) => ({ fields: [...fields], unique })),
+      indexes: collection.indexes.map(({ fields, unique, text }) => ({
+        fields: [...fields],
+        unique,
+        ...(text ? { text: true as const } : {}),
+      })),
     })),
   };
 };
@@ -141,13 +145,14 @@ const literal = (value: Value): string => {
     : `{ ${entries.map(([name, each]) => `${propertyKey(name)}: ${literal(each)}`).join(', ')} }`;
 };
 
-/* What a field is marked with besides its type: the key, or an index of its own */
+/* What a field is marked with besides its type: the key, or indexes of its own */
 interface FieldMarks {
   primaryKey: boolean;
   index: 'index' | 'unique' | null;
+  text: boolean;
 }
 
-const NO_MARKS: FieldMarks = { primaryKey: false, index: null };
+const NO_MARKS: FieldMarks = { primaryKey: false, index: null, text: false };
 
 /* The builder of `type`, such as `t.list(t.string())` */
 const builderOf = (type: FieldType, indent: string): string => {
@@ -165,7 +170,7 @@ const builderOf = (type: FieldType, indent: string): string => {
 
 /*
  * The calls after a field's builder. The key comes first, since only a type
- * a key can be has `primaryKey`, and an index last, as every builder has it.
+ * a key can be has `primaryKey`, and indexes last, as every builder has them.
  * A field with a default is declared without `optional`, which darudb refuses
  * beside a default since 1.6: a field a file holds with both never read as
  * null, so the declaration reads the same, though the file then records the
@@ -178,6 +183,7 @@ const modifiersOf = (field: SchemaField, marks: FieldMarks): string =>
     field.default === undefined ? '' : `.default(${literal(field.default)})`,
     field.cascade ? '.cascade()' : '',
     marks.index ? `.${marks.index}()` : '',
+    marks.text ? '.textIndex()' : '',
   ].join('');
 
 /* `fields` as the object a `collection` or a `t.object` takes, at `indent` */
@@ -202,6 +208,7 @@ const fieldsOf = (
 /* `collection` as the call that declares it, at `indent` */
 const collectionCall = (collection: SchemaCollection, indent: string): string => {
   const own = new Map<string, FieldMarks['index']>();
+  const texts = new Set<string>();
   const others: SchemaCollection['indexes'] = [];
 
   // An index on one field of the collection is marked on the field; one on
@@ -211,7 +218,9 @@ const collectionCall = (collection: SchemaCollection, indent: string): string =>
     const onField =
       index.fields.length === 1 && collection.fields.some((field) => field.name === first);
 
-    if (onField && own.get(first) !== 'unique') {
+    if (onField && index.text) {
+      texts.add(first);
+    } else if (onField && own.get(first) !== 'unique') {
       own.set(first, index.unique ? 'unique' : 'index');
     } else if (!onField) {
       others.push(index);
@@ -221,6 +230,7 @@ const collectionCall = (collection: SchemaCollection, indent: string): string =>
   const marksOf = (field: SchemaField): FieldMarks => ({
     primaryKey: !collection.autoIncrement && field.name === collection.key,
     index: own.get(field.name) ?? null,
+    text: texts.has(field.name),
   });
 
   if (others.length === 0) {
@@ -234,7 +244,7 @@ const collectionCall = (collection: SchemaCollection, indent: string): string =>
       (index) =>
         `{ fields: [${index.fields.map(quote).join(', ')}]${
           index.unique ? ', unique: true' : ''
-        } }`,
+        }${index.text ? ', text: true' : ''} }`,
     )
     .join(', ');
 

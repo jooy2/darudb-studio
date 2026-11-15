@@ -159,6 +159,7 @@
     "open-beside": "Ouvrir dans un nouveau groupe",
     "refresh": "Recompter",
     "schema-version": "Schéma v{{version}}",
+    "text-index": "Index de texte",
     "title": "Collections",
     "unique": "unique",
     "unique-index": "Index unique",

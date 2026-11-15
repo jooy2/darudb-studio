@@ -86,6 +86,36 @@ test('The TypeScript of a schema declares the same schema again', () => {
   expect(storedWith('again.darudb', run(code))).toEqual(read);
 });
 
+test('Text indexes are declared again, beside an index on the same field', () => {
+  const read = storedWith(
+    'text.darudb',
+    schema(1, {
+      notes: collection(
+        {
+          title: t.string().index().textIndex(),
+          tags: t.list(t.string()).textIndex(),
+          margin: t.object({ note: t.string() }).optional(),
+        },
+        { indexes: [{ fields: ['margin.note'], text: true }] },
+      ),
+    }),
+  )!;
+
+  expect(read.collections[0].indexes).toEqual([
+    { fields: ['title'], unique: false },
+    { fields: ['title'], unique: false, text: true },
+    { fields: ['tags'], unique: false, text: true },
+    { fields: ['margin.note'], unique: false, text: true },
+  ]);
+
+  const code = schemaToTypeScript(read);
+
+  expect(code).toContain('title: t.string().index().textIndex(),');
+  expect(code).toContain('tags: t.list(t.string()).textIndex(),');
+  expect(code).toContain("{ indexes: [{ fields: ['margin.note'], text: true }] },");
+  expect(storedWith('text-again.darudb', run(code))).toEqual(read);
+});
+
 test('A field that may be null and has a default is written with its default alone', () => {
   // As a file written before darudb 1.6 holds it, which 1.6 can no longer declare
   const held: DatabaseSchema = {

@@ -13,6 +13,7 @@ import {
   RefreshCw,
   Sigma,
   Table2,
+  TextSearch,
   ToggleLeft,
   Type,
   Zap,
@@ -35,7 +36,7 @@ import {
   type WorkspaceTab,
 } from '@/renderer/store/slices/projectSlice';
 import { useAppDispatch, useAppSelector } from '@/renderer/store/hooks';
-import type { FieldType, SchemaCollection, SchemaField } from '@/common/data';
+import type { FieldType, SchemaCollection, SchemaField, SchemaIndex } from '@/common/data';
 
 const iconOf = (type: FieldType): ReactNode => {
   switch (type.kind) {
@@ -101,9 +102,11 @@ function SchemaTree({ onAddObject, onViewSchema, onEditSchema }: SchemaTreeProps
       field: SchemaField,
       path: string,
     ): PlTreeNode => {
-      const index = collection.indexes.find(
-        (each) => each.fields.length === 1 && each.fields[0] === path,
-      );
+      const onPath = (each: SchemaIndex): boolean =>
+        each.fields.length === 1 && each.fields[0] === path;
+      // A text index holds words, not values, so it is marked apart from an index of the field's values
+      const index = collection.indexes.find((each) => onPath(each) && !each.text);
+      const textIndex = collection.indexes.some((each) => onPath(each) && each.text);
       const isKey = path === collection.key;
 
       return {
@@ -128,6 +131,15 @@ function SchemaTree({ onAddObject, onViewSchema, onEditSchema }: SchemaTreeProps
               >
                 <Zap aria-hidden="true" />
                 {index.unique ? t('sidebar.unique') : ''}
+              </span>
+            )}
+            {textIndex && (
+              <span
+                className="tree-field__index"
+                data-testid="tree-text-index"
+                title={t('sidebar.text-index')}
+              >
+                <TextSearch aria-hidden="true" />
               </span>
             )}
           </span>

@@ -159,6 +159,7 @@
     "open-beside": "新しいグループで開く",
     "refresh": "数え直す",
     "schema-version": "スキーマ v{{version}}",
+    "text-index": "テキストインデックス",
     "title": "コレクション",
     "unique": "一意",
     "unique-index": "一意インデックス",

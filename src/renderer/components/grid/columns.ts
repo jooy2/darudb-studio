@@ -41,10 +41,11 @@ export const defaultWidth = (column: GridColumn): number =>
 /* The columns of `collection`: its key, then its fields in the file's order */
 export const columnsOf = (collection: SchemaCollection): GridColumn[] => {
   // An index on several fields is not the index of any one of them: a unique
-  // one keeps their combination unique, and the schema tree lists it
+  // one keeps their combination unique, and the schema tree lists it. Nor is
+  // a text index, which holds the words of the field and not its values.
   const indexOf = (name: string): GridColumn['index'] => {
     const found = collection.indexes.find(
-      (index) => index.fields.length === 1 && index.fields[0] === name,
+      (index) => index.fields.length === 1 && index.fields[0] === name && !index.text,
     );
 
     if (!found) {

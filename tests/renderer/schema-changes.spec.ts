@@ -167,6 +167,47 @@ test('A field is added, renamed with its indexes, and deleted with them', () => 
   db.close();
 });
 
+test('A change keeps the text indexes of the file', () => {
+  const path = join(files, `changes-${(made += 1)}.darudb`);
+  const first = Database.open(path, {
+    schema: schema(1, {
+      notes: collection(
+        {
+          body: t.string().index().textIndex(),
+          tags: t.list(t.string()).textIndex(),
+          margin: t.object({ note: t.string() }).optional(),
+        },
+        { indexes: [{ fields: ['margin.note'], text: true }] },
+      ),
+    }),
+  });
+
+  first.write((txn) =>
+    txn
+      .collection('notes')
+      .insert({ body: 'the quick fox', tags: ['red fox'], margin: { note: 'seen at dawn' } }),
+  );
+  first.close();
+
+  const db = apply(path, {
+    kind: 'add-field',
+    collection: 'notes',
+    field: { name: 'seen', type: { kind: 'bool' }, optional: true, index: 'none' },
+  });
+  const notes = (where: string) => db.read((txn) => txn.collection('notes').count(where));
+
+  expect(db.storedSchema?.version).toBe(2);
+  expect(
+    db.storedSchema?.collections[0].indexes.map(
+      ({ fields, text }) => `${fields.join('+')}:${text}`,
+    ),
+  ).toEqual(['body:false', 'body:true', 'tags:true', 'margin.note:true']);
+  expect(notes('body MATCHES "qui*"')).toBe(1);
+  expect(notes('tags MATCHES "fox"')).toBe(1);
+  expect(notes('margin.note MATCHES "dawn"')).toBe(1);
+  db.close();
+});
+
 test('A field that may be null and has a default is declared with its default alone', () => {
   // As a file written before darudb 1.6 holds it, which 1.6 refuses to declare with both
   const held = {

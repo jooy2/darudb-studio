@@ -159,6 +159,7 @@
     "open-beside": "In neuer Gruppe öffnen",
     "refresh": "Neu zählen",
     "schema-version": "Schema v{{version}}",
+    "text-index": "Textindex",
     "title": "Sammlungen",
     "unique": "eindeutig",
     "unique-index": "Eindeutiger Index",

@@ -18,19 +18,21 @@ interface Builder {
   cascade(): Builder;
   index(): Builder;
   unique(): Builder;
+  textIndex(): Builder;
 }
 
 type Builders = Record<string, (...args: unknown[]) => Builder>;
 
 const builders = t as unknown as Builders;
 
-/* What a field is marked with besides its type: the key, or an index of its own */
+/* What a field is marked with besides its type: the key, or indexes of its own */
 interface FieldMarks {
   primaryKey: boolean;
   index: 'index' | 'unique' | null;
+  text: boolean;
 }
 
-const NO_MARKS: FieldMarks = { primaryKey: false, index: null };
+const NO_MARKS: FieldMarks = { primaryKey: false, index: null, text: false };
 
 const fieldsOf = (
   fields: readonly SchemaField[],
@@ -59,7 +61,7 @@ const builderOf = (type: FieldType, fallback?: unknown): Builder => {
 
 /*
  * The field, in the order a program writes its calls: the key first, since
- * only a type a key can be has `primaryKey`, and an index last.
+ * only a type a key can be has `primaryKey`, and indexes last.
  *
  * A field with a default is declared without `optional`, which darudb refuses
  * beside a default since 1.6. A file written before may hold a field with
@@ -89,28 +91,43 @@ const fieldOf = (field: SchemaField, marks: FieldMarks): Builder => {
     built = built[marks.index]();
   }
 
+  if (marks.text) {
+    built = built.textIndex();
+  }
+
   return built;
 };
 
-/* An index on one field of the collection is marked on the field; the rest go in the options */
+/*
+ * An index on one field of the collection is marked on the field, a text
+ * index with `textIndex`; the rest go in the options.
+ * */
 const collectionOf = (declared: SchemaCollection) => {
   const own = new Map<string, FieldMarks['index']>();
-  const others: { fields: [string, ...string[]]; unique: boolean }[] = [];
+  const texts = new Set<string>();
+  const others: { fields: [string, ...string[]]; unique: boolean; text?: true }[] = [];
 
   for (const index of declared.indexes) {
     const [first, ...rest] = index.fields;
     const onField = rest.length === 0 && declared.fields.some((field) => field.name === first);
 
-    if (onField && own.get(first) !== 'unique') {
+    if (onField && index.text) {
+      texts.add(first);
+    } else if (onField && own.get(first) !== 'unique') {
       own.set(first, index.unique ? 'unique' : 'index');
     } else if (!onField) {
-      others.push({ fields: [first, ...rest], unique: index.unique });
+      others.push({
+        fields: [first, ...rest],
+        unique: index.unique,
+        ...(index.text ? { text: true as const } : {}),
+      });
     }
   }
 
   const fields = fieldsOf(declared.fields, (field) => ({
     primaryKey: !declared.autoIncrement && field.name === declared.key,
     index: own.get(field.name) ?? null,
+    text: texts.has(field.name),
   }));
 
   return others.length === 0

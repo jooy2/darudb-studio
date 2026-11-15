@@ -39,11 +39,15 @@ export interface SchemaField {
 /*
  * An index of a collection: every field it is on, in order, each a name or a
  * dotted path into an embedded object. A unique index on several fields keeps
- * their combination unique, not each of them.
+ * their combination unique, not each of them. A text index is on one field
+ * and holds the words of its text rather than its values, so it answers a
+ * search for words and no lookup by value; a field may have one beside an
+ * index of the other kind.
  * */
 export interface SchemaIndex {
   fields: string[];
   unique: boolean;
+  text?: true;
 }
 
 export interface SchemaCollection {

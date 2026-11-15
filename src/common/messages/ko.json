@@ -159,6 +159,7 @@
     "open-beside": "새 그룹에서 열기",
     "refresh": "다시 세기",
     "schema-version": "스키마 v{{version}}",
+    "text-index": "텍스트 인덱스",
     "title": "컬렉션",
     "unique": "고유",
     "unique-index": "고유 인덱스",
